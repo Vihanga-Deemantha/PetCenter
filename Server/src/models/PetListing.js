@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const petSchema = new mongoose.Schema(
+const petListingSchema = new mongoose.Schema(
   {
     title: {
       type: String,
@@ -16,20 +16,22 @@ const petSchema = new mongoose.Schema(
     breed: {
       type: String,
       required: [true, "Please add a breed"],
+      trim: true,
     },
     age: {
       type: Number,
-      required: [true, "Please add an age"],
+      required: [true, "Please add an age (in months)"],
+      min: [0, "Age cannot be negative"],
     },
     gender: {
       type: String,
-      required: [true, "Please add a gender"],
+      required: [true, "Please specify gender"],
       enum: ["male", "female", "unknown"],
     },
     price: {
       type: Number,
-      required: [true, "Please add a price"],
       default: 0,
+      min: [0, "Price cannot be negative"],
     },
     location: {
       type: String,
@@ -38,7 +40,7 @@ const petSchema = new mongoose.Schema(
     description: {
       type: String,
       required: [true, "Please add a description"],
-      maxlength: [1000, "Description cannot be more than 1000 characters"],
+      maxlength: [2000, "Description cannot be more than 2000 characters"],
     },
     healthInfo: {
       type: String,
@@ -46,7 +48,11 @@ const petSchema = new mongoose.Schema(
     },
     images: {
       type: [String],
-      default: ["no-image.jpg"],
+      default: [],
+    },
+    imagePublicIds: {
+      type: [String],
+      default: [],
     },
     contactDetails: {
       type: String,
@@ -54,18 +60,28 @@ const petSchema = new mongoose.Schema(
     },
     listingType: {
       type: String,
-      required: [true, "Please add a listing type"],
+      required: [true, "Please specify listing type"],
       enum: ["sale", "adoption"],
     },
+    // Status flow: pending → active → sold/adopted/removed
     status: {
       type: String,
-      enum: ["active", "sold", "adopted", "removed"],
-      default: "active",
+      enum: ["pending", "active", "sold", "adopted", "removed"],
+      default: "pending",
+    },
+    viewCount: {
+      type: Number,
+      default: 0,
     },
     owner: {
-      type: mongoose.Schema.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+    },
+    // Admin moderation notes
+    moderationNote: {
+      type: String,
+      default: "",
     },
   },
   {
@@ -73,6 +89,10 @@ const petSchema = new mongoose.Schema(
   }
 );
 
-const Pet = mongoose.model("Pet", petSchema);
+// Text index for search
+petListingSchema.index({ title: "text", breed: "text", description: "text" });
+petListingSchema.index({ petType: 1, status: 1 });
+petListingSchema.index({ owner: 1, status: 1 });
 
-export default Pet;
+const PetListing = mongoose.model("PetListing", petListingSchema);
+export default PetListing;

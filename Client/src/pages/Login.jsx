@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { loginUser } from "../services/authService";
+import { loginUser } from "../api/auth.api";
 import { motion as Motion } from "framer-motion";
 import { Mail, Lock, LogIn, AlertCircle } from "lucide-react";
 
@@ -23,10 +23,10 @@ const Login = () => {
 
     try {
       const data = await loginUser(formData);
-      login(data.user, data.token);
+      login(data.data.user, data.data.accessToken);
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.error || "Login failed. Please try again.");
+      setError(err.response?.data?.message || err.response?.data?.error || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }

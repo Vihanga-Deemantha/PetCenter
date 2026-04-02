@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getPet, updatePet } from "../services/petService";
+import { getListing, updateListing } from "../api/listing.api";
 import { motion as Motion } from "framer-motion";
 import { Save, Tag, MapPin, DollarSign, Info, Upload, CheckCircle, ArrowLeft, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -29,7 +29,7 @@ const EditListing = () => {
   useEffect(() => {
     const fetchPet = async () => {
       try {
-        const data = await getPet(id);
+        const data = await getListing(id);
         const pet = data.data;
         // Map the API data to form data
         setFormData({
@@ -63,12 +63,14 @@ const EditListing = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await updatePet(id, formData);
+      const fd = new FormData();
+      Object.entries(formData).forEach(([k, v]) => fd.append(k, v));
+      await updateListing(id, fd);
       setSuccess(true);
       setTimeout(() => navigate("/my-listings"), 2000);
     } catch (error) {
       console.error("Failed to update pet listing", error);
-      alert("Failed to update listing: " + (error.response?.data?.error || error.message));
+      alert("Failed to update listing: " + (error.response?.data?.message || error.message));
     } finally {
       setSubmitting(false);
     }
@@ -148,7 +150,7 @@ const EditListing = () => {
               <input type="text" name="breed" value={formData.breed} onChange={onChange} required className="w-full px-6 py-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-primary/20 outline-none font-semibold transition-all" />
             </div>
             <div>
-              <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Age (Years)</label>
+              <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Age (Months)</label>
               <input type="number" name="age" value={formData.age} onChange={onChange} required className="w-full px-6 py-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-primary/20 outline-none font-semibold transition-all" />
             </div>
             <div>
@@ -163,7 +165,7 @@ const EditListing = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
-              <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Price ($)</label>
+              <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Price (LKR) — 0 for free</label>
               <div className="relative">
                 <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 text-primary" size={20} />
                 <input type="number" name="price" value={formData.price} onChange={onChange} required className="w-full pl-14 pr-6 py-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-primary/20 outline-none font-black text-xl text-primary" />
@@ -193,7 +195,7 @@ const EditListing = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+            <label className="flex text-xs font-black uppercase tracking-widest text-slate-400 mb-3 items-center gap-2">
               <Plus size={16} className="text-emerald-500 rotate-45" />
               Health & Vaccination Info
             </label>
@@ -201,7 +203,7 @@ const EditListing = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+            <label className="flex text-xs font-black uppercase tracking-widest text-slate-400 mb-3 items-center gap-2">
               <Info size={16} className="text-primary" />
               Detailed Description
             </label>

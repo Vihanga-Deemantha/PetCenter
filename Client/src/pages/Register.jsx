@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { registerUser } from "../services/authService";
+import { registerUser } from "../api/auth.api";
 import { motion as Motion } from "framer-motion";
 import { User, Mail, Lock, Phone, MapPin, UserPlus, AlertCircle } from "lucide-react";
 
@@ -12,7 +12,6 @@ const Register = () => {
     password: "",
     phone: "",
     location: "",
-    role: "user",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,10 +29,10 @@ const Register = () => {
 
     try {
       const data = await registerUser(formData);
-      login(data.user, data.token);
+      login(data.data.user, data.data.accessToken);
       navigate("/");
     } catch (err) {
-      setError(err.response?.data?.error || "Registration failed. Please try again.");
+      setError(err.response?.data?.message || err.response?.data?.error || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }

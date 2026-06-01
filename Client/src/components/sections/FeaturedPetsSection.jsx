@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
 import { ArrowRight, MapPin, Tag } from "lucide-react";
 import { getListings } from "../../api/listing.api";
+import PetBounceIcon from "../animations/PetBounceIcon";
 
 const FeaturedPetsSection = () => {
   const [pets, setPets] = useState([]);
@@ -28,7 +29,7 @@ const FeaturedPetsSection = () => {
         <div>
           <span className="text-primary font-black uppercase tracking-widest text-xs mb-4 block">New Arrivals</span>
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-950 tracking-tighter leading-tight">
-            Find your perfect <br/> companion.
+            <PetBounceIcon emoji="🐾" delay={0} />{" "}Find your perfect <br/> companion.
           </h2>
         </div>
         <Link to="/marketplace" className="group flex items-center gap-3 font-black text-slate-900 border-b-2 border-primary pb-1 transition-all hover:text-primary">

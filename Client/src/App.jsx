@@ -1,9 +1,13 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
+import PawParticles from "./components/animations/PawParticles";
+import PageTransitionDog from "./components/animations/PageTransitionDog";
+import InteractiveDog from "./components/animations/InteractiveDog";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -24,6 +28,10 @@ import AdminLayout from "./layouts/AdminLayout";
 // Wrapper for global pages with Navbar/Footer
 const GlobalLayout = () => (
   <div className="min-h-screen bg-white font-body antialiased selection:bg-primary/10 selection:text-primary flex flex-col">
+    {/* 🐾 Ambient floating paw particles – fixed, behind everything */}
+    <PawParticles />
+    {/* 🐾 Dog that sweeps across on every route change */}
+    <PageTransitionDog />
     <Navbar />
     <main className="grow">
       <Outlet />
@@ -31,6 +39,18 @@ const GlobalLayout = () => (
     <Footer />
   </div>
 );
+
+const DogDockPortal = () =>
+  typeof document === "undefined"
+    ? null
+    : createPortal(
+        <div className="fixed bottom-2 right-2 sm:bottom-4 sm:right-4 pointer-events-none" style={{ zIndex: 9999 }}>
+          <div className="pointer-events-auto w-72 sm:w-80 md:w-96 transform-gpu drop-shadow-2xl">
+            <InteractiveDog compact />
+          </div>
+        </div>,
+        document.body,
+      );
 
 // Helper for padding global routes
 const PaddedContainer = ({ children }) => (
@@ -41,6 +61,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        <DogDockPortal />
         <Routes>
           {/* Global User Interface */}
           <Route element={<GlobalLayout />}>

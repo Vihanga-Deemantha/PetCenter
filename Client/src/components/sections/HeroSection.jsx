@@ -4,6 +4,15 @@ import { motion as Motion } from "framer-motion";
 import { PawPrint, Mail, Phone, MapPin, Globe, Activity, Star, ArrowRight, Shield, Heart, Plus } from "lucide-react";
 import heroImage from "../../assets/stunning_pet_ecosystem_hero.png";
 
+const pawTrail = [
+  { id: 1, left: "8%", top: "18%", delay: 0, size: 16, rotate: -18 },
+  { id: 2, left: "18%", top: "30%", delay: 0.8, size: 20, rotate: -8 },
+  { id: 3, left: "30%", top: "22%", delay: 1.4, size: 15, rotate: 10 },
+  { id: 4, left: "64%", top: "16%", delay: 2.1, size: 21, rotate: -12 },
+  { id: 5, left: "76%", top: "28%", delay: 2.8, size: 17, rotate: 12 },
+  { id: 6, left: "88%", top: "20%", delay: 3.4, size: 15, rotate: -6 },
+];
+
 const HeroSection = () => {
   const container = {
     hidden: { opacity: 0 },
@@ -28,8 +37,24 @@ const HeroSection = () => {
   return (
     <section className="relative min-h-[90vh] flex items-center pt-20 overflow-hidden bg-white">
       {/* Background Blobs */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 animate-pulse" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-accent/10 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/4" />
+      <div className="absolute top-0 right-0 w-125 h-125 bg-primary/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 animate-pulse" />
+      <div className="absolute bottom-0 left-0 w-100 h-100 bg-accent/10 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/4" />
+
+      {/* Home-only paw animation */}
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+        {pawTrail.map((paw) => (
+          <Motion.span
+            key={paw.id}
+            className="absolute text-primary/30 drop-shadow-sm"
+            style={{ left: paw.left, top: paw.top, fontSize: `${paw.size}px`, rotate: `${paw.rotate}deg` }}
+            initial={{ opacity: 0, scale: 0.4, y: 12 }}
+            animate={{ opacity: [0, 0.9, 0.3], scale: [0.4, 1, 0.92], y: [12, 0, -8] }}
+            transition={{ duration: 2.8, repeat: Infinity, repeatDelay: 0.4, delay: paw.delay, ease: "easeInOut" }}
+          >
+            🐾
+          </Motion.span>
+        ))}
+      </div>
       
       <div className="max-w-7xl mx-auto px-[5%] grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
         {/* Left Content */}
@@ -94,7 +119,7 @@ const HeroSection = () => {
           initial={{ opacity: 0, scale: 0.8, x: 50 }}
           animate={{ opacity: 1, scale: 1, x: 0 }}
           transition={{ duration: 1.2, ease: "easeOut", delay: 0.5 }}
-          className="relative"
+          className="relative flex flex-col md:flex-row lg:flex-col gap-8 items-center"
         >
           {/* Main Visual Frame */}
           <div className="relative z-10 w-full rounded-[40px] overflow-hidden shadow-2xl shadow-slate-200/50 group">
@@ -128,7 +153,7 @@ const HeroSection = () => {
           <Motion.div 
             animate={{ y: [0, -20, 0] }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute -bottom-10 right-10 z-20 glass-card p-6 bg-white/70 backdrop-blur-xl border border-white/50 shadow-2xl shadow-teal-500/10 hidden md:block"
+            className="absolute -bottom-16 right-4 z-20 glass-card p-6 bg-white/70 backdrop-blur-xl border border-white/50 shadow-2xl shadow-teal-500/10 hidden md:block"
           >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-white rounded-xl shadow-lg flex items-center justify-center">
@@ -142,6 +167,7 @@ const HeroSection = () => {
           </Motion.div>
         </Motion.div>
       </div>
+
     </section>
   );
 };

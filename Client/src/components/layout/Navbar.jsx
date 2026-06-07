@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { PawPrint, LogOut, User, Menu, X, Plus, LayoutDashboard, ClipboardList } from "lucide-react";
+import { PawPrint, LogOut, User, Menu, X, Plus, LayoutDashboard, ClipboardList, ShoppingCart } from "lucide-react";
+import { useCart } from "../../context/CartContext";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
+  const { itemCount } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -96,6 +98,14 @@ const Navbar = () => {
               <Link to="/my-listings" className="text-slate-500 hover:text-primary transition-colors" title="My Listings">
                 <ClipboardList size={20} />
               </Link>
+              <Link to="/cart" className="text-slate-500 hover:text-primary transition-colors relative" title="Shopping Cart">
+                <ShoppingCart size={20} />
+                {itemCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-black rounded-full h-4 w-4 flex items-center justify-center border border-white shadow-xs">
+                    {itemCount}
+                  </span>
+                )}
+              </Link>
               <Link to="/profile" className="text-slate-500 hover:text-primary transition-colors">
                 <User size={20} />
               </Link>
@@ -109,6 +119,14 @@ const Navbar = () => {
           </div>
         ) : (
           <div className="flex items-center gap-4">
+            <Link to="/cart" className="text-slate-500 hover:text-primary transition-colors relative mr-2" title="Shopping Cart">
+              <ShoppingCart size={20} />
+              {itemCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-black rounded-full h-4 w-4 flex items-center justify-center border border-white shadow-xs">
+                  {itemCount}
+                </span>
+              )}
+            </Link>
             <Link to="/login" className="font-bold text-sm text-slate-600 hover:text-slate-900 px-4 py-2 transition-colors">
               Login
             </Link>
@@ -161,20 +179,28 @@ const Navbar = () => {
                   <Link to="/create-listing" className="btn btn-primary py-5 text-xl rounded-2xl" onClick={() => setIsMobileMenuOpen(false)}>
                     Post a New Ad
                   </Link>
-                  <div className="flex gap-4">
-                    <Link to="/profile" className="flex-1 py-4 bg-slate-50 rounded-2xl flex items-center justify-center gap-3 font-bold text-slate-600" onClick={() => setIsMobileMenuOpen(false)}>
-                      <User size={20} /> Profile
+                  <div className="flex flex-col gap-3">
+                    <Link to="/cart" className="w-full py-4 bg-indigo-50 border border-indigo-100 text-primary rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
+                      <ShoppingCart size={20} /> Cart {itemCount > 0 && `(${itemCount})`}
                     </Link>
-                    <button 
-                      onClick={handleLogout} 
-                      className="flex-1 py-4 bg-rose-50 rounded-2xl flex items-center justify-center gap-3 font-bold text-rose-500"
-                    >
-                      <LogOut size={20} /> Logout
-                    </button>
+                    <div className="flex gap-4">
+                      <Link to="/profile" className="flex-1 py-4 bg-slate-50 rounded-2xl flex items-center justify-center gap-3 font-bold text-slate-600" onClick={() => setIsMobileMenuOpen(false)}>
+                        <User size={20} /> Profile
+                      </Link>
+                      <button 
+                        onClick={handleLogout} 
+                        className="flex-1 py-4 bg-rose-50 rounded-2xl flex items-center justify-center gap-3 font-bold text-rose-500"
+                      >
+                        <LogOut size={20} /> Logout
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-4">
+                  <Link to="/cart" className="w-full py-4 bg-slate-50 border border-slate-100 text-slate-600 rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
+                    <ShoppingCart size={20} /> Cart {itemCount > 0 && `(${itemCount})`}
+                  </Link>
                   <Link to="/login" className="w-full py-5 border-2 border-slate-100 rounded-2xl text-center font-bold text-slate-800" onClick={() => setIsMobileMenuOpen(false)}>
                     Login
                   </Link>

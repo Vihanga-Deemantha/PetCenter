@@ -1,5 +1,7 @@
 import User from "../models/User.js";
 import PetListing from "../models/PetListing.js";
+import Product from "../models/Products.js";
+import Order from "../models/Order.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 
 // ─── Dashboard Stats ──────────────────────────────────────────────────────────
@@ -15,6 +17,17 @@ export const getDashboardStats = async (req, res, next) => {
       soldListings,
       adoptedListings,
       removedListings,
+      // Phase 2: Products
+      totalProducts,
+      activeProducts,
+      lowStockProducts,
+      outOfStockProducts,
+      // Phase 2: Orders & Revenue
+      totalOrders,
+      processingOrders,
+      shippedOrders,
+      deliveredOrders,
+      cancelledOrders,
     ] = await Promise.all([
       User.countDocuments({ role: "user" }),
       User.countDocuments({ isBlocked: true }),
@@ -24,7 +37,43 @@ export const getDashboardStats = async (req, res, next) => {
       PetListing.countDocuments({ status: "sold" }),
       PetListing.countDocuments({ status: "adopted" }),
       PetListing.countDocuments({ status: "removed" }),
+      // Products
+      Product.countDocuments(),
+      Product.countDocuments({ isActive: true }),
+      Product.countDocuments({ isActive: true, stock: { $gt: 0, $lte: 5 } }),
+      Product.countDocuments({ isActive: true, stock: 0 }),
+      // Orders
+      Order.countDocuments(),
+      Order.countDocuments({ status: "processing" }),
+      Order.countDocuments({ status: "shipped" }),
+      Order.countDocuments({ status: "delivered" }),
+      Order.countDocuments({ status: "cancelled" }),
     ]);
+
+    // Revenue aggregation (total revenue from all paid orders)
+    const revenueResult = await Order.aggregate([
+      { $match: { paymentStatus: "paid" } },
+      { $group: { _id: null, totalRevenue: { $sum: "$totalAmount" } } },
+    ]);
+
+    // Revenue this month
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const monthlyRevenueResult = await Order.aggregate([
+      { $match: { paymentStatus: "paid", createdAt: { $gte: startOfMonth } } },
+      { $group: { _id: null, monthlyRevenue: { $sum: "$totalAmount" } } },
+    ]);
+
+    // Top 5 bestselling products
+    const topProducts = await Product.find({ isActive: true })
+      .select("name category price soldCount images")
+      .sort({ soldCount: -1 })
+      .limit(5)
+      .lean();
+
+    const totalRevenue = revenueResult[0]?.totalRevenue || 0;
+    const monthlyRevenue = monthlyRevenueResult[0]?.monthlyRevenue || 0;
 
     return sendSuccess(res, {
       users: { total: totalUsers, blocked: blockedUsers },
@@ -35,6 +84,29 @@ export const getDashboardStats = async (req, res, next) => {
         sold: soldListings,
         adopted: adoptedListings,
         removed: removedListings,
+      },
+      products: {
+        total: totalProducts,
+        active: activeProducts,
+        lowStock: lowStockProducts,   // stock 1-5
+        outOfStock: outOfStockProducts, // stock 0
+        topSelling: topProducts.map((p) => ({
+          ...p,
+          priceInDollars: (p.price / 100).toFixed(2),
+        })),
+      },
+      orders: {
+        total: totalOrders,
+        processing: processingOrders,
+        shipped: shippedOrders,
+        delivered: deliveredOrders,
+        cancelled: cancelledOrders,
+      },
+      revenue: {
+        totalInCents: totalRevenue,
+        totalInDollars: (totalRevenue / 100).toFixed(2),
+        monthlyInCents: monthlyRevenue,
+        monthlyInDollars: (monthlyRevenue / 100).toFixed(2),
       },
     });
   } catch (error) {

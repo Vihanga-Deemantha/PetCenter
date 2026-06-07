@@ -22,6 +22,16 @@ const profileStorage = new CloudinaryStorage({
   },
 });
 
+// Cloudinary storage for product images (Phase 2)
+const productStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "petcenter/products",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [{ width: 800, height: 800, crop: "limit", quality: "auto" }],
+  },
+});
+
 const fileFilter = (_req, file, cb) => {
   if (file.mimetype.startsWith("image/")) {
     cb(null, true);
@@ -41,3 +51,10 @@ export const uploadProfilePhoto = multer({
   fileFilter,
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
 }).single("profileImage");
+
+// Product images upload — max 8 images per product
+export const uploadProductImages = multer({
+  storage: productStorage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024, files: 8 }, // 5MB per file, max 8 files
+}).array("images", 8);

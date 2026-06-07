@@ -6,7 +6,12 @@ import cookieParser from "cookie-parser";
 import connectDB from "./src/config/db.js";
 import authRoutes from "./src/routes/auth.routes.js";
 import listingRoutes from "./src/routes/listing.routes.js";
+import productRoutes from "./src/routes/product.routes.js";
+import cartRoutes from "./src/routes/cart.routes.js";
+import orderRoutes from "./src/routes/order.routes.js";
 import adminRoutes from "./src/routes/admin.routes.js";
+import webhookRoutes from "./src/routes/webhook.routes.js";
+import { stripeWebhookMiddleware } from "./src/middleware/stripeWebhook.js";
 import errorHandler from "./src/middleware/errorHandler.js";
 import { generalLimiter } from "./src/middleware/rateLimit.js";
 
@@ -26,6 +31,15 @@ app.use(
 // NoSQL injection sanitization — express-mongo-sanitize is not yet compatible
 // with Express v5's read-only req.query. Sanitize at controller level instead.
 
+// ── Stripe Webhooks (must be BEFORE body parsers) ──────────────────────────────
+// Webhooks require raw body for signature verification
+app.use(
+  "/api/v1/webhooks",
+  express.raw({ type: "application/json" }),
+  stripeWebhookMiddleware,
+  webhookRoutes
+);
+
 // ── Body Parsing ──────────────────────────────────────────────────────────────
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
@@ -42,6 +56,9 @@ app.get("/api/v1/health", (_req, res) => {
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/listings", listingRoutes);
+app.use("/api/v1/products", productRoutes);
+app.use("/api/v1/cart", cartRoutes);
+app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/admin", adminRoutes);
 
 // ── 404 Handler ───────────────────────────────────────────────────────────────

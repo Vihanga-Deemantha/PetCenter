@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink, Outlet, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { LayoutDashboard, Users, Heart, LogOut, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, Users, Heart, LogOut, ArrowLeft, Package, ClipboardList } from "lucide-react";
 
 const AdminLayout = () => {
   const { user, logout } = useAuth();
@@ -15,6 +15,8 @@ const AdminLayout = () => {
     { name: "Dashboard", path: "/admin", end: true, icon: <LayoutDashboard size={20} /> },
     { name: "Users", path: "/admin/users", icon: <Users size={20} /> },
     { name: "Listings", path: "/admin/listings", icon: <Heart size={20} /> },
+    { name: "Products", path: "/admin/products", icon: <Package size={20} /> },
+    { name: "Orders", path: "/admin/orders", icon: <ClipboardList size={20} /> },
   ];
 
   return (

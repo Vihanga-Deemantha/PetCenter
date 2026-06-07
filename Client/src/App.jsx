@@ -2,10 +2,10 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { CartProvider } from "./context/CartContext";
 import PrivateRoute from "./components/PrivateRoute";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
-import PawParticles from "./components/animations/PawParticles";
 import PageTransitionDog from "./components/animations/PageTransitionDog";
 import InteractiveDog from "./components/animations/InteractiveDog";
 
@@ -16,11 +16,19 @@ import Marketplace from "./pages/Marketplace";
 import ListingDetails from "./pages/ListingDetails";
 import Profile from "./pages/Profile";
 import MyListings from "./pages/MyListings";
-import Products from "./pages/Products";
+import Store from "./pages/Store";
+import ProductDetail from "./pages/ProductDetail";
+import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
+import OrderSuccess from "./pages/OrderSuccess";
+import OrderHistory from "./pages/OrderHistory";
+import OrderDetail from "./pages/OrderDetail";
 import CreateListing from "./pages/CreateListing";
 import EditListing from "./pages/EditListing";
 import Unauthorized from "./pages/Unauthorized";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminProductManagement from "./pages/AdminProductManagement";
+import AdminOrdersManagement from "./pages/AdminOrdersManagement";
 import ComingSoon from "./pages/ComingSoon";
 
 import AdminLayout from "./layouts/AdminLayout";
@@ -28,8 +36,6 @@ import AdminLayout from "./layouts/AdminLayout";
 // Wrapper for global pages with Navbar/Footer
 const GlobalLayout = () => (
   <div className="min-h-screen bg-white font-body antialiased selection:bg-primary/10 selection:text-primary flex flex-col">
-    {/* 🐾 Ambient floating paw particles – fixed, behind everything */}
-    <PawParticles />
     {/* 🐾 Dog that sweeps across on every route change */}
     <PageTransitionDog />
     <Navbar />
@@ -60,38 +66,49 @@ const PaddedContainer = ({ children }) => (
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <DogDockPortal />
-        <Routes>
-          {/* Global User Interface */}
-          <Route element={<GlobalLayout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<PaddedContainer><Login /></PaddedContainer>} />
-            <Route path="/register" element={<PaddedContainer><Register /></PaddedContainer>} />
-            <Route path="/marketplace" element={<PaddedContainer><Marketplace /></PaddedContainer>} />
-            <Route path="/marketplace/:id" element={<PaddedContainer><ListingDetails /></PaddedContainer>} />
-            <Route path="/create-listing" element={<PrivateRoute><PaddedContainer><CreateListing /></PaddedContainer></PrivateRoute>} />
-            <Route path="/edit-listing/:id" element={<PrivateRoute><PaddedContainer><EditListing /></PaddedContainer></PrivateRoute>} />
-            <Route path="/my-listings" element={<PrivateRoute><PaddedContainer><MyListings /></PaddedContainer></PrivateRoute>} />
-            <Route path="/products" element={<PaddedContainer><Products /></PaddedContainer>} />
-            <Route path="/unauthorized" element={<PaddedContainer><Unauthorized /></PaddedContainer>} />
-            <Route path="/ecosystems" element={<PaddedContainer><ComingSoon /></PaddedContainer>} />
-            <Route path="/donations" element={<PaddedContainer><ComingSoon /></PaddedContainer>} />
-            <Route path="/about" element={<PaddedContainer><ComingSoon /></PaddedContainer>} />
-            <Route path="/profile" element={<PrivateRoute><PaddedContainer><Profile /></PaddedContainer></PrivateRoute>} />
-          </Route>
+      <CartProvider>
+        <Router>
+          <DogDockPortal />
+          <Routes>
+            {/* Global User Interface */}
+            <Route element={<GlobalLayout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<PaddedContainer><Login /></PaddedContainer>} />
+              <Route path="/register" element={<PaddedContainer><Register /></PaddedContainer>} />
+              <Route path="/marketplace" element={<PaddedContainer><Marketplace /></PaddedContainer>} />
+              <Route path="/marketplace/:id" element={<PaddedContainer><ListingDetails /></PaddedContainer>} />
+              <Route path="/create-listing" element={<PrivateRoute><PaddedContainer><CreateListing /></PaddedContainer></PrivateRoute>} />
+              <Route path="/edit-listing/:id" element={<PrivateRoute><PaddedContainer><EditListing /></PaddedContainer></PrivateRoute>} />
+              <Route path="/my-listings" element={<PrivateRoute><PaddedContainer><MyListings /></PaddedContainer></PrivateRoute>} />
+              <Route path="/products" element={<PaddedContainer><Store /></PaddedContainer>} />
+              <Route path="/products/:id" element={<PaddedContainer><ProductDetail /></PaddedContainer>} />
+              <Route path="/cart" element={<PaddedContainer><Cart /></PaddedContainer>} />
+              <Route path="/checkout" element={<PrivateRoute><PaddedContainer><Checkout /></PaddedContainer></PrivateRoute>} />
+              <Route path="/order-success" element={<PrivateRoute><PaddedContainer><OrderSuccess /></PaddedContainer></PrivateRoute>} />
+              <Route path="/orders" element={<PrivateRoute><PaddedContainer><OrderHistory /></PaddedContainer></PrivateRoute>} />
+              <Route path="/orders/:id" element={<PrivateRoute><PaddedContainer><OrderDetail /></PaddedContainer></PrivateRoute>} />
+              <Route path="/unauthorized" element={<PaddedContainer><Unauthorized /></PaddedContainer>} />
+              <Route path="/ecosystems" element={<PaddedContainer><ComingSoon /></PaddedContainer>} />
+              <Route path="/donations" element={<PaddedContainer><ComingSoon /></PaddedContainer>} />
+              <Route path="/about" element={<PaddedContainer><ComingSoon /></PaddedContainer>} />
+              <Route path="/profile" element={<PrivateRoute><PaddedContainer><Profile /></PaddedContainer></PrivateRoute>} />
+            </Route>
 
-          {/* Admin Shell Interface */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard activeTabOverride="overview" />} />
-            <Route path="users" element={<AdminDashboard activeTabOverride="users" />} />
-            <Route path="listings" element={<AdminDashboard activeTabOverride="listings" />} />
-          </Route>
+            {/* Admin Shell Interface */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard activeTabOverride="overview" />} />
+              <Route path="users" element={<AdminDashboard activeTabOverride="users" />} />
+              <Route path="listings" element={<AdminDashboard activeTabOverride="listings" />} />
+              <Route path="products" element={<AdminProductManagement />} />
+              <Route path="orders" element={<AdminOrdersManagement />} />
+            </Route>
 
-        </Routes>
-      </Router>
+          </Routes>
+        </Router>
+      </CartProvider>
     </AuthProvider>
   );
 }
 
 export default App;
+

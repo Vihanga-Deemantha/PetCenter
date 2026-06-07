@@ -48,40 +48,10 @@ const InteractiveDog = ({ compact = false }) => {
   const sleepTimeoutRef = useRef(null);
   const petCountRef = useRef(0);
 
-  // Mouse cursor tracking coordinates
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [compactMotion, setCompactMotion] = useState({ x: 0, y: 0, rotate: 0, scale: 1, flip: 1 });
   const [compactFace, setCompactFace] = useState("cute");
 
-  const pupilOffset = (() => {
-    if (currentState === "sleeping" || !dogRef.current) {
-      return { x: 0, y: 0 };
-    }
-
-    const rect = dogRef.current.getBoundingClientRect();
-    if (!rect) {
-      return { x: 0, y: 0 };
-    }
-
-    const dogCenterX = rect.left + rect.width * 0.65;
-    const dogCenterY = rect.top + rect.height * 0.35;
-    const dx = mousePos.x - dogCenterX;
-    const dy = mousePos.y - dogCenterY;
-    const dist = Math.hypot(dx, dy);
-
-    if (dist <= 10) {
-      return { x: 0, y: 0 };
-    }
-
-    const angle = Math.atan2(dy, dx);
-    const maxDisplacement = 4.5;
-    const scaleDist = Math.min(dist / 60, maxDisplacement);
-
-    return {
-      x: Math.cos(angle) * scaleDist,
-      y: Math.sin(angle) * scaleDist,
-    };
-  })();
+  const [pupilOffset, setPupilOffset] = useState({ x: 0, y: 0 });
 
   // 1. Pure Speech bubble helper
   const showSpeech = useCallback((text, duration = 2500) => {
@@ -118,6 +88,7 @@ const InteractiveDog = ({ compact = false }) => {
         setCurrentState("sleeping");
         setMood("Dreaming 😴");
         showSpeech("Zzz...");
+        setPupilOffset({ x: 0, y: 0 });
       }, 15000); // sleep after 15s of inactivity
     }
   }, [currentState, showSpeech]);
@@ -125,8 +96,6 @@ const InteractiveDog = ({ compact = false }) => {
   // 4. Handle global mouse move for eye-tracking
   useEffect(() => {
     const handleMouseMove = (e) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
-      
       // Wake up if sleeping
       if (currentState === "sleeping") {
         setCurrentState("idle");
@@ -135,7 +104,31 @@ const InteractiveDog = ({ compact = false }) => {
         if (soundEnabled) playHappyYip();
         showSpeech("Aww, hello! 🐾");
       }
-      
+
+      // Calculate pupil tracking offset
+      if (currentState !== "sleeping" && dogRef.current) {
+        const rect = dogRef.current.getBoundingClientRect();
+        if (rect) {
+          const dogCenterX = rect.left + rect.width * 0.65;
+          const dogCenterY = rect.top + rect.height * 0.35;
+          const dx = e.clientX - dogCenterX;
+          const dy = e.clientY - dogCenterY;
+          const dist = Math.hypot(dx, dy);
+
+          if (dist <= 10) {
+            setPupilOffset({ x: 0, y: 0 });
+          } else {
+            const angle = Math.atan2(dy, dx);
+            const maxDisplacement = 4.5;
+            const scaleDist = Math.min(dist / 60, maxDisplacement);
+            setPupilOffset({
+              x: Math.cos(angle) * scaleDist,
+              y: Math.sin(angle) * scaleDist,
+            });
+          }
+        }
+      }
+
       // Reset sleep timeout
       resetSleepTimeout();
     };

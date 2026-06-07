@@ -58,3 +58,36 @@ export const uploadProductImages = multer({
   fileFilter,
   limits: { fileSize: 5 * 1024 * 1024, files: 8 }, // 5MB per file, max 8 files
 }).array("images", 8);
+
+// Cloudinary storage for campaign images (Phase 3)
+const campaignStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "petcenter/campaigns",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [{ width: 1200, height: 900, crop: "limit", quality: "auto" }],
+  },
+});
+
+// Cloudinary storage for shelter logo (Phase 3)
+const shelterStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "petcenter/shelters",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [{ width: 400, height: 400, crop: "fill", quality: "auto" }],
+  },
+});
+
+export const uploadCampaignImages = multer({
+  storage: campaignStorage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024, files: 6 }, // 5MB per file, max 6 files
+}).array("images", 6);
+
+export const uploadShelterLogo = multer({
+  storage: shelterStorage,
+  fileFilter,
+  limits: { fileSize: 3 * 1024 * 1024 }, // 3MB
+}).single("logo");
+

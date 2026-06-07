@@ -31,6 +31,17 @@ import AdminProductManagement from "./pages/AdminProductManagement";
 import AdminOrdersManagement from "./pages/AdminOrdersManagement";
 import ComingSoon from "./pages/ComingSoon";
 
+// Phase 3 Pages
+import Campaigns from "./pages/Campaigns";
+import CampaignDetail from "./pages/CampaignDetail";
+import ThankYou from "./pages/ThankYou";
+import Shelters from "./pages/Shelters";
+import ShelterDetail from "./pages/ShelterDetail";
+import MyDonations from "./pages/MyDonations";
+import AdminCampaignManagement from "./pages/AdminCampaignManagement";
+import AdminDonationManagement from "./pages/AdminDonationManagement";
+import AdminShelterManagement from "./pages/AdminShelterManagement";
+
 import AdminLayout from "./layouts/AdminLayout";
 
 // Wrapper for global pages with Navbar/Footer
@@ -89,7 +100,12 @@ function App() {
               <Route path="/orders/:id" element={<PrivateRoute><PaddedContainer><OrderDetail /></PaddedContainer></PrivateRoute>} />
               <Route path="/unauthorized" element={<PaddedContainer><Unauthorized /></PaddedContainer>} />
               <Route path="/ecosystems" element={<PaddedContainer><ComingSoon /></PaddedContainer>} />
-              <Route path="/donations" element={<PaddedContainer><ComingSoon /></PaddedContainer>} />
+              <Route path="/campaigns" element={<PaddedContainer><Campaigns /></PaddedContainer>} />
+              <Route path="/campaigns/:id" element={<PaddedContainer><CampaignDetail /></PaddedContainer>} />
+              <Route path="/thank-you" element={<PaddedContainer><ThankYou /></PaddedContainer>} />
+              <Route path="/shelters" element={<PaddedContainer><Shelters /></PaddedContainer>} />
+              <Route path="/shelters/:id" element={<PaddedContainer><ShelterDetail /></PaddedContainer>} />
+              <Route path="/my-donations" element={<PrivateRoute><PaddedContainer><MyDonations /></PaddedContainer></PrivateRoute>} />
               <Route path="/about" element={<PaddedContainer><ComingSoon /></PaddedContainer>} />
               <Route path="/profile" element={<PrivateRoute><PaddedContainer><Profile /></PaddedContainer></PrivateRoute>} />
             </Route>
@@ -101,6 +117,9 @@ function App() {
               <Route path="listings" element={<AdminDashboard activeTabOverride="listings" />} />
               <Route path="products" element={<AdminProductManagement />} />
               <Route path="orders" element={<AdminOrdersManagement />} />
+              <Route path="campaigns" element={<AdminCampaignManagement />} />
+              <Route path="donations" element={<AdminDonationManagement />} />
+              <Route path="shelters" element={<AdminShelterManagement />} />
             </Route>
 
           </Routes>

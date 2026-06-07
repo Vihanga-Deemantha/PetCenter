@@ -10,7 +10,7 @@ export const stripeWebhookMiddleware = (req, res, next) => {
     const signature = req.headers["stripe-signature"];
 
     if (!signature) {
-      return res.status(400).json({ error: "Missing Stripe signature header" });
+      return res.status(401).json({ error: "Missing Stripe signature header" });
     }
 
     // Get raw body from express.raw() middleware
@@ -25,6 +25,6 @@ export const stripeWebhookMiddleware = (req, res, next) => {
     next();
   } catch (error) {
     console.error("Webhook verification failed:", error.message);
-    return res.status(400).json({ error: error.message });
+    return res.status(401).json({ error: error.message });
   }
 };

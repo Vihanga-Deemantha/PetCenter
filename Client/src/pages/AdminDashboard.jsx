@@ -14,9 +14,36 @@ import { motion as Motion, AnimatePresence } from "framer-motion";
 import {
   Activity, Users, ClipboardList, BarChart3, CheckCircle,
   XCircle, Clock, Trash2, ShieldOff, ShieldCheck, Search,
-  RefreshCw, Eye, AlertCircle,
+  RefreshCw, Eye, AlertCircle, ShoppingBag, Heart, DollarSign,
+  TrendingUp, TrendingDown, Calendar, AlertTriangle, ChevronRight,
+  Sparkles, Check, Flame, Gift
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from "chart.js";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 
 const StatusBadge = ({ status }) => {
@@ -245,11 +272,26 @@ const AdminDashboard = ({ activeTabOverride = "overview" }) => {
     setLoadingId(null);
   };
 
-  const statCards = stats ? [
-    { label: "Total Users", value: stats.users.total, sub: `${stats.users.blocked} blocked`, icon: <Users size={24} />, color: "bg-indigo-50 text-indigo-600 border-indigo-100", onClick: () => setActiveTab("users") },
-    { label: "Active Listings", value: stats.listings.active, sub: `${stats.listings.pending} pending`, icon: <ClipboardList size={24} />, color: "bg-emerald-50 text-emerald-600 border-emerald-100", onClick: () => { setActiveTab("listings"); setListingFilter("active"); } },
-    { label: "Pending Review", value: stats.listings.pending, sub: "Need approval", icon: <Clock size={24} />, color: "bg-amber-50 text-amber-600 border-amber-100", onClick: () => { setActiveTab("listings"); setListingFilter("pending"); } },
-    { label: "Total Listings", value: stats.listings.total, sub: `${stats.listings.sold + stats.listings.adopted} closed`, icon: <Activity size={24} />, color: "bg-rose-50 text-rose-600 border-rose-100", onClick: () => { setActiveTab("listings"); setListingFilter(""); } },
+  const Trend = ({ value }) => {
+    if (value === 0) return <span className="text-slate-400 text-xs font-bold">0% WoW</span>;
+    const isPositive = value > 0;
+    return (
+      <span className={`inline-flex items-center gap-0.5 text-xs font-black ${isPositive ? "text-emerald-500" : "text-rose-500"}`}>
+        {isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+        {isPositive ? "+" : ""}{value}% WoW
+      </span>
+    );
+  };
+
+  const statCards = stats?.cards ? [
+    { label: "Total Users", value: stats.cards.users.total, trend: stats.cards.users.trend, icon: <Users size={22} />, color: "bg-indigo-50 text-indigo-600 border-indigo-100", onClick: () => setActiveTab("users") },
+    { label: "Pet Listings", value: stats.cards.listings.total, trend: stats.cards.listings.trend, icon: <ClipboardList size={22} />, color: "bg-emerald-50 text-emerald-600 border-emerald-100", onClick: () => setActiveTab("listings") },
+    { label: "Store Products", value: stats.cards.products.total, trend: stats.cards.products.trend, icon: <ShoppingBag size={22} />, color: "bg-amber-50 text-amber-600 border-amber-100", onClick: null },
+    { label: "Orders Count", value: stats.cards.orders.total, trend: stats.cards.orders.trend, icon: <Activity size={22} />, color: "bg-rose-50 text-rose-600 border-rose-100", onClick: null },
+    { label: "Store Revenue", value: `$${stats.cards.revenue.totalInDollars}`, trend: stats.cards.revenue.trend, icon: <DollarSign size={22} />, color: "bg-indigo-50 text-indigo-600 border-indigo-100", onClick: null },
+    { label: "Active Campaigns", value: stats.cards.campaigns.total, trend: stats.cards.campaigns.trend, icon: <Flame size={22} />, color: "bg-rose-50 text-rose-600 border-rose-100", onClick: null },
+    { label: "Donation Count", value: stats.cards.donations.total, trend: stats.cards.donations.trend, icon: <Heart size={22} />, color: "bg-pink-50 text-pink-600 border-pink-100", onClick: null },
+    { label: "Donation Revenue", value: `$${stats.cards.donationRevenue.totalInDollars}`, trend: stats.cards.donationRevenue.trend, icon: <Gift size={22} />, color: "bg-purple-50 text-purple-600 border-purple-100", onClick: null },
   ] : [];
 
   return (
@@ -273,7 +315,7 @@ const AdminDashboard = ({ activeTabOverride = "overview" }) => {
             Welcome, <span className="text-primary font-black">{user?.name}</span>
           </p>
         </div>
-        <button onClick={fetchStats} className="p-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-indigo-50 hover:text-primary transition-all" title="Refresh stats">
+        <button onClick={fetchStats} className="p-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-indigo-50 hover:text-primary transition-all cursor-pointer" title="Refresh stats">
           <RefreshCw size={18} />
         </button>
       </div>
@@ -293,60 +335,188 @@ const AdminDashboard = ({ activeTabOverride = "overview" }) => {
         )}
       </AnimatePresence>
 
-      {/* Tabs removed in favor of AdminLayout Sidebar */}
-
       <AnimatePresence mode="wait">
         {/* ── Overview Tab ─────────────────────────────────────────── */}
         {activeTab === "overview" && (
-          <Motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+          <Motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-10">
             {statsLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="glass-card p-8 h-36 animate-pulse bg-slate-100" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="glass-card p-6 h-32 animate-pulse bg-slate-100" />
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              /* Stat Cards Grid */
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {statCards.map((stat, i) => (
                   <Motion.div
                     key={i}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    onClick={stat.onClick}
-                    className="glass-card p-8 bg-white border-slate-100 shadow-sm hover:shadow-xl transition-all cursor-pointer group"
+                    transition={{ delay: i * 0.04 }}
+                    onClick={stat.onClick || undefined}
+                    className={`glass-card p-6 bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all ${stat.onClick ? "cursor-pointer" : ""}`}
                   >
-                    <div className="flex justify-between items-start mb-4">
+                    <div className="flex justify-between items-start">
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{stat.label}</p>
-                        <h3 className="text-4xl font-black text-slate-900 tracking-tighter">{stat.value}</h3>
-                        <p className="text-xs text-slate-400 font-bold mt-1">{stat.sub}</p>
+                        <h3 className="text-2xl font-black text-slate-900 tracking-tight">{stat.value}</h3>
+                        <div className="mt-2">
+                          <Trend value={stat.trend} />
+                        </div>
                       </div>
-                      <div className={`p-4 rounded-[20px] border shadow-sm ${stat.color}`}>
+                      <div className={`p-3 rounded-2xl border ${stat.color}`}>
                         {stat.icon}
                       </div>
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-primary opacity-0 group-hover:opacity-100 transition-opacity">Click to manage →</p>
                   </Motion.div>
                 ))}
               </div>
             )}
 
-            {/* Listing Status Breakdown */}
-            {stats && (
-              <div className="glass-card mt-10 p-8 bg-white border-slate-100 shadow-sm">
-                <h2 className="text-xl font-black text-slate-900 mb-6">Listings Breakdown</h2>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  {Object.entries(stats.listings).filter(([k]) => k !== "total").map(([k, v]) => (
-                    <button
-                      key={k}
-                      onClick={() => { setActiveTab("listings"); setListingFilter(k); }}
-                      className="text-center p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-primary/30 hover:bg-indigo-50/30 transition-all group"
-                    >
-                      <p className="text-3xl font-black text-slate-900 group-hover:text-primary transition-colors">{v}</p>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">{k}</p>
-                    </button>
-                  ))}
+            {/* Interactive Charts Section */}
+            {stats?.charts && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Platform Growth Chart */}
+                <div className="glass-card p-6 bg-white border border-slate-100 shadow-sm">
+                  <h3 className="text-base font-black text-slate-900 mb-4 flex items-center gap-1.5">
+                    <Sparkles size={16} className="text-primary" /> Platform Interactions (30 Days)
+                  </h3>
+                  <div className="h-64">
+                    <Line
+                      data={{
+                        labels: stats.charts.labels,
+                        datasets: [
+                          { label: "New Signups", data: stats.charts.users, borderColor: "#6366f1", backgroundColor: "rgba(99, 102, 241, 0.04)", fill: true, tension: 0.3, borderWidth: 2.5 },
+                          { label: "Store Orders", data: stats.charts.orders, borderColor: "#8b5cf6", backgroundColor: "rgba(139, 92, 246, 0.04)", fill: true, tension: 0.3, borderWidth: 2.5 },
+                          { label: "Campaign Donations", data: stats.charts.donations, borderColor: "#f43f5e", backgroundColor: "rgba(244, 63, 94, 0.04)", fill: true, tension: 0.3, borderWidth: 2.5 }
+                        ]
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { labels: { font: { family: "Outfit", weight: "bold", size: 10 } } } },
+                        scales: { x: { grid: { display: false } }, y: { ticks: { stepSize: 1 } } }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Earnings Revenue Lines */}
+                <div className="glass-card p-6 bg-white border border-slate-100 shadow-sm">
+                  <h3 className="text-base font-black text-slate-900 mb-4 flex items-center gap-1.5">
+                    <DollarSign size={16} className="text-secondary" /> Daily Revenue ($ USD)
+                  </h3>
+                  <div className="h-64">
+                    <Line
+                      data={{
+                        labels: stats.charts.labels,
+                        datasets: [
+                          { label: "Store Earnings", data: stats.charts.orderRevenue, borderColor: "#6366f1", backgroundColor: "rgba(99, 102, 241, 0.04)", fill: true, tension: 0.3, borderWidth: 2.5 },
+                          { label: "Donation Contributions", data: stats.charts.donationRevenue, borderColor: "#f43f5e", backgroundColor: "rgba(244, 63, 94, 0.04)", fill: true, tension: 0.3, borderWidth: 2.5 }
+                        ]
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { labels: { font: { family: "Outfit", weight: "bold", size: 10 } } } },
+                        scales: { x: { grid: { display: false } } }
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Bestsellers and Stock Alerts */}
+            {stats?.productStats && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Bestsellers Table (ColSpan 2) */}
+                <div className="glass-card p-6 bg-white border border-slate-100 shadow-sm lg:col-span-2">
+                  <h3 className="text-base font-black text-slate-900 mb-4">Top 5 Bestselling Products</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm font-semibold text-slate-600">
+                      <thead>
+                        <tr className="border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                          <th className="pb-3">Product</th>
+                          <th className="pb-3">Category</th>
+                          <th className="pb-3">Price</th>
+                          <th className="pb-3 text-right">Units Sold</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {stats.productStats.topSelling.map((p) => (
+                          <tr key={p._id}>
+                            <td className="py-3 font-black text-slate-900">{p.name}</td>
+                            <td className="py-3 capitalize text-xs">{p.category}</td>
+                            <td className="py-3">${p.priceInDollars}</td>
+                            <td className="py-3 text-right font-black text-primary">{p.soldCount}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Stock Alerts (ColSpan 1) */}
+                <div className="glass-card p-6 bg-white border border-slate-100 shadow-sm space-y-4">
+                  <h3 className="text-base font-black text-slate-900 flex items-center gap-1.5">
+                    <AlertTriangle size={18} className="text-amber-500" /> Stock Status
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center justify-between">
+                      <div>
+                        <div className="text-2xl font-black text-rose-700">{stats.productStats.outOfStock}</div>
+                        <div className="text-[10px] text-rose-500 font-black uppercase tracking-wider">Out of Stock Items</div>
+                      </div>
+                      <XCircle size={28} className="text-rose-400" />
+                    </div>
+                    <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-center justify-between">
+                      <div>
+                        <div className="text-2xl font-black text-amber-700">{stats.productStats.lowStock}</div>
+                        <div className="text-[10px] text-amber-500 font-black uppercase tracking-wider">Low Stock Items (1-5)</div>
+                      </div>
+                      <AlertTriangle size={28} className="text-amber-400" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Unified Chronological Activity Feed */}
+            {stats?.timeline && (
+              <div className="glass-card p-6 bg-white border border-slate-100 shadow-sm">
+                <h3 className="text-base font-black text-slate-900 mb-6 flex items-center gap-2">
+                  <Activity className="text-primary" size={18} /> Live Platform Timeline
+                </h3>
+                <div className="relative border-l border-slate-100 pl-6 ml-3 space-y-6">
+                  {stats.timeline.map((act) => {
+                    // Type styling map
+                    const typeMap = {
+                      user_signup: { bg: "bg-indigo-50 text-indigo-600 border-indigo-100", icon: <Users size={14} /> },
+                      product_order: { bg: "bg-emerald-50 text-emerald-600 border-emerald-100", icon: <ShoppingBag size={14} /> },
+                      campaign_donation: { bg: "bg-rose-50 text-rose-600 border-rose-100", icon: <Heart size={14} /> }
+                    };
+                    const meta = typeMap[act.type] || { bg: "bg-slate-50 text-slate-600 border-slate-200", icon: <Activity size={14} /> };
+                    
+                    return (
+                      <div key={act.id} className="relative">
+                        {/* Bullet Circle Icon */}
+                        <div className={`absolute -left-[37px] top-0.5 p-2 rounded-full border bg-white ${meta.bg}`}>
+                          {meta.icon}
+                        </div>
+                        <div>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1">
+                            <h4 className="text-sm font-black text-slate-900">{act.title}</h4>
+                            <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                              <Calendar size={10} /> {new Date(act.timestamp).toLocaleString()}
+                            </span>
+                          </div>
+                          <p className="text-slate-500 text-xs font-semibold">{act.description}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

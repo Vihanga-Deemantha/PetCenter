@@ -2,112 +2,306 @@ import User from "../models/User.js";
 import PetListing from "../models/PetListing.js";
 import Product from "../models/Products.js";
 import Order from "../models/Order.js";
+import Campaign from "../models/Campaign.js";
+import Donation from "../models/Donation.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 
 // ─── Dashboard Stats ──────────────────────────────────────────────────────────
 // GET /api/v1/admin/dashboard  — Admin
 export const getDashboardStats = async (req, res, next) => {
   try {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Helper to calculate trend percentage
+    const calculateTrend = (curr, prev) => {
+      if (prev === 0) return curr > 0 ? 100 : 0;
+      return Math.round(((curr - prev) / prev) * 100);
+    };
+
+    // Helper for daily trends aggregation
+    const getDailyTrendAgg = async (Model, matchQuery, dateField = "createdAt") => {
+      return Model.aggregate([
+        { $match: { ...matchQuery, [dateField]: { $gte: thirtyDaysAgo } } },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: "%Y-%m-%d", date: `$${dateField}` },
+            },
+            count: { $sum: 1 },
+            amount: { $sum: { $ifNull: ["$totalAmount", { $ifNull: ["$amount", 0] }] } },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]);
+    };
+
+    // Parallel execution of all stats metrics
     const [
+      // Totals
       totalUsers,
-      blockedUsers,
       totalListings,
-      pendingListings,
-      activeListings,
-      soldListings,
-      adoptedListings,
-      removedListings,
-      // Phase 2: Products
       totalProducts,
-      activeProducts,
-      lowStockProducts,
-      outOfStockProducts,
-      // Phase 2: Orders & Revenue
       totalOrders,
-      processingOrders,
-      shippedOrders,
-      deliveredOrders,
-      cancelledOrders,
+      totalCampaigns,
+      totalDonations,
+
+      // Current week counts (last 7 days)
+      usersCurrentWeek,
+      listingsCurrentWeek,
+      productsCurrentWeek,
+      ordersCurrentWeek,
+      campaignsCurrentWeek,
+      donationsCurrentWeek,
+
+      // Previous week counts (day -14 to day -7)
+      usersPreviousWeek,
+      listingsPreviousWeek,
+      productsPreviousWeek,
+      ordersPreviousWeek,
+      campaignsPreviousWeek,
+      donationsPreviousWeek,
+
+      // Revenues
+      orderRevenueStats,
+      donationRevenueStats,
+
+      // 30-Day Aggregates
+      dailyUserStats,
+      dailyOrderStats,
+      dailyDonationStats,
+
+      // Activity Feed (Parallel retrieval)
+      recentUsers,
+      recentOrders,
+      recentDonations,
     ] = await Promise.all([
-      User.countDocuments({ role: "user" }),
-      User.countDocuments({ isBlocked: true }),
+      // Total counts
+      User.countDocuments({ role: "user", isDeleted: { $ne: true } }),
       PetListing.countDocuments(),
-      PetListing.countDocuments({ status: "pending" }),
-      PetListing.countDocuments({ status: "active" }),
-      PetListing.countDocuments({ status: "sold" }),
-      PetListing.countDocuments({ status: "adopted" }),
-      PetListing.countDocuments({ status: "removed" }),
-      // Products
       Product.countDocuments(),
-      Product.countDocuments({ isActive: true }),
+      Order.countDocuments(),
+      Campaign.countDocuments({ deletedAt: null }),
+      Donation.countDocuments({ status: "completed" }),
+
+      // Current week
+      User.countDocuments({ role: "user", isDeleted: { $ne: true }, createdAt: { $gte: sevenDaysAgo } }),
+      PetListing.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+      Product.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+      Order.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+      Campaign.countDocuments({ deletedAt: null, createdAt: { $gte: sevenDaysAgo } }),
+      Donation.countDocuments({ status: "completed", createdAt: { $gte: sevenDaysAgo } }),
+
+      // Previous week
+      User.countDocuments({ role: "user", isDeleted: { $ne: true }, createdAt: { $gte: fourteenDaysAgo, $lt: sevenDaysAgo } }),
+      PetListing.countDocuments({ createdAt: { $gte: fourteenDaysAgo, $lt: sevenDaysAgo } }),
+      Product.countDocuments({ createdAt: { $gte: fourteenDaysAgo, $lt: sevenDaysAgo } }),
+      Order.countDocuments({ createdAt: { $gte: fourteenDaysAgo, $lt: sevenDaysAgo } }),
+      Campaign.countDocuments({ deletedAt: null, createdAt: { $gte: fourteenDaysAgo, $lt: sevenDaysAgo } }),
+      Donation.countDocuments({ status: "completed", createdAt: { $gte: fourteenDaysAgo, $lt: sevenDaysAgo } }),
+
+      // Order revenues aggregation
+      Order.aggregate([
+        { $match: { paymentStatus: "paid" } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$totalAmount" },
+            currentWeek: {
+              $sum: {
+                $cond: [{ $gte: ["$createdAt", sevenDaysAgo] }, "$totalAmount", 0],
+              },
+            },
+            previousWeek: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      { $gte: ["$createdAt", fourteenDaysAgo] },
+                      { $lt: ["$createdAt", sevenDaysAgo] },
+                    ],
+                  },
+                  "$totalAmount",
+                  0,
+                ],
+              },
+            },
+          },
+        },
+      ]),
+
+      // Donation revenues aggregation
+      Donation.aggregate([
+        { $match: { status: "completed" } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$amount" },
+            currentWeek: {
+              $sum: {
+                $cond: [{ $gte: ["$createdAt", sevenDaysAgo] }, "$amount", 0],
+              },
+            },
+            previousWeek: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      { $gte: ["$createdAt", fourteenDaysAgo] },
+                      { $lt: ["$createdAt", sevenDaysAgo] },
+                    ],
+                  },
+                  "$amount",
+                  0,
+                ],
+              },
+            },
+          },
+        },
+      ]),
+
+      // Daily trends
+      getDailyTrendAgg(User, { role: "user" }),
+      getDailyTrendAgg(Order, { paymentStatus: "paid" }),
+      getDailyTrendAgg(Donation, { status: "completed" }),
+
+      // Activity Feed queries
+      User.find({ role: "user", isDeleted: { $ne: true } }).sort({ createdAt: -1 }).limit(5).lean(),
+      Order.find().populate("userId", "name email").sort({ createdAt: -1 }).limit(5).lean(),
+      Donation.find({ status: "completed" }).populate("campaignId", "title").sort({ createdAt: -1 }).limit(5).lean(),
+    ]);
+
+    // Format revenues
+    const totalOrderRevenue = orderRevenueStats[0]?.total || 0;
+    const currentWeekOrderRev = orderRevenueStats[0]?.currentWeek || 0;
+    const previousWeekOrderRev = orderRevenueStats[0]?.previousWeek || 0;
+
+    const totalDonationRevenue = donationRevenueStats[0]?.total || 0;
+    const currentWeekDonationRev = donationRevenueStats[0]?.currentWeek || 0;
+    const previousWeekDonationRev = donationRevenueStats[0]?.previousWeek || 0;
+
+    // Fill in 30 days gap for front-end charts
+    const fill30Days = (dailyStats, type = "count") => {
+      const data = [];
+      const labels = [];
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const dateStr = d.toISOString().split("T")[0];
+        labels.push(dateStr);
+
+        const found = dailyStats.find((s) => s._id === dateStr);
+        if (type === "count") {
+          data.push(found ? found.count : 0);
+        } else {
+          // Convert cents to dollars for the charts
+          data.push(found ? parseFloat((found.amount / 100).toFixed(2)) : 0);
+        }
+      }
+      return { labels, data };
+    };
+
+    const userChart = fill30Days(dailyUserStats, "count");
+    const orderChart = fill30Days(dailyOrderStats, "count");
+    const donationChart = fill30Days(dailyDonationStats, "count");
+    const orderRevenueChart = fill30Days(dailyOrderStats, "revenue");
+    const donationRevenueChart = fill30Days(dailyDonationStats, "revenue");
+
+    // Unified Chronological Activity Feed
+    const activities = [];
+    recentUsers.forEach((u) => {
+      activities.push({
+        id: `user-${u._id}`,
+        type: "user_signup",
+        title: "New User Registration",
+        description: `${u.name} (${u.email}) joined the platform`,
+        timestamp: u.createdAt,
+      });
+    });
+    recentOrders.forEach((o) => {
+      activities.push({
+        id: `order-${o._id}`,
+        type: "product_order",
+        title: "Store Order Placed",
+        description: `Order of $${(o.totalAmount / 100).toFixed(2)} placed by ${o.userId?.name || "Guest"}`,
+        timestamp: o.createdAt,
+      });
+    });
+    recentDonations.forEach((d) => {
+      activities.push({
+        id: `donation-${d._id}`,
+        type: "campaign_donation",
+        title: "Donation Received",
+        description: `$${(d.amount / 100).toFixed(2)} contributed to "${d.campaignId?.title || "Campaign"}" by ${d.displayName}`,
+        timestamp: d.createdAt,
+      });
+    });
+
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const timeline = activities.slice(0, 10);
+
+    // Fetch product metrics for breakdown
+    const [lowStockProducts, outOfStockProducts, topProducts] = await Promise.all([
       Product.countDocuments({ isActive: true, stock: { $gt: 0, $lte: 5 } }),
       Product.countDocuments({ isActive: true, stock: 0 }),
-      // Orders
-      Order.countDocuments(),
-      Order.countDocuments({ status: "processing" }),
-      Order.countDocuments({ status: "shipped" }),
-      Order.countDocuments({ status: "delivered" }),
-      Order.countDocuments({ status: "cancelled" }),
+      Product.find({ isActive: true }).select("name category price soldCount images").sort({ soldCount: -1 }).limit(5).lean(),
     ]);
 
-    // Revenue aggregation (total revenue from all paid orders)
-    const revenueResult = await Order.aggregate([
-      { $match: { paymentStatus: "paid" } },
-      { $group: { _id: null, totalRevenue: { $sum: "$totalAmount" } } },
-    ]);
-
-    // Revenue this month
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-    const monthlyRevenueResult = await Order.aggregate([
-      { $match: { paymentStatus: "paid", createdAt: { $gte: startOfMonth } } },
-      { $group: { _id: null, monthlyRevenue: { $sum: "$totalAmount" } } },
-    ]);
-
-    // Top 5 bestselling products
-    const topProducts = await Product.find({ isActive: true })
-      .select("name category price soldCount images")
-      .sort({ soldCount: -1 })
-      .limit(5)
-      .lean();
-
-    const totalRevenue = revenueResult[0]?.totalRevenue || 0;
-    const monthlyRevenue = monthlyRevenueResult[0]?.monthlyRevenue || 0;
-
+    // Send unified payload
     return sendSuccess(res, {
-      users: { total: totalUsers, blocked: blockedUsers },
-      listings: {
-        total: totalListings,
-        pending: pendingListings,
-        active: activeListings,
-        sold: soldListings,
-        adopted: adoptedListings,
-        removed: removedListings,
+      cards: {
+        users: {
+          total: totalUsers,
+          trend: calculateTrend(usersCurrentWeek, usersPreviousWeek),
+        },
+        listings: {
+          total: totalListings,
+          trend: calculateTrend(listingsCurrentWeek, listingsPreviousWeek),
+        },
+        products: {
+          total: totalProducts,
+          trend: calculateTrend(productsCurrentWeek, productsPreviousWeek),
+        },
+        orders: {
+          total: totalOrders,
+          trend: calculateTrend(ordersCurrentWeek, ordersPreviousWeek),
+        },
+        revenue: {
+          totalInDollars: (totalOrderRevenue / 100).toFixed(2),
+          trend: calculateTrend(currentWeekOrderRev, previousWeekOrderRev),
+        },
+        campaigns: {
+          total: totalCampaigns,
+          trend: calculateTrend(campaignsCurrentWeek, campaignsPreviousWeek),
+        },
+        donations: {
+          total: totalDonations,
+          trend: calculateTrend(donationsCurrentWeek, donationsPreviousWeek),
+        },
+        donationRevenue: {
+          totalInDollars: (totalDonationRevenue / 100).toFixed(2),
+          trend: calculateTrend(currentWeekDonationRev, previousWeekDonationRev),
+        },
       },
-      products: {
-        total: totalProducts,
-        active: activeProducts,
-        lowStock: lowStockProducts,   // stock 1-5
-        outOfStock: outOfStockProducts, // stock 0
+      charts: {
+        labels: userChart.labels, // same dates for all
+        users: userChart.data,
+        orders: orderChart.data,
+        donations: donationChart.data,
+        orderRevenue: orderRevenueChart.data,
+        donationRevenue: donationRevenueChart.data,
+      },
+      productStats: {
+        lowStock: lowStockProducts,
+        outOfStock: outOfStockProducts,
         topSelling: topProducts.map((p) => ({
           ...p,
           priceInDollars: (p.price / 100).toFixed(2),
         })),
       },
-      orders: {
-        total: totalOrders,
-        processing: processingOrders,
-        shipped: shippedOrders,
-        delivered: deliveredOrders,
-        cancelled: cancelledOrders,
-      },
-      revenue: {
-        totalInCents: totalRevenue,
-        totalInDollars: (totalRevenue / 100).toFixed(2),
-        monthlyInCents: monthlyRevenue,
-        monthlyInDollars: (monthlyRevenue / 100).toFixed(2),
-      },
+      timeline,
     });
   } catch (error) {
     next(error);

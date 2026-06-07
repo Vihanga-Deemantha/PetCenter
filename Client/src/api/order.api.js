@@ -14,3 +14,6 @@ export const updateOrderStatus = (orderId, status) =>
 
 export const getAdminBestsellers = (params = {}) =>
   axiosInstance.get("/orders/admin/bestsellers", { params });
+
+export const cancelOrder = (orderId) =>
+  axiosInstance.put(`/orders/${orderId}/cancel`);

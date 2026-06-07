@@ -97,7 +97,7 @@ function App() {
               <Route path="/checkout" element={<PrivateRoute><PaddedContainer><Checkout /></PaddedContainer></PrivateRoute>} />
               <Route path="/order-success" element={<PrivateRoute><PaddedContainer><OrderSuccess /></PaddedContainer></PrivateRoute>} />
               <Route path="/orders" element={<PrivateRoute><PaddedContainer><OrderHistory /></PaddedContainer></PrivateRoute>} />
-              <Route path="/orders/:id" element={<PrivateRoute><PaddedContainer><OrderDetail /></PaddedContainer></PrivateRoute>} />
+              <Route path="/orders/:orderId" element={<PrivateRoute><PaddedContainer><OrderDetail /></PaddedContainer></PrivateRoute>} />
               <Route path="/unauthorized" element={<PaddedContainer><Unauthorized /></PaddedContainer>} />
               <Route path="/ecosystems" element={<PaddedContainer><ComingSoon /></PaddedContainer>} />
               <Route path="/campaigns" element={<PaddedContainer><Campaigns /></PaddedContainer>} />

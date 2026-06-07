@@ -72,7 +72,7 @@ const ProductCard = ({ product }) => {
 
           {/* Category chip */}
           <div className="absolute top-3 right-3">
-            <span className="px-2.5 py-1 bg-white/90 text-primary rounded-lg text-[10px] font-black uppercase tracking-wider backdrop-blur-sm border border-white/50 capitalize">
+            <span className="px-2.5 py-1 bg-white/90 text-primary rounded-lg text-[10px] font-black uppercase tracking-wider backdrop-blur-sm border border-white/50">
               {product.category}
             </span>
           </div>
@@ -113,7 +113,7 @@ const ProductCard = ({ product }) => {
               ? "bg-slate-100 text-slate-400 cursor-not-allowed"
               : added
               ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
-              : "bg-gradient-to-br from-primary to-accent text-white shadow-lg shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98]"
+              : "bg-linear-to-br from-primary to-accent text-white shadow-lg shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98]"
           }`}
         >
           {adding ? (

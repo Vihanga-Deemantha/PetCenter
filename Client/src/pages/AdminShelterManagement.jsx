@@ -299,7 +299,7 @@ const AdminShelterManagement = () => {
         </div>
         <button
           onClick={() => { setEditingShelter(null); setModalOpen(true); }}
-          className="btn btn-primary bg-gradient-to-br from-primary to-accent shadow-indigo-500/20 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-1.5 self-start cursor-pointer"
+          className="btn btn-primary bg-linear-to-br from-primary to-accent shadow-indigo-500/20 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-1.5 self-start cursor-pointer"
         >
           <Plus size={16} /> New Shelter
         </button>

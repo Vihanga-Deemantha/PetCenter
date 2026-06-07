@@ -74,7 +74,7 @@ const ShelterDetail = () => {
         <div className="lg:col-span-2 space-y-8">
           {/* Profile Card */}
           <div className="glass-card p-8 bg-white/95 border-slate-100 flex flex-col sm:flex-row gap-6 items-start">
-            <div className="w-24 h-24 rounded-[24px] bg-indigo-50 border border-indigo-100/50 overflow-hidden flex items-center justify-center shrink-0">
+            <div className="w-24 h-24 rounded-card bg-indigo-50 border border-indigo-100/50 overflow-hidden flex items-center justify-center shrink-0">
               {shelter.logo?.url ? (
                 <img src={shelter.logo.url} alt={shelter.name} className="w-full h-full object-cover" />
               ) : (
@@ -145,12 +145,12 @@ const ShelterDetail = () => {
                               <span className="text-secondary">{progress.toFixed(0)}%</span>
                             </div>
                             <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-gradient-to-r from-secondary to-accent" style={{ width: `${progress}%` }} />
+                              <div className="h-full bg-linear-to-r from-secondary to-accent" style={{ width: `${progress}%` }} />
                             </div>
                           </div>
                           <Link
                             to={`/campaigns/${camp._id}`}
-                            className="btn btn-primary bg-gradient-to-r from-secondary to-accent py-2 w-full text-center text-xs font-black uppercase tracking-wider rounded-xl block"
+                            className="btn btn-primary bg-linear-to-r from-secondary to-accent py-2 w-full text-center text-xs font-black uppercase tracking-wider rounded-xl block"
                           >
                             Support Campaign
                           </Link>

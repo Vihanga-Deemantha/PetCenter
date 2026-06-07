@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { PawPrint, LogOut, User, Menu, X, Plus, LayoutDashboard, ClipboardList, ShoppingCart } from "lucide-react";
+import { PawPrint, LogOut, User, Menu, X, Plus, LayoutDashboard, ClipboardList, ShoppingCart, Package } from "lucide-react";
 import { useCart } from "../../context/CartContext";
 
 const Navbar = () => {
@@ -99,6 +99,9 @@ const Navbar = () => {
               <Link to="/my-listings" className="text-slate-500 hover:text-primary transition-colors" title="My Listings">
                 <ClipboardList size={20} />
               </Link>
+              <Link to="/orders" className="text-slate-500 hover:text-primary transition-colors" title="My Orders">
+                <Package size={20} />
+              </Link>
               <Link to="/cart" className="text-slate-500 hover:text-primary transition-colors relative" title="Shopping Cart">
                 <ShoppingCart size={20} />
                 {itemCount > 0 && (
@@ -107,12 +110,13 @@ const Navbar = () => {
                   </span>
                 )}
               </Link>
-              <Link to="/profile" className="text-slate-500 hover:text-primary transition-colors">
+              <Link to="/profile" className="text-slate-500 hover:text-primary transition-colors" title="Profile">
                 <User size={20} />
               </Link>
               <button 
                 onClick={handleLogout} 
                 className="text-slate-400 hover:text-rose-500 transition-colors"
+                title="Logout"
               >
                 <LogOut size={20} />
               </button>
@@ -185,16 +189,19 @@ const Navbar = () => {
                       <ShoppingCart size={20} /> Cart {itemCount > 0 && `(${itemCount})`}
                     </Link>
                     <div className="flex gap-4">
+                      <Link to="/orders" className="flex-1 py-4 bg-indigo-50/50 border border-indigo-100/50 text-primary rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Package size={20} /> Orders
+                      </Link>
                       <Link to="/profile" className="flex-1 py-4 bg-slate-50 rounded-2xl flex items-center justify-center gap-3 font-bold text-slate-600" onClick={() => setIsMobileMenuOpen(false)}>
                         <User size={20} /> Profile
                       </Link>
-                      <button 
-                        onClick={handleLogout} 
-                        className="flex-1 py-4 bg-rose-50 rounded-2xl flex items-center justify-center gap-3 font-bold text-rose-500"
-                      >
-                        <LogOut size={20} /> Logout
-                      </button>
                     </div>
+                    <button 
+                      onClick={handleLogout} 
+                      className="w-full py-4 bg-rose-50 rounded-2xl flex items-center justify-center gap-3 font-bold text-rose-500"
+                    >
+                      <LogOut size={20} /> Logout
+                    </button>
                   </div>
                 </div>
               ) : (

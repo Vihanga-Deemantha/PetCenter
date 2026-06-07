@@ -6,6 +6,7 @@ import {
   updateOrderStatus,
   getAdminOrders,
   getBestsellers,
+  cancelOrder,
 } from "../controllers/order.controller.js";
 import { protect } from "../middleware/auth.js";
 import { adminOnly } from "../middleware/admin.js";
@@ -26,5 +27,6 @@ router.get("/admin/bestsellers", adminOnly, getBestsellers);
 // ── Wildcard — must be LAST among GET routes ──────────────────────────────────
 router.get("/:orderId", getOrderDetail);
 router.put("/:orderId/status", adminOnly, updateOrderStatus);
+router.put("/:orderId/cancel", cancelOrder);
 
 export default router;

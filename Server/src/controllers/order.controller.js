@@ -322,20 +322,103 @@ export const updateOrderStatus = async (req, res, next) => {
       return sendError(res, `Invalid status. Must be one of: ${validStatuses.join(", ")}`, 400);
     }
 
-    // Find and update order
-    const order = await Order.findByIdAndUpdate(
-      orderId,
-      { status },
-      { new: true, runValidators: true }
-    );
-
+    // Find order
+    const order = await Order.findById(orderId);
     if (!order) {
       return sendError(res, "Order not found", 404);
+    }
+
+    const previousStatus = order.status;
+    if (previousStatus === status) {
+      return sendSuccess(res, { order, message: `Order status is already ${status}` });
+    }
+
+    order.status = status;
+    if (status === "cancelled") {
+      order.paymentStatus = "refunded";
+    }
+    await order.save();
+
+    // If changing to cancelled, restore stock
+    if (status === "cancelled" && previousStatus !== "cancelled") {
+      for (const item of order.items) {
+        await Product.findByIdAndUpdate(item.productId, {
+          $inc: {
+            stock: item.quantity,
+            soldCount: -item.quantity,
+          },
+        });
+      }
+    }
+    // If changing FROM cancelled to something else, decrement stock back
+    else if (previousStatus === "cancelled" && status !== "cancelled") {
+      for (const item of order.items) {
+        await Product.findByIdAndUpdate(item.productId, {
+          $inc: {
+            stock: -item.quantity,
+            soldCount: item.quantity,
+          },
+        });
+      }
     }
 
     return sendSuccess(res, { order, message: `Order status updated to ${status}` });
   } catch (error) {
     console.error("Update Order Status Error:", error);
+    next(error);
+  }
+};
+
+/**
+ * User: Cancel own order
+ * Flow:
+ * 1. Find order
+ * 2. Check if owned by requesting user
+ * 3. Verify status is 'pending' or 'processing'
+ * 4. Update status to 'cancelled'
+ * 5. Restore stock for all products
+ */
+export const cancelOrder = async (req, res, next) => {
+  try {
+    const userId = req.user?._id;
+    const { orderId } = req.params;
+
+    if (!userId) {
+      return sendError(res, "Not authenticated", 401);
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return sendError(res, "Order not found", 404);
+    }
+
+    // Verify ownership
+    if (order.userId.toString() !== userId.toString()) {
+      return sendError(res, "Unauthorized - cannot cancel this order", 403);
+    }
+
+    // Only allow cancelling if pending or processing
+    if (order.status !== "processing" && order.status !== "pending") {
+      return sendError(res, `Cannot cancel order in ${order.status} status`, 400);
+    }
+
+    order.status = "cancelled";
+    order.paymentStatus = "refunded";
+    await order.save();
+
+    // Restore stock
+    for (const item of order.items) {
+      await Product.findByIdAndUpdate(item.productId, {
+        $inc: {
+          stock: item.quantity,
+          soldCount: -item.quantity,
+        },
+      });
+    }
+
+    return sendSuccess(res, { order, message: "Order cancelled successfully" });
+  } catch (error) {
+    console.error("Cancel Order Error:", error);
     next(error);
   }
 };

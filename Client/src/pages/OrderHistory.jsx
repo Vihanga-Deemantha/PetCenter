@@ -22,10 +22,9 @@ const OrderHistory = () => {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
 
-  if (!user) return <Navigate to="/login" replace />;
-
   useEffect(() => {
-    setLoading(true);
+    if (!user) return;
+    Promise.resolve().then(() => setLoading(true));
     const params = { page, limit: 10 };
     if (statusFilter) params.status = statusFilter;
     getUserOrders(params)
@@ -35,13 +34,15 @@ const OrderHistory = () => {
       })
       .catch(() => setOrders([]))
       .finally(() => setLoading(false));
-  }, [page, statusFilter]);
+  }, [page, statusFilter, user]);
+
+  if (!user) return <Navigate to="/login" replace />;
 
   return (
     <div>
       <Motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
         <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900">
-          My <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Orders</span>
+          My <span className="bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">Orders</span>
         </h1>
         <p className="text-slate-500 font-medium mt-1">Track and manage your purchases</p>
       </Motion.div>

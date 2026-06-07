@@ -40,7 +40,7 @@ const OrderSuccess = () => {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 300, damping: 15, delay: 0.1 }}
-          className="inline-flex items-center justify-center w-28 h-28 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-[36px] shadow-2xl shadow-emerald-500/30 mb-8"
+          className="inline-flex items-center justify-center w-28 h-28 bg-linear-to-br from-emerald-400 to-teal-500 rounded-[36px] shadow-2xl shadow-emerald-500/30 mb-8"
         >
           <CheckCircle size={56} className="text-white" />
         </Motion.div>

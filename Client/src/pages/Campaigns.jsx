@@ -65,7 +65,7 @@ const Campaigns = () => {
             <Heart size={12} className="fill-current" /> Save Lives & Support Shelters
           </span>
           <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-slate-900 mb-3">
-            Charitable <span className="bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent">Campaigns</span>
+            Charitable <span className="bg-linear-to-r from-secondary to-accent bg-clip-text text-transparent">Campaigns</span>
           </h1>
           <p className="text-slate-500 text-lg font-semibold max-w-2xl">
             Join hands with local shelters. 100% of your contributions go directly to helping animals in need of medical aid, food, and homes.
@@ -169,7 +169,7 @@ const Campaigns = () => {
                           <span className="text-secondary">{progress.toFixed(0)}%</span>
                         </div>
                         <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-secondary to-accent" style={{ width: `${progress}%` }} />
+                          <div className="h-full bg-linear-to-r from-secondary to-accent" style={{ width: `${progress}%` }} />
                         </div>
                         <div className="flex justify-between text-[10px] text-slate-400 font-bold">
                           <span>Goal: ${(camp.goalAmount / 100).toLocaleString()}</span>
@@ -183,7 +183,7 @@ const Campaigns = () => {
 
                       <Link 
                         to={`/campaigns/${camp._id}`}
-                        className="btn btn-primary bg-gradient-to-r from-secondary to-accent shadow-rose-500/20 w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1.5"
+                        className="btn btn-primary bg-linear-to-r from-secondary to-accent shadow-rose-500/20 w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1.5"
                       >
                         Help Now <ArrowRight size={13} />
                       </Link>
@@ -205,7 +205,7 @@ const Campaigns = () => {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="rounded-[24px] bg-slate-100 animate-pulse aspect-[4/5]" />
+              <div key={i} className="rounded-card bg-slate-100 animate-pulse aspect-4/5" />
             ))}
           </div>
         ) : activeCampaigns.length === 0 && featuredCampaigns.length === 0 ? (
@@ -256,7 +256,7 @@ const Campaigns = () => {
                         <span className="text-secondary">{progress.toFixed(0)}%</span>
                       </div>
                       <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-secondary to-accent" style={{ width: `${progress}%` }} />
+                        <div className="h-full bg-linear-to-r from-secondary to-accent" style={{ width: `${progress}%` }} />
                       </div>
                       <div className="flex justify-between text-[9px] text-slate-400 font-bold">
                         <span>Goal: ${(camp.goalAmount / 100).toLocaleString()}</span>
@@ -270,7 +270,7 @@ const Campaigns = () => {
 
                     <Link 
                       to={`/campaigns/${camp._id}`}
-                      className="btn btn-primary bg-gradient-to-r from-secondary to-accent shadow-rose-500/10 w-full py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1"
+                      className="btn btn-primary bg-linear-to-r from-secondary to-accent shadow-rose-500/10 w-full py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1"
                     >
                       Give Gift <ArrowRight size={12} />
                     </Link>
@@ -285,7 +285,7 @@ const Campaigns = () => {
       {/* ─── Past Completed & Closed Campaigns Section ──────────────────────── */}
       {completedOrClosed.length > 0 && (
         <div className="border-t border-slate-100 pt-10 mb-10">
-          <h3 className="text-xl font-black tracking-tight text-slate-500 mb-6 uppercase tracking-wider text-sm">
+          <h3 className="text-sm font-black uppercase tracking-wider text-slate-500 mb-6">
             Completed & Past Campaigns
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-75">

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
 import { ArrowLeft, Package, MapPin, CreditCard } from "lucide-react";
-import { getOrderById } from "../api/order.api";
+import { getOrderById, cancelOrder as cancelOrderApi } from "../api/order.api";
 import { useAuth } from "../context/AuthContext";
 import StatusTimeline from "../components/store/StatusTimeline";
 import { formatPrice } from "../utils/priceFormatter";
@@ -13,16 +13,32 @@ const OrderDetail = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  if (!user) return <Navigate to="/login" replace />;
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
+    if (!user) return;
+    Promise.resolve().then(() => setLoading(true));
     getOrderById(orderId)
       .then((res) => setOrder(res.data.data.order))
       .catch(() => setError("Order not found"))
       .finally(() => setLoading(false));
-  }, [orderId]);
+  }, [orderId, user]);
+
+  if (!user) return <Navigate to="/login" replace />;
+
+  const handleCancelOrder = async () => {
+    if (window.confirm("Are you sure you want to cancel this order? It will restore items to stock.")) {
+      setCancelling(true);
+      try {
+        const res = await cancelOrderApi(orderId);
+        setOrder(res.data.data.order);
+      } catch (err) {
+        alert(err.response?.data?.message || "Failed to cancel order");
+      } finally {
+        setCancelling(false);
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -61,11 +77,24 @@ const OrderDetail = () => {
             <h1 className="text-3xl font-black text-slate-900 tracking-tighter">Order Details</h1>
             <p className="text-xs font-mono text-slate-400 mt-1">#{order._id}</p>
           </div>
-          <div className="text-right">
+          <div className="flex flex-col items-end gap-2 text-right">
             <p className="text-3xl font-black text-primary">{formatPrice(order.totalAmount)}</p>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
               {new Date(order.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
             </p>
+            {(order.status === "processing" || order.status === "pending") && (
+              <button
+                onClick={handleCancelOrder}
+                disabled={cancelling}
+                className="mt-2 px-4 py-2 text-xs font-black uppercase tracking-wider text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-100 rounded-xl transition-all disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {cancelling ? (
+                  <span className="animate-spin rounded-full h-3 w-3 border-2 border-rose-600 border-t-transparent inline-block" />
+                ) : (
+                  "Cancel Order"
+                )}
+              </button>
+            )}
           </div>
         </div>
       </Motion.div>

@@ -37,7 +37,7 @@
   }
 
   .btn-primary {
-    @apply bg-gradient-to-br from-primary to-accent text-white shadow-lg shadow-indigo-500/40 hover:scale-[1.02] hover:brightness-110 active:scale-[0.98];
+    @apply bg-linear-to-br from-primary to-accent text-white shadow-lg shadow-indigo-500/40 hover:scale-[1.02] hover:brightness-110 active:scale-[0.98];
   }
 
   .nav-link {

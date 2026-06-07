@@ -308,7 +308,7 @@ const AdminCampaignManagement = () => {
         </div>
         <button
           onClick={() => { setEditingCampaign(null); setModalOpen(true); }}
-          className="btn btn-primary bg-gradient-to-br from-secondary to-accent shadow-rose-500/20 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-1.5 self-start cursor-pointer"
+          className="btn btn-primary bg-linear-to-br from-secondary to-accent shadow-rose-500/20 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-1.5 self-start cursor-pointer"
         >
           <Plus size={16} /> New Campaign
         </button>
@@ -444,7 +444,7 @@ const AdminCampaignManagement = () => {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white p-7 rounded-[24px] border border-slate-100 shadow-2xl max-w-md w-full space-y-4"
+              className="bg-white p-7 rounded-card border border-slate-100 shadow-2xl max-w-md w-full space-y-4"
             >
               <h3 className="text-lg font-black text-slate-900">Close Campaign</h3>
               <p className="text-xs text-slate-400 font-bold">

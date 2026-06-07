@@ -40,7 +40,7 @@ const Cart = () => {
         <Motion.div
           animate={{ y: [0, -10, 0] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-primary to-accent rounded-[28px] shadow-2xl shadow-primary/30 mb-8"
+          className="inline-flex items-center justify-center w-24 h-24 bg-linear-to-br from-primary to-accent rounded-[28px] shadow-2xl shadow-primary/30 mb-8"
         >
           <ShoppingBag size={40} className="text-white" />
         </Motion.div>
@@ -58,7 +58,7 @@ const Cart = () => {
       {/* Header */}
       <Motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
         <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900">
-          Your <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Cart</span>
+          Your <span className="bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">Cart</span>
         </h1>
         <p className="text-slate-500 font-medium mt-1">{itemCount} item{itemCount !== 1 ? "s" : ""} in your cart</p>
       </Motion.div>
@@ -88,7 +88,7 @@ const Cart = () => {
           <OrderSummary items={cartItems} total={cartTotal}>
             <button
               onClick={() => navigate("/checkout")}
-              className="w-full mt-4 py-4 rounded-xl font-black text-white bg-gradient-to-br from-primary to-accent shadow-lg shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              className="w-full mt-4 py-4 rounded-xl font-black text-white bg-linear-to-br from-primary to-accent shadow-lg shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
             >
               Proceed to Checkout <ArrowRight size={18} />
             </button>

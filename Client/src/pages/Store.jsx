@@ -76,7 +76,7 @@ const Store = () => {
           </span>
         </div>
         <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-slate-900 mb-2">
-          The <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Store</span>
+          The <span className="bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">Store</span>
         </h1>
         <p className="text-slate-500 text-lg font-medium">
           Everything your pet needs — {pagination.totalItems || 0} products across 6 categories.
@@ -139,7 +139,7 @@ const Store = () => {
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(9)].map((_, i) => (
-                <div key={i} className="rounded-[24px] bg-slate-100 animate-pulse aspect-[4/5]" />
+                <div key={i} className="rounded-card bg-slate-100 animate-pulse aspect-4/5" />
               ))}
             </div>
           ) : products.length === 0 ? (

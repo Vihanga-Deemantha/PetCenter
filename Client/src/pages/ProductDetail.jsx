@@ -55,7 +55,7 @@ const ProductDetail = () => {
     return (
       <div className="animate-pulse space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-          <div className="aspect-square bg-slate-100 rounded-[24px]" />
+          <div className="aspect-square bg-slate-100 rounded-card" />
           <div className="space-y-4">
             <div className="h-8 bg-slate-100 rounded-xl w-3/4" />
             <div className="h-6 bg-slate-100 rounded-xl w-1/2" />
@@ -127,7 +127,7 @@ const ProductDetail = () => {
         <div className="space-y-6">
           {/* Category + Brand */}
           <div className="flex flex-wrap gap-2">
-            <span className="px-3 py-1.5 bg-indigo-50 text-primary rounded-full text-[11px] font-black uppercase tracking-wider capitalize">{product.category}</span>
+            <span className="px-3 py-1.5 bg-indigo-50 text-primary rounded-full text-[11px] font-black uppercase tracking-wider">{product.category}</span>
             {product.brand && (
               <span className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-full text-[11px] font-black uppercase tracking-wider">{product.brand}</span>
             )}
@@ -187,7 +187,7 @@ const ProductDetail = () => {
                 disabled={adding}
                 className={`flex-1 py-3 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 ${
                   added ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
-                       : "bg-gradient-to-br from-primary to-accent text-white shadow-lg shadow-indigo-500/30 hover:scale-[1.01] active:scale-[0.99]"
+                       : "bg-linear-to-br from-primary to-accent text-white shadow-lg shadow-indigo-500/30 hover:scale-[1.01] active:scale-[0.99]"
                 }`}
               >
                 {adding ? <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" /> :

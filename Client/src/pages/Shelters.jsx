@@ -91,7 +91,7 @@ const Shelters = () => {
           <Landmark size={12} /> Partner Networks
         </span>
         <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-slate-900 mb-2">
-          Shelter <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Directory</span>
+          Shelter <span className="bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">Directory</span>
         </h1>
         <p className="text-slate-500 text-lg font-semibold max-w-2xl">
           Connect with verified shelters, rescue foundations, rehabilitation clinics, and pet caretakers in your local community.
@@ -137,7 +137,7 @@ const Shelters = () => {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="rounded-[24px] bg-slate-100 animate-pulse aspect-[16/9]" />
+            <div key={i} className="rounded-card bg-slate-100 animate-pulse aspect-video" />
           ))}
         </div>
       ) : shelters.length === 0 ? (

@@ -64,7 +64,7 @@ const ThankYou = () => {
         </div>
 
         <h1 className="text-4xl font-black tracking-tighter text-slate-900 mb-3">
-          Thank <span className="bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent">You!</span>
+          Thank <span className="bg-linear-to-r from-secondary to-accent bg-clip-text text-transparent">You!</span>
         </h1>
         <p className="text-slate-500 font-semibold text-lg mb-6">
           Your donation has been completed successfully. Your generosity helps provide shelters with life-saving resources, medical supplies, and warmth.
@@ -80,7 +80,7 @@ const ThankYou = () => {
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Link 
             to="/campaigns"
-            className="btn btn-primary bg-gradient-to-br from-secondary to-accent shadow-rose-500/20 py-3.5 px-6 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1.5 w-full sm:w-auto"
+            className="btn btn-primary bg-linear-to-br from-secondary to-accent shadow-rose-500/20 py-3.5 px-6 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1.5 w-full sm:w-auto"
           >
             Browse Other Causes <ArrowRight size={13} />
           </Link>

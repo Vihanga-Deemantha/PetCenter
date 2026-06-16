@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
 import { Elements } from "@stripe/react-stripe-js";
@@ -20,7 +20,6 @@ const Checkout = () => {
   const navigate = useNavigate();
 
   const [clientSecret, setClientSecret] = useState(null);
-  const [paymentIntentId, setPaymentIntentId] = useState(null);
   const [serverTotal, setServerTotal] = useState(0);
   const [creatingIntent, setCreatingIntent] = useState(false);
   const [intentError, setIntentError] = useState(null);
@@ -56,7 +55,6 @@ const Checkout = () => {
     try {
       const res = await createPaymentIntent(address);
       setClientSecret(res.data.data.clientSecret);
-      setPaymentIntentId(res.data.data.paymentIntentId);
       setServerTotal(res.data.data.totalAmount);
       setStep("payment");
     } catch (err) {
@@ -197,7 +195,7 @@ const Checkout = () => {
               <button
                 onClick={handleContinueToPayment}
                 disabled={creatingIntent}
-                className="w-full py-4 rounded-xl font-black text-white bg-gradient-to-br from-primary to-accent shadow-lg shadow-indigo-500/30 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full py-4 rounded-xl font-black text-white bg-linear-to-br from-primary to-accent shadow-lg shadow-indigo-500/30 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {creatingIntent ? (
                   <><div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" /> Initializing...</>

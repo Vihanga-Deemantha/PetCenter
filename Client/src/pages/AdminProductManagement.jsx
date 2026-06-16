@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { Plus, Search, Pencil, Trash2, Package, RefreshCw, AlertCircle, X, Upload, ChevronDown } from "lucide-react";
 import { getProducts, createProduct, updateProduct, updateProductStock, deleteProduct } from "../api/product.api";
@@ -203,7 +203,7 @@ const ProductFormModal = ({ product, onSave, onClose }) => {
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={saving}
-            className="flex-1 py-3 bg-gradient-to-br from-primary to-accent text-white font-black rounded-xl shadow-lg shadow-indigo-500/30 hover:scale-[1.01] transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+            className="flex-1 py-3 bg-linear-to-br from-primary to-accent text-white font-black rounded-xl shadow-lg shadow-indigo-500/30 hover:scale-[1.01] transition-all disabled:opacity-60 flex items-center justify-center gap-2">
             {saving ? <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" /> : null}
             {isEdit ? "Save Changes" : "Create Product"}
           </button>
@@ -254,7 +254,7 @@ const AdminProductManagement = () => {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [error, setError] = useState("");
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
       const params = { page, limit: 12, admin: true };
@@ -265,9 +265,9 @@ const AdminProductManagement = () => {
       setPagination(res.data.pagination || {});
     } catch { setProducts([]); }
     setLoading(false);
-  };
+  }, [page, search, category]);
 
-  useEffect(() => { fetchProducts(); }, [page, search, category]);
+  useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
   const handleSave = async () => {
     setShowForm(false);
@@ -385,7 +385,7 @@ const AdminProductManagement = () => {
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      <span className="px-2 py-1 bg-indigo-50 text-primary rounded-lg text-[10px] font-black uppercase tracking-wider capitalize">{p.category}</span>
+                      <span className="px-2 py-1 bg-indigo-50 text-primary rounded-lg text-[10px] font-black uppercase tracking-wider">{p.category}</span>
                     </td>
                     <td className="px-5 py-4 font-black text-slate-900">{formatPrice(p.price)}</td>
                     <td className="px-5 py-4">

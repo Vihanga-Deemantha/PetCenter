@@ -64,7 +64,7 @@ const AdminDonationManagement = () => {
         <button
           onClick={handleDownloadCSV}
           disabled={donations.length === 0}
-          className="btn btn-primary bg-gradient-to-br from-secondary to-accent shadow-rose-500/20 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-1.5 self-start cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          className="btn btn-primary bg-linear-to-br from-secondary to-accent shadow-rose-500/20 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-1.5 self-start cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <Download size={16} /> Export CSV Report
         </button>

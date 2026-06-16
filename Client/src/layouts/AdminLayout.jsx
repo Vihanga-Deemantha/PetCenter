@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink, Outlet, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { LayoutDashboard, Users, Heart, LogOut, ArrowLeft, Package, ClipboardList, Flame, Gift, Landmark } from "lucide-react";
+import { LayoutDashboard, Users, Heart, LogOut, ArrowLeft, Package, ClipboardList, Flame, Gift, Landmark, Leaf } from "lucide-react";
 
 const AdminLayout = () => {
   const { user, logout } = useAuth();
@@ -20,6 +20,7 @@ const AdminLayout = () => {
     { name: "Campaigns", path: "/admin/campaigns", icon: <Flame size={20} /> },
     { name: "Donations", path: "/admin/donations", icon: <Gift size={20} /> },
     { name: "Shelters", path: "/admin/shelters", icon: <Landmark size={20} /> },
+    { name: "Ecosystem", path: "/admin/ecosystem", icon: <Leaf size={20} /> },
   ];
 
   return (

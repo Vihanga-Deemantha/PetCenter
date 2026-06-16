@@ -33,7 +33,7 @@ const Navbar = () => {
     { name: "Store", path: "/products" },
     { name: "Campaigns", path: "/campaigns" },
     { name: "Shelters", path: "/shelters" },
-    { name: "Ecosystems", path: "/ecosystems" },
+    { name: "Ecosystem", path: "/ecosystem" },
     { name: "About", path: "/about" },
   ];
 
@@ -187,6 +187,9 @@ const Navbar = () => {
                   <div className="flex flex-col gap-3">
                     <Link to="/cart" className="w-full py-4 bg-indigo-50 border border-indigo-100 text-primary rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
                       <ShoppingCart size={20} /> Cart {itemCount > 0 && `(${itemCount})`}
+                    </Link>
+                    <Link to="/my-builds" className="flex-1 py-4 bg-indigo-50/50 border border-indigo-100/50 text-primary rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
+                      🌿 My Builds
                     </Link>
                     <div className="flex gap-4">
                       <Link to="/orders" className="flex-1 py-4 bg-indigo-50/50 border border-indigo-100/50 text-primary rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>

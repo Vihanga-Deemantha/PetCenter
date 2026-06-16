@@ -41,3 +41,11 @@ export const removeListingAdmin = async (id, note = "") => {
   const { data } = await axiosInstance.put(`/admin/listings/${id}/remove`, { note });
   return data;
 };
+
+// Ecosystem Gallery Moderation
+export const getAdminEcosystemBuilds = () =>
+  axiosInstance.get("/admin/ecosystem/builds");
+
+export const adminUnpublishBuild = (id) =>
+  axiosInstance.patch(`/admin/ecosystem/builds/${id}/unpublish`);
+

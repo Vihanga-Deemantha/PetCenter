@@ -14,6 +14,7 @@ import campaignRoutes from "./src/routes/campaign.routes.js";
 import donationRoutes from "./src/routes/donation.routes.js";
 import shelterRoutes from "./src/routes/shelter.routes.js";
 import webhookRoutes from "./src/routes/webhook.routes.js";
+import ecosystemRoutes from "./src/routes/ecosystem.routes.js";
 import { stripeWebhookMiddleware } from "./src/middleware/stripeWebhook.js";
 import errorHandler from "./src/middleware/errorHandler.js";
 import { generalLimiter } from "./src/middleware/rateLimit.js";
@@ -66,6 +67,7 @@ app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/campaigns", campaignRoutes);
 app.use("/api/v1/donations", donationRoutes);
 app.use("/api/v1/shelters", shelterRoutes);
+app.use("/api/v1/ecosystem", ecosystemRoutes);
 
 // ── 404 Handler ───────────────────────────────────────────────────────────────
 app.use((_req, res) => {

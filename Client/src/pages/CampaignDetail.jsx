@@ -249,7 +249,7 @@ const CampaignDetail = () => {
                 <span className="text-xs font-semibold text-slate-400">raised of ${(campaign.goalAmount / 100).toLocaleString()} goal</span>
               </div>
               <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-secondary to-accent" style={{ width: `${progress}%` }} />
+                <div className="h-full bg-linear-to-r from-secondary to-accent" style={{ width: `${progress}%` }} />
               </div>
               <div className="flex justify-between text-xs font-bold text-slate-400">
                 <span>{progress.toFixed(0)}% reached</span>
@@ -356,7 +356,7 @@ const CampaignDetail = () => {
                       type="button"
                       onClick={handleInitiateDonation}
                       disabled={creatingIntent}
-                      className="w-full py-3.5 rounded-xl font-black text-white bg-gradient-to-br from-secondary to-accent shadow-lg shadow-rose-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-60 cursor-pointer flex items-center justify-center gap-2 text-sm"
+                      className="w-full py-3.5 rounded-xl font-black text-white bg-linear-to-br from-secondary to-accent shadow-lg shadow-rose-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-60 cursor-pointer flex items-center justify-center gap-2 text-sm"
                     >
                       {creatingIntent ? (
                         <>
@@ -378,7 +378,7 @@ const CampaignDetail = () => {
                     animate={{ opacity: 1, scale: 1 }} 
                     className="border-t border-slate-100 pt-5 mt-5"
                   >
-                    <h4 className="text-sm font-black text-slate-900 mb-3 flex items-center gap-1.5 text-secondary">
+                    <h4 className="text-sm font-black mb-3 flex items-center gap-1.5 text-secondary">
                       <Lock size={14} /> Finalize stripe contribution
                     </h4>
                     <Elements stripe={stripePromise} options={stripeOptions}>
@@ -427,7 +427,7 @@ const CampaignDetail = () => {
               <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-3" />
               
               <div className="flex justify-between items-center mb-2">
-                <h3 className="text-lg font-black text-slate-900 flex items-center gap-1.5 text-secondary">
+                <h3 className="text-lg font-black flex items-center gap-1.5 text-secondary">
                   <Heart size={18} className="fill-secondary text-secondary" /> Finalize Donation
                 </h3>
                 <button 

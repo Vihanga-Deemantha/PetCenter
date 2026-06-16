@@ -5,6 +5,7 @@ import {
   updateCartItem,
   removeFromCart,
   clearCart,
+  bulkAddToCart,
 } from "../controllers/cart.controller.js";
 import { protect } from "../middleware/auth.js";
 
@@ -27,5 +28,8 @@ router.delete("/items/:productId", removeFromCart);
 
 // Clear entire cart (called after checkout)
 router.delete("/", clearCart);
+
+// Bulk add multiple products to cart (Ecosystem Builder)
+router.post("/bulk", bulkAddToCart);
 
 export default router;

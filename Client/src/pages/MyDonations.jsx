@@ -46,11 +46,11 @@ const MyDonations = () => {
         animate={{ opacity: 1, y: 0 }} 
         className="mb-10"
       >
-        <span className="inline-flex items-center gap-1.5 px-3 px-1.5 bg-rose-50 text-secondary rounded-full text-xs font-black uppercase tracking-widest border border-rose-100 mb-4">
+        <span className="inline-flex items-center gap-1.5 px-3 bg-rose-50 text-secondary rounded-full text-xs font-black uppercase tracking-widest border border-rose-100 mb-4">
           <Heart size={12} className="fill-current" /> Giving Ledger
         </span>
         <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-slate-900 mb-2">
-          My <span className="bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent">Donations</span>
+          My <span className="bg-linear-to-r from-secondary to-accent bg-clip-text text-transparent">Donations</span>
         </h1>
         <p className="text-slate-500 text-lg font-semibold max-w-2xl">
           An overview of your contributions to charitable campaigns helping animals around the world.
@@ -75,7 +75,7 @@ const MyDonations = () => {
           </p>
           <Link 
             to="/campaigns"
-            className="btn btn-primary bg-gradient-to-br from-secondary to-accent shadow-rose-500/20 py-3 px-6 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1.5 inline-flex"
+            className="btn btn-primary bg-linear-to-br from-secondary to-accent shadow-rose-500/20 py-3 px-6 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-1.5"
           >
             Explore Campaigns <ArrowRight size={13} />
           </Link>

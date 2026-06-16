@@ -4,6 +4,7 @@ import Product from "../models/Products.js";
 import Order from "../models/Order.js";
 import Campaign from "../models/Campaign.js";
 import Donation from "../models/Donation.js";
+import EcosystemBuild from "../models/EcosystemBuild.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 
 // ─── Dashboard Stats ──────────────────────────────────────────────────────────
@@ -481,3 +482,41 @@ export const removeListing = async (req, res, next) => {
     next(error);
   }
 };
+
+// ─── Get All Published Ecosystem Builds (Admin) ────────────────────────────────
+// GET /api/v1/admin/ecosystem/builds  — Admin only
+export const getEcosystemBuilds = async (req, res, next) => {
+  try {
+    const builds = await EcosystemBuild
+      .find({ isPublished: true })
+      .populate("userId", "name email")
+      .sort({ publishedAt: -1 })
+      .lean();
+    return sendSuccess(res, builds);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── Force Unpublish an Ecosystem Build (Admin) ────────────────────────────────
+// PATCH /api/v1/admin/ecosystem/builds/:id/unpublish  — Admin only
+// Forces isPublished: false regardless of the owner — for guideline violations.
+export const unpublishEcosystemBuild = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const build = await EcosystemBuild.findById(id);
+    if (!build) return sendError(res, "Build not found", 404);
+    if (!build.isPublished) return sendError(res, "Build is not currently published", 400);
+
+    build.isPublished = false;
+    build.publishedAt = null;
+    await build.save();
+
+    return sendSuccess(res, { message: "Build unpublished successfully", build });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// End of admin ecosystem controller logic
+

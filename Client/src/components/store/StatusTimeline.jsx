@@ -32,7 +32,6 @@ const StatusTimeline = ({ status }) => {
         {STEPS.map((step, idx) => {
           const isCompleted = idx < currentIndex;
           const isCurrent = idx === currentIndex;
-          const isPending = idx > currentIndex;
           const Icon = isCompleted ? CheckCircle : step.icon;
 
           return (

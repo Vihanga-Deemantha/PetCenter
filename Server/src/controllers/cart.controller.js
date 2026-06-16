@@ -389,3 +389,82 @@ export const validateCartStock = async (userId) => {
     return { valid: false, message: "Error validating cart stock", error };
   }
 };
+
+// ─── Bulk Add to Cart (Ecosystem Builder) ─────────────────────────────────────
+// POST /api/v1/cart/bulk  — Protected
+// Accepts an array of { productId, quantity } and adds each to the user's cart
+// with individual stock checks. Returns { added, failed, itemCount } so the
+// frontend can report partial success clearly rather than treating it as a
+// total failure.
+export const bulkAddToCart = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { items } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return sendError(res, "items must be a non-empty array", 400);
+    }
+
+    let cart = await Cart.findOne({ userId });
+    if (!cart) {
+      cart = new Cart({ userId, items: [] });
+    }
+
+    const added = [];
+    const failed = [];
+
+    for (const entry of items) {
+      const { productId, quantity = 1 } = entry;
+
+      if (!productId) {
+        failed.push({ productId, reason: "Missing productId" });
+        continue;
+      }
+
+      const product = await Product.findById(productId);
+
+      if (!product || !product.isActive) {
+        failed.push({ productId, reason: "Product not found or inactive" });
+        continue;
+      }
+
+      if (product.stock === 0) {
+        failed.push({ productId, name: product.name, reason: "Out of stock" });
+        continue;
+      }
+
+      const existing = cart.items.find(
+        (i) => i.productId.toString() === productId.toString()
+      );
+
+      if (existing) {
+        const newQty = existing.quantity + quantity;
+        if (newQty > product.stock) {
+          // Add as many as available
+          existing.quantity = product.stock;
+          added.push({ productId, name: product.name, note: `Quantity capped at available stock (${product.stock})` });
+        } else {
+          existing.quantity = newQty;
+          added.push({ productId, name: product.name });
+        }
+      } else {
+        const safeQty = Math.min(quantity, product.stock);
+        cart.items.push({
+          productId,
+          quantity: safeQty,
+          priceAtAdd: product.price,
+        });
+        added.push({ productId, name: product.name });
+      }
+    }
+
+    cart.updatedAt = new Date();
+    await cart.save();
+
+    const itemCount = cart.items.reduce((sum, i) => sum + i.quantity, 0);
+
+    return sendSuccess(res, { added, failed, itemCount });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion as Motion } from "framer-motion";
 import { Search, RefreshCw, Package, AlertCircle, Eye, ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -58,7 +58,7 @@ const AdminOrdersManagement = () => {
   const [sortBy, setSortBy] = useState("newest");
   const [page, setPage] = useState(1);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const params = { page, limit: 15, sortBy };
@@ -69,9 +69,9 @@ const AdminOrdersManagement = () => {
       setStatistics(res.data.data.statistics || null);
     } catch { setOrders([]); }
     setLoading(false);
-  };
+  }, [page, statusFilter, sortBy]);
 
-  useEffect(() => { fetchOrders(); }, [page, statusFilter, sortBy]);
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const handleStatusUpdate = (orderId, newStatus) => {
     setOrders((prev) => prev.map((o) => o._id === orderId ? { ...o, status: newStatus } : o));

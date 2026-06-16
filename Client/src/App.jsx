@@ -41,6 +41,15 @@ import MyDonations from "./pages/MyDonations";
 import AdminCampaignManagement from "./pages/AdminCampaignManagement";
 import AdminDonationManagement from "./pages/AdminDonationManagement";
 import AdminShelterManagement from "./pages/AdminShelterManagement";
+import AdminEcosystemManagement from "./pages/AdminEcosystemManagement";
+
+// Phase 4 Pages
+import { BuilderProvider } from "./context/BuilderContext";
+import EcosystemPicker from "./pages/EcosystemPicker";
+import EcosystemBuilder from "./pages/EcosystemBuilder";
+import MyBuilds from "./pages/MyBuilds";
+import EcosystemGallery from "./pages/EcosystemGallery";
+import GalleryBuildDetail from "./pages/GalleryBuildDetail";
 
 import AdminLayout from "./layouts/AdminLayout";
 
@@ -78,7 +87,8 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <Router>
+        <BuilderProvider>
+          <Router>
           <DogDockPortal />
           <Routes>
             {/* Global User Interface */}
@@ -100,6 +110,12 @@ function App() {
               <Route path="/orders/:orderId" element={<PrivateRoute><PaddedContainer><OrderDetail /></PaddedContainer></PrivateRoute>} />
               <Route path="/unauthorized" element={<PaddedContainer><Unauthorized /></PaddedContainer>} />
               <Route path="/ecosystems" element={<PaddedContainer><ComingSoon /></PaddedContainer>} />
+              {/* Phase 4 — Ecosystem Builder */}
+              <Route path="/ecosystem" element={<PaddedContainer><EcosystemPicker /></PaddedContainer>} />
+              <Route path="/ecosystem/build/:petType" element={<PaddedContainer><EcosystemBuilder /></PaddedContainer>} />
+              <Route path="/ecosystem/my-builds" element={<PrivateRoute><PaddedContainer><MyBuilds /></PaddedContainer></PrivateRoute>} />
+              <Route path="/ecosystem/gallery" element={<PaddedContainer><EcosystemGallery /></PaddedContainer>} />
+              <Route path="/ecosystem/gallery/:id" element={<PaddedContainer><GalleryBuildDetail /></PaddedContainer>} />
               <Route path="/campaigns" element={<PaddedContainer><Campaigns /></PaddedContainer>} />
               <Route path="/campaigns/:id" element={<PaddedContainer><CampaignDetail /></PaddedContainer>} />
               <Route path="/thank-you" element={<PaddedContainer><ThankYou /></PaddedContainer>} />
@@ -120,10 +136,12 @@ function App() {
               <Route path="campaigns" element={<AdminCampaignManagement />} />
               <Route path="donations" element={<AdminDonationManagement />} />
               <Route path="shelters" element={<AdminShelterManagement />} />
+              <Route path="ecosystem" element={<AdminEcosystemManagement />} />
             </Route>
 
           </Routes>
-        </Router>
+          </Router>
+        </BuilderProvider>
       </CartProvider>
     </AuthProvider>
   );

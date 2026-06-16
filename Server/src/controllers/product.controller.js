@@ -10,6 +10,7 @@ export const getProducts = async (req, res, next) => {
       limit = 12,
       category,
       compatiblePets,
+      tags,
       minPrice,
       maxPrice,
       inStock,
@@ -28,6 +29,13 @@ export const getProducts = async (req, res, next) => {
     if (compatiblePets) {
       const pets = Array.isArray(compatiblePets) ? compatiblePets : [compatiblePets];
       filter.compatiblePets = { $in: pets };
+    }
+
+    // Tags filter — used by the Ecosystem Builder to fetch products per category
+    // e.g. ?tags=heater returns only products tagged with "heater"
+    if (tags) {
+      const tagsArr = Array.isArray(tags) ? tags : [tags];
+      filter.tags = { $in: tagsArr };
     }
 
     // Price range filter (convert to cents if needed)

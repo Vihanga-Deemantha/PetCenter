@@ -269,7 +269,7 @@ const AdminShelterManagement = () => {
       fd.append("isVerified", !shelter.isVerified);
       await updateShelter(shelter._id, fd);
       fetchData();
-    } catch (err) {
+    } catch {
       alert("Failed to toggle verification");
     }
   };

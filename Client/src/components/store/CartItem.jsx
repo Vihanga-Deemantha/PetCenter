@@ -6,7 +6,7 @@ import { formatPrice } from "../../utils/priceFormatter";
 import { useCart } from "../../context/CartContext";
 
 const CartItem = ({ item }) => {
-  const { updateQuantity, removeItem } = useCart();
+  const { updateQuantity } = useCart();
   const [updating, setUpdating] = React.useState(false);
 
   const handleQtyChange = async (newQty) => {
@@ -16,12 +16,7 @@ const CartItem = ({ item }) => {
     setUpdating(false);
   };
 
-  const handleRemove = async () => {
-    if (updating) return;
-    setUpdating(true);
-    await removeItem(item.productId);
-    setUpdating(false);
-  };
+
 
   const subtotal = item.priceAtAdd * item.quantity;
 

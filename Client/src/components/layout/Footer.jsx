@@ -33,10 +33,16 @@ const Footer = () => {
         <div>
           <h4 className="font-black text-slate-900 mb-8 uppercase tracking-widest text-xs">Platform</h4>
           <ul className="flex flex-col gap-4">
-            {["Marketplace", "Store", "Ecosystems", "Donations", "About Us"].map((link) => (
-              <li key={link}>
-                <Link to="#" className="text-slate-500 hover:text-primary font-bold transition-colors">
-                  {link}
+            {[
+              { name: "Marketplace", path: "/marketplace" },
+              { name: "Store", path: "/products" },
+              { name: "Ecosystems", path: "/ecosystem" },
+              { name: "Donations", path: "/campaigns" },
+              { name: "About Us", path: "/about" }
+            ].map((link) => (
+              <li key={link.name}>
+                <Link to={link.path} className="text-slate-500 hover:text-primary font-bold transition-colors">
+                  {link.name}
                 </Link>
               </li>
             ))}

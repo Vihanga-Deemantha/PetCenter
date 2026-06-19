@@ -83,7 +83,7 @@ const HeroSection = () => {
             <Link to="/marketplace" className="btn btn-primary px-10 py-5 text-lg rounded-2xl shadow-2xl shadow-primary/30 flex items-center gap-3 group">
               Explore Pets <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
             </Link>
-            <Link to="/ecosystems" className="btn bg-white border border-slate-200 text-slate-800 px-10 py-5 text-lg rounded-2xl hover:bg-slate-50 transition-all flex items-center gap-3">
+            <Link to="/ecosystem" className="btn bg-white border border-slate-200 text-slate-800 px-10 py-5 text-lg rounded-2xl hover:bg-slate-50 transition-all flex items-center gap-3">
               Ecosystems <Plus size={20} />
             </Link>
           </Motion.div>

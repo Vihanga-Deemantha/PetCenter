@@ -11,6 +11,11 @@ import {
 import { protect } from "../middleware/auth.js";
 import { adminOnly } from "../middleware/admin.js";
 import { uploadProductImages } from "../utils/uploadImage.js";
+import {
+  getProductReviews,
+  createReview,
+  getReviewEligibility,
+} from "../controllers/review.controller.js";
 
 const router = express.Router();
 
@@ -18,6 +23,11 @@ const router = express.Router();
 router.get("/", getProducts);
 router.get("/categories", getCategories);
 router.get("/:id", getProductDetail);
+
+// ─── Review Sub-routes ────────────────────────────────────────────────────────
+router.get("/:id/reviews", getProductReviews);
+router.post("/:id/reviews", protect, createReview);
+router.get("/:id/reviews/eligibility", protect, getReviewEligibility);
 
 // ─── Admin Routes (Protected) ─────────────────────────────────────────────────
 // Create product (with image upload)

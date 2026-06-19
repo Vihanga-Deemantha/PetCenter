@@ -6,6 +6,7 @@ import Campaign from "../models/Campaign.js";
 import Donation from "../models/Donation.js";
 import EcosystemBuild from "../models/EcosystemBuild.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
+import { createNotification } from "./notification.controller.js";
 
 // ─── Dashboard Stats ──────────────────────────────────────────────────────────
 // GET /api/v1/admin/dashboard  — Admin
@@ -439,6 +440,15 @@ export const approveListing = async (req, res, next) => {
     listing.moderationNote = "";
     await listing.save();
 
+    // Notify listing owner
+    await createNotification({
+      userId: listing.owner,
+      type: "listing_approved",
+      title: "Your listing was approved!",
+      message: `Your listing "${listing.title}" is now live on the marketplace.`,
+      link: `/marketplace/${listing._id}`,
+    });
+
     return sendSuccess(res, listing);
   } catch (error) {
     next(error);
@@ -476,6 +486,15 @@ export const removeListing = async (req, res, next) => {
     listing.status = "removed";
     listing.moderationNote = req.body.note || "Removed by admin";
     await listing.save();
+
+    // Notify listing owner
+    await createNotification({
+      userId: listing.owner,
+      type: "listing_removed",
+      title: "Your listing was removed",
+      message: `Your listing "${listing.title}" has been removed. Reason: ${req.body.note || "Community guidelines violation"}`,
+      link: `/my-listings`,
+    });
 
     return sendSuccess(res, { message: "Listing removed", listing });
   } catch (error) {

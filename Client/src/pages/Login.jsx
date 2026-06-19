@@ -24,7 +24,9 @@ const Login = () => {
     try {
       const data = await loginUser(formData);
       login(data.data.user, data.data.accessToken);
-      navigate("/");
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect");
+      navigate(redirect ? decodeURIComponent(redirect) : "/");
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || "Login failed. Please try again.");
     } finally {

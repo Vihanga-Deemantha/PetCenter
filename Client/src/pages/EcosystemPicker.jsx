@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getPetList } from "../api/ecosystem.api";
+import { getPetList, getMyBuilds } from "../api/ecosystem.api";
 import { useBuilder } from "../context/BuilderContext";
+import { useAuth } from "../context/AuthContext";
 
 // ─── Pet icon map (emoji fallbacks) ──────────────────────────────────────────
 const PET_ICONS = {
@@ -17,12 +18,14 @@ const PET_ICONS = {
 
 export default function EcosystemPicker() {
   const navigate = useNavigate();
-  const { petType: currentPetType, hasSelections, setPet, clearSelections } = useBuilder();
+  const { user } = useAuth();
+  const { petType: currentPetType, hasSelections, setPet, clearSelections, loadBuild } = useBuilder();
 
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmChange, setConfirmChange] = useState(null); // petType to switch to
+  const [mySavedBuilds, setMySavedBuilds] = useState([]);
 
   useEffect(() => {
     document.title = "Build a Pet Setup | PetCenter";
@@ -31,6 +34,18 @@ export default function EcosystemPicker() {
       .catch(() => setError("Failed to load pet types. Please try again."))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    getMyBuilds()
+      .then((res) => setMySavedBuilds(res.data.data || []))
+      .catch((err) => console.error("Error loading my builds:", err));
+  }, [user]);
+
+  const handleLoadSavedBuild = (build) => {
+    loadBuild(build);
+    navigate(`/ecosystem/build/${build.petType}?step=3`);
+  };
 
   const handlePickPet = (petType) => {
     // If user already has selections for a different pet, warn them
@@ -51,6 +66,75 @@ export default function EcosystemPicker() {
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
+      {/* Saved Builds Banner */}
+      {mySavedBuilds.length > 0 && (
+        <div style={{
+          background: "#f3e8ff",
+          border: "1px solid #d8b4fe",
+          borderRadius: 16,
+          padding: "16px 24px",
+          marginBottom: 24,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 24 }}>🌿</span>
+            <div>
+              <p style={{ margin: 0, fontWeight: 800, color: "#581c87", fontSize: 14 }}>
+                Saved Builds Available
+              </p>
+              <p style={{ margin: 0, fontSize: 13, color: "#6b21a8", fontWeight: 500 }}>
+                {mySavedBuilds.length === 1 
+                  ? `You have a saved ${mySavedBuilds[0].petType} build ("${mySavedBuilds[0].name || "My Setup"}").`
+                  : `You have ${mySavedBuilds.length} saved habitat builds in your account.`
+                }
+              </p>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 12 }}>
+            {mySavedBuilds.length === 1 ? (
+              <button
+                onClick={() => handleLoadSavedBuild(mySavedBuilds[0])}
+                style={{
+                  background: "#7c3aed",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 10,
+                  padding: "8px 16px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  boxShadow: "0 4px 12px rgba(124, 58, 237, 0.2)",
+                  transition: "all 0.2s",
+                }}
+              >
+                Load Build
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate("/ecosystem/my-builds")}
+                style={{
+                  background: "#7c3aed",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 10,
+                  padding: "8px 16px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  boxShadow: "0 4px 12px rgba(124, 58, 237, 0.2)",
+                  transition: "all 0.2s",
+                }}
+              >
+                View Saved Builds
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       {/* ── Meta ──────────────────────────────────────────────────────────── */}
       <div style={{ marginBottom: 32 }}>
         <div style={{

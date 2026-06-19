@@ -6,6 +6,8 @@ import { getProductById } from "../api/product.api";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import ProductCard from "../components/store/ProductCard";
+import HeartButton from "../components/ui/HeartButton";
+import ProductReviews from "../components/store/ProductReviews";
 import { formatPrice } from "../utils/priceFormatter";
 
 const PET_ICONS = { dog: "🐕", cat: "🐈", bird: "🦜", fish: "🐟", snake: "🐍", rabbit: "🐇", turtle: "🐢", mouse: "🐭", universal: "🐾" };
@@ -140,6 +142,25 @@ const ProductDetail = () => {
 
           <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tighter leading-tight">{product.name}</h1>
 
+          {/* Star rating summary */}
+          {product.reviewCount > 0 ? (
+            <div className="flex items-center gap-2 text-sm font-bold text-slate-600">
+              <div className="flex text-amber-500">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    size={14}
+                    className={i < Math.round(product.averageRating) ? "fill-amber-500" : "text-slate-200"}
+                  />
+                ))}
+              </div>
+              <span>{product.averageRating} ★</span>
+              <span className="text-slate-400">({product.reviewCount} {product.reviewCount === 1 ? "review" : "reviews"})</span>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-300 font-bold">No reviews yet</p>
+          )}
+
           {/* Price + Stock */}
           <div className="flex items-center gap-4">
             <span className="text-4xl font-black text-primary">{formatPrice(product.price)}</span>
@@ -154,6 +175,7 @@ const ProductDetail = () => {
                 <CheckCircle size={11} /> In Stock ({product.stock})
               </span>
             )}
+            <HeartButton itemType="product" itemId={product._id} size={22} />
           </div>
 
           {/* Description */}
@@ -203,9 +225,12 @@ const ProductDetail = () => {
         </div>
       </div>
 
+      {/* Reviews Section */}
+      <ProductReviews productId={product._id} />
+
       {/* Related Products */}
       {relatedProducts.length > 0 && (
-        <div>
+        <div className="mt-16">
           <h2 className="text-2xl font-black text-slate-900 tracking-tighter mb-6">You Might Also Like</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {relatedProducts.map((p) => <ProductCard key={p._id} product={p} />)}

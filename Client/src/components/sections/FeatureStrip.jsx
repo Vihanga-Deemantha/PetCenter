@@ -30,14 +30,14 @@ const FeatureStrip = () => {
       icon: <Heart className="text-rose-500" />, 
       title: "Help Animals", 
       desc: "Support rescues",
-      path: "/donations",
+      path: "/campaigns",
       bg: "bg-rose-50"
     },
     { 
       icon: <Plus className="text-teal-500" />, 
       title: "Build Habitat", 
       desc: "Custom designs",
-      path: "/ecosystems",
+      path: "/ecosystem",
       bg: "bg-teal-50"
     }
   ];

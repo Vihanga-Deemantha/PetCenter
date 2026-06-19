@@ -4,6 +4,7 @@ import { getListings } from "../api/listing.api";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { Search, MapPin, Tag, Plus, ArrowRight, Info, SlidersHorizontal, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import HeartButton from "../components/ui/HeartButton";
 
 const statusColors = {
   active: "bg-emerald-50 text-emerald-700",
@@ -220,6 +221,9 @@ const Marketplace = () => {
                       <span className={`badge text-[10px] font-black uppercase tracking-wider ${statusColors[pet.status] || "bg-slate-50 text-slate-600"}`}>
                         {pet.status}
                       </span>
+                    </div>
+                    <div className="absolute bottom-4 right-4 z-10">
+                      <HeartButton itemType="listing" itemId={pet._id} size={16} />
                     </div>
                   </div>
 

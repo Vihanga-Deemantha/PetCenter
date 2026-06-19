@@ -14,6 +14,7 @@ import {
 } from "../controllers/admin.controller.js";
 import { protect } from "../middleware/auth.js";
 import { adminOnly } from "../middleware/admin.js";
+import { adminGetReviews, adminHideReview } from "../controllers/review.controller.js";
 
 const router = express.Router();
 
@@ -37,6 +38,10 @@ router.put("/listings/:id/remove", removeListing);
 // Admin ecosystem moderation
 router.get("/ecosystem/builds", getEcosystemBuilds);
 router.patch("/ecosystem/builds/:id/unpublish", unpublishEcosystemBuild);
+
+// Admin review moderation
+router.get("/reviews", adminGetReviews);
+router.patch("/reviews/:id/hide", adminHideReview);
 
 // Export admin router
 export default router;

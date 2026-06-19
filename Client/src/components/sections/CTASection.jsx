@@ -39,7 +39,7 @@ const CTASection = () => {
             <Link to="/register" className="btn btn-primary px-12 py-5 text-xl rounded-2xl shadow-2xl shadow-primary/30 flex items-center gap-4 group">
               Get Started Now <ArrowRight size={24} className="transition-all group-hover:translate-x-1" />
             </Link>
-            <Link to="/ecosystems" className="btn bg-white/10 text-white border border-white/10 px-12 py-5 text-xl rounded-2xl hover:bg-white/20 transition-all flex items-center gap-4 font-black">
+            <Link to="/ecosystem" className="btn bg-white/10 text-white border border-white/10 px-12 py-5 text-xl rounded-2xl hover:bg-white/20 transition-all flex items-center gap-4 font-black">
               <Plus size={24} /> Build a Habitat
             </Link>
           </div>

@@ -56,7 +56,7 @@ const EcosystemSpotlight = () => {
             ))}
           </div>
 
-          <Link to="/ecosystems" className="btn btn-primary px-12 py-5 text-xl rounded-2xl shadow-2xl shadow-primary/40 flex items-center gap-4 group mx-auto lg:mx-0 w-fit">
+          <Link to="/ecosystem" className="btn btn-primary px-12 py-5 text-xl rounded-2xl shadow-2xl shadow-primary/40 flex items-center gap-4 group mx-auto lg:mx-0 w-fit">
             <Plus size={24} /> Get Started Now <ArrowRight size={20} className="transition-all group-hover:translate-x-1" />
           </Link>
 

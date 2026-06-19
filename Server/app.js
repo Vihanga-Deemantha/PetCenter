@@ -15,9 +15,13 @@ import donationRoutes from "./src/routes/donation.routes.js";
 import shelterRoutes from "./src/routes/shelter.routes.js";
 import webhookRoutes from "./src/routes/webhook.routes.js";
 import ecosystemRoutes from "./src/routes/ecosystem.routes.js";
+import favoriteRoutes from "./src/routes/favorite.routes.js";
+import reviewRoutes from "./src/routes/review.routes.js";
+import notificationRoutes from "./src/routes/notification.routes.js";
 import { stripeWebhookMiddleware } from "./src/middleware/stripeWebhook.js";
 import errorHandler from "./src/middleware/errorHandler.js";
 import { generalLimiter } from "./src/middleware/rateLimit.js";
+import { nosqlSanitize } from "./src/middleware/nosqlSanitize.js";
 
 const app = express();
 
@@ -32,8 +36,7 @@ app.use(
     credentials: true, // Allow cookies
   })
 );
-// NoSQL injection sanitization — express-mongo-sanitize is not yet compatible
-// with Express v5's read-only req.query. Sanitize at controller level instead.
+app.use(nosqlSanitize);
 
 // ── Stripe Webhooks (must be BEFORE body parsers) ──────────────────────────────
 // Webhooks require raw body for signature verification
@@ -68,6 +71,9 @@ app.use("/api/v1/campaigns", campaignRoutes);
 app.use("/api/v1/donations", donationRoutes);
 app.use("/api/v1/shelters", shelterRoutes);
 app.use("/api/v1/ecosystem", ecosystemRoutes);
+app.use("/api/v1/favorites", favoriteRoutes);
+app.use("/api/v1/reviews", reviewRoutes);
+app.use("/api/v1/notifications", notificationRoutes);
 
 // ── 404 Handler ───────────────────────────────────────────────────────────────
 app.use((_req, res) => {

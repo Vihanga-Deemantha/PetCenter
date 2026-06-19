@@ -4,6 +4,7 @@ import Product from "../models/Products.js";
 import Order from "../models/Order.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { validateCartStock } from "./cart.controller.js";
+import { createNotification } from "./notification.controller.js";
 
 /**
  * Create a Stripe PaymentIntent for checkout
@@ -338,6 +339,23 @@ export const updateOrderStatus = async (req, res, next) => {
       order.paymentStatus = "refunded";
     }
     await order.save();
+
+    // Notify the order's user about the status change
+    const statusLabels = {
+      processing: "is being processed",
+      shipped: "has been shipped",
+      delivered: "has been delivered",
+      cancelled: "has been cancelled",
+    };
+    if (statusLabels[status]) {
+      await createNotification({
+        userId: order.userId,
+        type: "order_status_changed",
+        title: `Order ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        message: `Your order #${order._id.toString().slice(-8).toUpperCase()} ${statusLabels[status]}.`,
+        link: `/orders/${order._id}`,
+      });
+    }
 
     // If changing to cancelled, restore stock
     if (status === "cancelled" && previousStatus !== "cancelled") {

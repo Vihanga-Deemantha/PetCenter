@@ -5,6 +5,7 @@ import { ShoppingCart, Star, Package, AlertTriangle } from "lucide-react";
 import { formatPrice } from "../../utils/priceFormatter";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
+import HeartButton from "../ui/HeartButton";
 
 const petIcons = { dog: "🐕", cat: "🐈", bird: "🦜", fish: "🐟", snake: "🐍", rabbit: "🐇", turtle: "🐢", mouse: "🐭", universal: "🐾" };
 
@@ -76,6 +77,11 @@ const ProductCard = ({ product }) => {
               {product.category}
             </span>
           </div>
+
+          {/* Heart Button */}
+          <div className="absolute bottom-3 right-3 z-10">
+            <HeartButton itemType="product" itemId={product._id} size={16} />
+          </div>
         </div>
 
         {/* Info */}
@@ -91,7 +97,16 @@ const ProductCard = ({ product }) => {
             {product.name}
           </h3>
           {product.brand && (
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">{product.brand}</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">{product.brand}</p>
+          )}
+
+          {product.reviewCount > 0 ? (
+            <div className="flex items-center gap-1 text-[11px] font-bold text-slate-500 mb-2">
+              <Star size={11} className="fill-amber-500 text-amber-500" />
+              <span>{product.averageRating} ({product.reviewCount} {product.reviewCount === 1 ? "review" : "reviews"})</span>
+            </div>
+          ) : (
+            <div className="text-[10px] text-slate-300 font-bold mb-2">No reviews yet</div>
           )}
 
           <div className="mt-auto pt-3 flex items-center justify-between">

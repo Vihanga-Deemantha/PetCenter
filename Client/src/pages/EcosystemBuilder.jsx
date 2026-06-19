@@ -460,6 +460,9 @@ function ChecklistItem({ label, description, required }) {
 
 // ─── Category Accordion ───────────────────────────────────────────────────────
 function CategoryAccordion({ category, products, selected, isOpen, isMissing, onToggleOpen, onToggleProduct }) {
+  const selectedProducts = products.filter((p) => selected.includes(p._id));
+  const hasOutOfStockSelection = selectedProducts.some((p) => p.stock === 0);
+
   return (
     <div style={{
       background: "#fff",
@@ -506,6 +509,22 @@ function CategoryAccordion({ category, products, selected, isOpen, isMissing, on
         }}>
           {selected.length}/{category.maxSelectable}
         </span>
+        {hasOutOfStockSelection && (
+          <span style={{
+            fontSize: 10,
+            fontWeight: 800,
+            background: "#fee2e2",
+            color: "#ef4444",
+            padding: "2px 8px",
+            borderRadius: 6,
+            marginLeft: 8,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+          }} title="One of your saved items is out of stock">
+            ⚠️ Out of Stock
+          </span>
+        )}
         {isMissing && (
           <span style={{ fontSize: 16 }}>⚠️</span>
         )}
@@ -558,10 +577,10 @@ function ProductCard({ product, isSelected, onToggle }) {
 
   return (
     <button
-      onClick={outOfStock ? undefined : onToggle}
+      onClick={outOfStock && !isSelected ? undefined : onToggle}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      disabled={outOfStock}
+      disabled={outOfStock && !isSelected}
       title={outOfStock ? "Out of stock" : product.name}
       style={{
         background: isSelected
@@ -572,7 +591,7 @@ function ProductCard({ product, isSelected, onToggle }) {
           : outOfStock ? "1.5px solid #f3f4f6" : hovered ? "1.5px solid #d1d5db" : "1.5px solid #e5e7eb",
         borderRadius: 12,
         padding: "10px",
-        cursor: outOfStock ? "not-allowed" : "pointer",
+        cursor: outOfStock && !isSelected ? "not-allowed" : "pointer",
         textAlign: "left",
         opacity: outOfStock ? 0.55 : 1,
         transition: "all 0.15s ease",

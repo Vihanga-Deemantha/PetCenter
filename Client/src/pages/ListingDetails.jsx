@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { getListing } from "../api/listing.api";
 import { motion as Motion } from "framer-motion";
 import { MapPin, Tag, Calendar, User, Phone, ArrowLeft, Heart, Info, ShieldCheck, Clock, CheckCircle, XCircle } from "lucide-react";
+import HeartButton from "../components/ui/HeartButton";
 
 const statusConfig = {
   active: { label: "Active", icon: <CheckCircle size={14} />, cls: "bg-emerald-50 text-emerald-700 border-emerald-100" },
@@ -130,9 +131,12 @@ const ListingDetails = () => {
           <div className="glass-card p-10 bg-white shadow-2xl shadow-indigo-500/10 border-slate-100">
             {/* Price */}
             <div className="flex justify-between items-center mb-10 pb-8 border-b border-slate-100">
-              <span className="text-5xl font-black text-primary tracking-tighter">
-                {pet.listingType === "adoption" ? "FREE" : `LKR ${pet.price?.toLocaleString()}`}
-              </span>
+              <div className="flex items-center gap-4">
+                <span className="text-4xl font-black text-primary tracking-tighter">
+                  {pet.listingType === "adoption" ? "FREE" : `LKR ${pet.price?.toLocaleString()}`}
+                </span>
+                <HeartButton itemType="listing" itemId={pet._id} size={22} />
+              </div>
               <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${pet.listingType === "sale" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
                 For {pet.listingType}
               </span>

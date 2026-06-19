@@ -86,7 +86,7 @@ const DonationImpactSection = () => {
             ))}
           </div>
 
-          <Link to="/donations" className="btn bg-white border border-slate-100 text-slate-900 px-10 py-5 text-lg rounded-2xl shadow-xl shadow-amber-900/5 hover:bg-slate-50 transition-all flex items-center gap-3 w-fit mx-auto lg:mx-0 font-black">
+          <Link to="/campaigns" className="btn bg-white border border-slate-100 text-slate-900 px-10 py-5 text-lg rounded-2xl shadow-xl shadow-amber-900/5 hover:bg-slate-50 transition-all flex items-center gap-3 w-fit mx-auto lg:mx-0 font-black">
             View Active Campaigns <ArrowRight size={20} />
           </Link>
         </div>

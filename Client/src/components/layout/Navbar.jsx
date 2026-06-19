@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { PawPrint, LogOut, User, Menu, X, Plus, LayoutDashboard, ClipboardList, ShoppingCart, Package } from "lucide-react";
+import { PawPrint, LogOut, User, Menu, X, Plus, LayoutDashboard, ClipboardList, ShoppingCart, Package, ChevronDown, Hammer, Image, Heart } from "lucide-react";
+import NotificationBell from "../ui/NotificationBell";
 import { useCart } from "../../context/CartContext";
 
 const Navbar = () => {
@@ -99,6 +100,9 @@ const Navbar = () => {
               <Link to="/my-listings" className="text-slate-500 hover:text-primary transition-colors" title="My Listings">
                 <ClipboardList size={20} />
               </Link>
+              <Link to="/favorites" className="text-slate-500 hover:text-primary transition-colors" title="My Favorites">
+                <Heart size={20} />
+              </Link>
               <Link to="/orders" className="text-slate-500 hover:text-primary transition-colors" title="My Orders">
                 <Package size={20} />
               </Link>
@@ -110,6 +114,7 @@ const Navbar = () => {
                   </span>
                 )}
               </Link>
+              <NotificationBell />
               <Link to="/profile" className="text-slate-500 hover:text-primary transition-colors" title="Profile">
                 <User size={20} />
               </Link>
@@ -188,14 +193,19 @@ const Navbar = () => {
                     <Link to="/cart" className="w-full py-4 bg-indigo-50 border border-indigo-100 text-primary rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
                       <ShoppingCart size={20} /> Cart {itemCount > 0 && `(${itemCount})`}
                     </Link>
-                    <Link to="/my-builds" className="flex-1 py-4 bg-indigo-50/50 border border-indigo-100/50 text-primary rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link to="/ecosystem/my-builds" className="w-full py-4 bg-indigo-50/50 border border-indigo-100/50 text-primary rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
                       🌿 My Builds
                     </Link>
                     <div className="flex gap-4">
+                      <Link to="/favorites" className="flex-1 py-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Heart size={20} /> Favorites
+                      </Link>
                       <Link to="/orders" className="flex-1 py-4 bg-indigo-50/50 border border-indigo-100/50 text-primary rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
                         <Package size={20} /> Orders
                       </Link>
-                      <Link to="/profile" className="flex-1 py-4 bg-slate-50 rounded-2xl flex items-center justify-center gap-3 font-bold text-slate-600" onClick={() => setIsMobileMenuOpen(false)}>
+                    </div>
+                    <div className="flex gap-4">
+                      <Link to="/profile" className="w-full py-4 bg-slate-50 rounded-2xl flex items-center justify-center gap-3 font-bold text-slate-600" onClick={() => setIsMobileMenuOpen(false)}>
                         <User size={20} /> Profile
                       </Link>
                     </div>

@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
+import { FavoritesProvider } from "./context/FavoritesContext";
+import { NotificationProvider } from "./context/NotificationContext";
 import PrivateRoute from "./components/PrivateRoute";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
@@ -30,6 +32,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminProductManagement from "./pages/AdminProductManagement";
 import AdminOrdersManagement from "./pages/AdminOrdersManagement";
 import ComingSoon from "./pages/ComingSoon";
+import NotFound from "./pages/NotFound";
 
 // Phase 3 Pages
 import Campaigns from "./pages/Campaigns";
@@ -50,6 +53,7 @@ import EcosystemBuilder from "./pages/EcosystemBuilder";
 import MyBuilds from "./pages/MyBuilds";
 import EcosystemGallery from "./pages/EcosystemGallery";
 import GalleryBuildDetail from "./pages/GalleryBuildDetail";
+import Favorites from "./pages/Favorites";
 
 import AdminLayout from "./layouts/AdminLayout";
 
@@ -86,9 +90,11 @@ const PaddedContainer = ({ children }) => (
 function App() {
   return (
     <AuthProvider>
-      <CartProvider>
-        <BuilderProvider>
-          <Router>
+      <NotificationProvider>
+        <FavoritesProvider>
+          <CartProvider>
+            <BuilderProvider>
+              <Router>
           <DogDockPortal />
           <Routes>
             {/* Global User Interface */}
@@ -124,6 +130,8 @@ function App() {
               <Route path="/my-donations" element={<PrivateRoute><PaddedContainer><MyDonations /></PaddedContainer></PrivateRoute>} />
               <Route path="/about" element={<PaddedContainer><ComingSoon /></PaddedContainer>} />
               <Route path="/profile" element={<PrivateRoute><PaddedContainer><Profile /></PaddedContainer></PrivateRoute>} />
+              <Route path="/favorites" element={<PrivateRoute><PaddedContainer><Favorites /></PaddedContainer></PrivateRoute>} />
+              <Route path="*" element={<PaddedContainer><NotFound /></PaddedContainer>} />
             </Route>
 
             {/* Admin Shell Interface */}
@@ -141,8 +149,10 @@ function App() {
 
           </Routes>
           </Router>
-        </BuilderProvider>
-      </CartProvider>
+            </BuilderProvider>
+          </CartProvider>
+        </FavoritesProvider>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

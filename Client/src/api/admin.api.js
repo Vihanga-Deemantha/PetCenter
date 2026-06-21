@@ -49,3 +49,6 @@ export const getAdminEcosystemBuilds = () =>
 export const adminUnpublishBuild = (id) =>
   axiosInstance.patch(`/admin/ecosystem/builds/${id}/unpublish`);
 
+// Public platform stats (no auth required)
+export const getPublicStats = () =>
+  axiosInstance.get("/admin/stats/public");

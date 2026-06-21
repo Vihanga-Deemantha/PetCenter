@@ -145,7 +145,7 @@ function BuildRow({ build, loading, onUnpublish }) {
   return (
     <div className="bg-white border border-slate-200 rounded-xl px-5 py-4 flex items-center gap-4 shadow-sm">
       {/* Icon */}
-      <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-xl shrink-0">
+      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-xl shrink-0">
         {icon}
       </div>
 
@@ -157,7 +157,7 @@ function BuildRow({ build, loading, onUnpublish }) {
             Published
           </span>
           {build.cloneCount > 0 && (
-            <span className="text-[10px] font-semibold text-indigo-500">
+            <span className="text-[10px] font-semibold text-primary">
               🔀 {build.cloneCount} clones
             </span>
           )}
@@ -166,7 +166,7 @@ function BuildRow({ build, loading, onUnpublish }) {
           {build.petType} setup ·{" "}
           {build.selections?.length || 0} items ·{" "}
           <strong className="text-slate-600">{formatPrice(build.totalPrice)}</strong> ·{" "}
-          by <span className="text-indigo-600 font-semibold">{build.userId?.name || "Unknown"}</span>{" "}
+          by <span className="text-primary font-semibold">{build.userId?.name || "Unknown"}</span>{" "}
           ({build.userId?.email || "—"}) ·{" "}
           Published {formatDate(build.publishedAt || build.createdAt)}
         </div>

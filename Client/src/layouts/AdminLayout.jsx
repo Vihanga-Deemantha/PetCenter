@@ -43,7 +43,7 @@ const AdminLayout = () => {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all shrink-0 md:shrink border ${
                   isActive
-                    ? "bg-indigo-50 text-indigo-700 border-indigo-100"
+                    ? "bg-primary/10 text-primary border-primary/20"
                     : "text-slate-500 border-transparent hover:bg-slate-50 hover:text-slate-700"
                 }`
               }

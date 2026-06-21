@@ -76,14 +76,14 @@ const Profile = () => {
       <Motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card p-8 md:p-14 bg-white shadow-2xl shadow-indigo-500/10 border-slate-100"
+        className="glass-card p-8 md:p-14 bg-white shadow-2xl shadow-primary/10 border-slate-100"
       >
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-10 mb-16 pb-12 border-b border-slate-100">
           <div className="flex items-center gap-8">
             {/* Avatar with upload */}
             <div className="relative group">
-              <div className="w-24 h-24 rounded-full bg-linear-to-br from-primary to-accent flex items-center justify-center text-white text-4xl font-black shadow-xl shadow-indigo-500/20 overflow-hidden">
+              <div className="w-24 h-24 rounded-full bg-linear-to-br from-primary to-accent flex items-center justify-center text-white text-4xl font-black shadow-xl shadow-primary/20 overflow-hidden">
                 {avatarSrc ? (
                   <img src={avatarSrc} alt={user.name} className="w-full h-full object-cover" />
                 ) : (
@@ -102,7 +102,7 @@ const Profile = () => {
             <div>
               <h1 className="text-4xl font-black text-slate-900 tracking-tighter mb-1">{user.name}</h1>
               <div className="flex items-center gap-2">
-                <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-indigo-100 inline-block">
+                <span className="px-3 py-1 bg-primary/10 text-primary rounded-lg text-[10px] font-black uppercase tracking-widest border border-primary/20 inline-block">
                   {user.role} Account
                 </span>
                 <span className="text-xs text-slate-400 font-medium">Hover photo to change</span>
@@ -166,7 +166,7 @@ const Profile = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             {[
-              { icon: <Mail size={24} />, label: "Email Address", value: user.email, color: "bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white" },
+              { icon: <Mail size={24} />, label: "Email Address", value: user.email, color: "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white" },
               { icon: <Phone size={24} />, label: "Phone Number", value: user.phone || "Not provided", color: "bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white" },
               { icon: <MapPin size={24} />, label: "Location", value: user.location || "Not set", color: "bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white" },
             ].map((item, i) => (

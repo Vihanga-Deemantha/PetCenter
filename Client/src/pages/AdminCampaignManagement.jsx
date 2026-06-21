@@ -376,7 +376,7 @@ const AdminCampaignManagement = () => {
                       <span className={`badge ${
                         camp.status === "active" ? "bg-emerald-50 text-emerald-600" :
                         camp.status === "draft" ? "bg-slate-100 text-slate-500" :
-                        camp.status === "goal_reached" ? "bg-indigo-50 text-indigo-600" :
+                        camp.status === "goal_reached" ? "bg-primary/10 text-primary" :
                         "bg-rose-50 text-rose-600"
                       }`}>
                         {camp.status.replace("_", " ")}

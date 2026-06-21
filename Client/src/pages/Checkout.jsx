@@ -16,7 +16,7 @@ const COUNTRIES = ["United States", "United Kingdom", "Canada", "Australia", "Ge
 
 const Checkout = () => {
   const { user } = useAuth();
-  const { cartItems, cartTotal, clearCart } = useCart();
+  const { cartItems, cartTotal, clearLocalCartOnly } = useCart();
   const navigate = useNavigate();
 
   const [clientSecret, setClientSecret] = useState(null);
@@ -64,7 +64,7 @@ const Checkout = () => {
   };
 
   const handlePaymentSuccess = async (intentId) => {
-    await clearCart();
+    clearLocalCartOnly();
     navigate(`/order-success?paymentIntent=${intentId}`);
   };
 
@@ -109,7 +109,7 @@ const Checkout = () => {
           {step === "address" && (
             <Motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="glass-card bg-white border-slate-100 shadow-sm p-8 space-y-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
                   <MapPin size={20} className="text-primary" />
                 </div>
                 <h2 className="text-xl font-black text-slate-900">Shipping Address</h2>
@@ -195,7 +195,7 @@ const Checkout = () => {
               <button
                 onClick={handleContinueToPayment}
                 disabled={creatingIntent}
-                className="w-full py-4 rounded-xl font-black text-white bg-linear-to-br from-primary to-accent shadow-lg shadow-indigo-500/30 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full py-4 rounded-xl font-black text-white bg-linear-to-br from-primary to-accent shadow-lg shadow-primary/30 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {creatingIntent ? (
                   <><div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" /> Initializing...</>
@@ -209,7 +209,7 @@ const Checkout = () => {
           {step === "payment" && clientSecret && (
             <Motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="glass-card bg-white border-slate-100 shadow-sm p-8">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
                   <Lock size={20} className="text-primary" />
                 </div>
                 <div>

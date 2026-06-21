@@ -97,7 +97,7 @@ const Marketplace = () => {
       >
         <div className="flex flex-wrap gap-4 items-center">
           {/* Search */}
-          <div className="flex-1 min-w-[280px] relative">
+          <div className="w-full sm:w-auto flex-1 sm:min-w-[280px] relative">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-primary" size={20} />
             <input
               type="text"
@@ -173,7 +173,7 @@ const Marketplace = () => {
           <div className="mt-3 flex items-center gap-2 text-sm text-slate-500 font-medium">
             <SlidersHorizontal size={14} className="text-primary" />
             Filters active
-            {filters.petType && <span className="badge bg-indigo-50 text-indigo-600">{filters.petType}</span>}
+            {filters.petType && <span className="badge bg-primary/10 text-primary">{filters.petType}</span>}
             {filters.listingType && <span className="badge bg-emerald-50 text-emerald-600">{filters.listingType}</span>}
             {filters.search && <span className="badge bg-purple-50 text-purple-600">"{filters.search}"</span>}
           </div>
@@ -231,7 +231,7 @@ const Marketplace = () => {
                   <div className="p-8 flex-1 flex flex-col">
                     <div className="mb-6">
                       <div className="flex items-center gap-2 mb-3">
-                        <span className="badge bg-indigo-50 text-indigo-700">{pet.petType}</span>
+                        <span className="badge bg-primary/10 text-primary">{pet.petType}</span>
                         <span className={`badge ${pet.listingType === "sale" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
                           For {pet.listingType}
                         </span>
@@ -279,8 +279,8 @@ const Marketplace = () => {
                   onClick={() => setFilters((f) => ({ ...f, page: p }))}
                   className={`w-12 h-12 rounded-xl font-black transition-all ${
                     p === pagination.page
-                      ? "bg-primary text-white shadow-lg shadow-indigo-500/30"
-                      : "bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-primary"
+                      ? "bg-primary text-white shadow-lg shadow-primary/30"
+                      : "bg-slate-100 text-slate-600 hover:bg-primary/10 hover:text-primary"
                   }`}
                 >
                   {p}

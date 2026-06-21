@@ -5,8 +5,63 @@ import Order from "../models/Order.js";
 import Campaign from "../models/Campaign.js";
 import Donation from "../models/Donation.js";
 import EcosystemBuild from "../models/EcosystemBuild.js";
+import Review from "../models/Review.js";
+import Shelter from "../models/Shelter.js";
+import PlatformFeedback from "../models/PlatformFeedback.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { createNotification } from "./notification.controller.js";
+
+// ─── GET /admin/stats/public — Public platform stats ──────────────────────────
+export const getPlatformStats = async (req, res, next) => {
+  try {
+    const [
+      totalUsers,
+      totalListings,
+      totalOrders,
+      rescuedPets,
+      globalPartners,
+      ratingResult,
+      recentUsersWithAvatars
+    ] = await Promise.all([
+      User.countDocuments({ role: "user", isDeleted: { $ne: true } }),
+      PetListing.countDocuments({ status: "active" }),
+      Order.countDocuments({ paymentStatus: "paid" }),
+      PetListing.countDocuments({ status: { $in: ["adopted", "sold"] } }),
+      Shelter.countDocuments({ status: "approved" }),
+      PlatformFeedback.aggregate([
+        { $match: { isVisible: true } },
+        { $group: { _id: null, avg: { $avg: "$rating" }, count: { $sum: 1 } } },
+      ]),
+      User.find({ role: "user", profileImage: { $exists: true, $ne: "" }, isDeleted: { $ne: true } })
+        .sort({ createdAt: -1 })
+        .limit(4)
+        .select("profileImage")
+        .lean()
+    ]);
+
+    const averageRating = ratingResult[0]
+      ? parseFloat(ratingResult[0].avg.toFixed(1))
+      : null;
+    const reviewCount = ratingResult[0]?.count ?? 0;
+    
+    // Extract array of avatar URLs
+    const recentAvatars = recentUsersWithAvatars.map(u => u.profileImage);
+
+    return sendSuccess(res, {
+      totalUsers,
+      totalListings,
+      totalOrders,
+      rescuedPets,
+      globalPartners,
+      happyFamilies: totalUsers, // Using total users for happy families stat
+      averageRating,
+      reviewCount,
+      recentAvatars
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 // ─── Dashboard Stats ──────────────────────────────────────────────────────────
 // GET /api/v1/admin/dashboard  — Admin
@@ -469,6 +524,15 @@ export const rejectListing = async (req, res, next) => {
     listing.status = "removed";
     listing.moderationNote = req.body.note || "Rejected by admin";
     await listing.save();
+
+    // Notify listing owner about rejection
+    await createNotification({
+      userId: listing.owner,
+      type: "listing_rejected",
+      title: "Your listing was not approved",
+      message: `Your listing "${listing.title}" was rejected. Reason: ${req.body.note || "Community guidelines violation"}`,
+      link: `/my-listings`,
+    });
 
     return sendSuccess(res, { message: "Listing rejected", listing });
   } catch (error) {

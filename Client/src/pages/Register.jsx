@@ -43,7 +43,7 @@ const Register = () => {
       <Motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="glass-card p-10 md:p-14 w-full max-w-2xl bg-white shadow-2xl shadow-indigo-500/10 border-slate-100"
+        className="glass-card p-10 md:p-14 w-full max-w-2xl bg-white shadow-2xl shadow-primary/10 border-slate-100"
       >
         <div className="text-center mb-10">
           <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">Create Account</h2>

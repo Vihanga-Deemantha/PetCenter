@@ -117,7 +117,7 @@ const EditListing = () => {
       <Motion.div 
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card p-8 md:p-12 bg-white shadow-2xl shadow-indigo-500/10 border-slate-100"
+        className="glass-card p-8 md:p-12 bg-white shadow-2xl shadow-primary/10 border-slate-100"
       >
         <form onSubmit={onSubmit} className="space-y-10">
           <div>

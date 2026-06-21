@@ -18,6 +18,7 @@ import ecosystemRoutes from "./src/routes/ecosystem.routes.js";
 import favoriteRoutes from "./src/routes/favorite.routes.js";
 import reviewRoutes from "./src/routes/review.routes.js";
 import notificationRoutes from "./src/routes/notification.routes.js";
+import feedbackRoutes from "./src/routes/feedback.routes.js";
 import { stripeWebhookMiddleware } from "./src/middleware/stripeWebhook.js";
 import errorHandler from "./src/middleware/errorHandler.js";
 import { generalLimiter } from "./src/middleware/rateLimit.js";
@@ -74,6 +75,7 @@ app.use("/api/v1/ecosystem", ecosystemRoutes);
 app.use("/api/v1/favorites", favoriteRoutes);
 app.use("/api/v1/reviews", reviewRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/feedback", feedbackRoutes);
 
 // ── 404 Handler ───────────────────────────────────────────────────────────────
 app.use((_req, res) => {

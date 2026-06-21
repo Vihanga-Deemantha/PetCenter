@@ -13,11 +13,11 @@ const FeatureStrip = () => {
       bg: "bg-emerald-50"
     },
     { 
-      icon: <Tag className="text-indigo-500" />, 
+      icon: <Tag className="text-primary" />, 
       title: "Sell Pets", 
       desc: "List your pets",
       path: "/create-listing",
-      bg: "bg-indigo-50"
+      bg: "bg-primary/10"
     },
     { 
       icon: <ShoppingCart className="text-amber-500" />, 
@@ -71,7 +71,7 @@ const FeatureStrip = () => {
             <Motion.div 
               variants={item}
               whileHover={{ y: -10, scale: 1.02 }}
-              className="glass-card p-8 flex flex-col items-center text-center gap-6 bg-white border-slate-100 shadow-sm transition-all shadow-indigo-500/5 cursor-pointer group"
+              className="glass-card p-8 flex flex-col items-center text-center gap-6 bg-white border-slate-100 shadow-sm transition-all shadow-primary/5 cursor-pointer group"
             >
               <div className={`p-5 rounded-2xl ${card.bg} transition-transform group-hover:scale-110 duration-500`}>
                 {React.cloneElement(card.icon, { size: 28 })}

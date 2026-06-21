@@ -6,7 +6,7 @@ import { ShoppingCart, ChevronRight, Package, Box, Info, Activity, Shield } from
 const StorePreviewSection = () => {
   const categories = [
     { name: "Premium Food", icon: <Package size={24} />, count: "120+ Items", color: "text-amber-500", bg: "bg-amber-50" },
-    { name: "Habitat Kits", icon: <Box size={24} />, count: "45+ Sets", color: "text-indigo-500", bg: "bg-indigo-50" },
+    { name: "Habitat Kits", icon: <Box size={24} />, count: "45+ Sets", color: "text-primary", bg: "bg-primary/10" },
     { name: "Expert Lighting", icon: <Activity size={24} />, count: "30+ Models", color: "text-teal-500", bg: "bg-teal-50" },
     { name: "Health Care", icon: <Shield size={24} />, count: "80+ Products", color: "text-emerald-500", bg: "bg-emerald-50" }
   ];

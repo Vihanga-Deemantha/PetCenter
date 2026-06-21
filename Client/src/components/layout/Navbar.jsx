@@ -22,6 +22,8 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const isHomeTransparent = location.pathname === "/" && !isScrolled;
+
   const handleLogout = () => {
     logout();
     setIsMobileMenuOpen(false);
@@ -56,8 +58,8 @@ const Navbar = () => {
         >
           <PawPrint size={24} className="text-white" />
         </Motion.div>
-        <span className={`font-heading font-black text-2xl tracking-tighter ${
-          isScrolled ? "text-slate-900" : "text-slate-900"
+        <span className={`font-heading font-black text-2xl tracking-tighter transition-colors ${
+          isHomeTransparent ? "text-white" : "text-slate-900"
         }`}>
           PetCenter
         </span>
@@ -71,13 +73,15 @@ const Navbar = () => {
             to={link.path} 
             className={`relative font-bold text-sm tracking-wide transition-colors group ${
               location.pathname === link.path 
-                ? "text-primary" 
-                : "text-slate-500 hover:text-slate-900"
+                ? (isHomeTransparent ? "text-white" : "text-primary") 
+                : (isHomeTransparent ? "text-white/70 hover:text-white" : "text-slate-500 hover:text-slate-900")
             }`}
           >
             {link.name}
-            <span className={`absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full ${
-              location.pathname === link.path ? "w-full" : ""
+            <span className={`absolute -bottom-1 left-0 h-0.5 transition-all duration-300 group-hover:w-full ${
+              isHomeTransparent ? "bg-white" : "bg-primary"
+            } ${
+              location.pathname === link.path ? "w-full" : "w-0"
             }`} />
           </Link>
         ))}
@@ -91,22 +95,24 @@ const Navbar = () => {
               <Plus size={16} /> Post Ad
             </Link>
             
-            <div className="flex items-center gap-4 border-l border-slate-200 pl-6 ml-2">
+            <div className={`flex items-center gap-4 border-l pl-6 ml-2 transition-colors ${
+              isHomeTransparent ? "border-white/20" : "border-slate-200"
+            }`}>
               {user.role === "admin" && (
-                <Link to="/admin" className="text-slate-500 hover:text-primary transition-colors" title="Admin Dashboard">
+                <Link to="/admin" className={isHomeTransparent ? "text-white/70 hover:text-white transition-colors" : "text-slate-500 hover:text-primary transition-colors"} title="Admin Dashboard">
                   <LayoutDashboard size={20} />
                 </Link>
               )}
-              <Link to="/my-listings" className="text-slate-500 hover:text-primary transition-colors" title="My Listings">
+              <Link to="/my-listings" className={isHomeTransparent ? "text-white/70 hover:text-white transition-colors" : "text-slate-500 hover:text-primary transition-colors"} title="My Listings">
                 <ClipboardList size={20} />
               </Link>
-              <Link to="/favorites" className="text-slate-500 hover:text-primary transition-colors" title="My Favorites">
+              <Link to="/favorites" className={isHomeTransparent ? "text-white/70 hover:text-white transition-colors" : "text-slate-500 hover:text-primary transition-colors"} title="My Favorites">
                 <Heart size={20} />
               </Link>
-              <Link to="/orders" className="text-slate-500 hover:text-primary transition-colors" title="My Orders">
+              <Link to="/orders" className={isHomeTransparent ? "text-white/70 hover:text-white transition-colors" : "text-slate-500 hover:text-primary transition-colors"} title="My Orders">
                 <Package size={20} />
               </Link>
-              <Link to="/cart" className="text-slate-500 hover:text-primary transition-colors relative" title="Shopping Cart">
+              <Link to="/cart" className={`relative transition-colors ${isHomeTransparent ? "text-white/70 hover:text-white" : "text-slate-500 hover:text-primary"}`} title="Shopping Cart">
                 <ShoppingCart size={20} />
                 {itemCount > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-black rounded-full h-4 w-4 flex items-center justify-center border border-white shadow-xs">
@@ -114,13 +120,15 @@ const Navbar = () => {
                   </span>
                 )}
               </Link>
-              <NotificationBell />
-              <Link to="/profile" className="text-slate-500 hover:text-primary transition-colors" title="Profile">
+              <span className={isHomeTransparent ? "text-white/70 hover:text-white transition-colors" : "text-slate-500 hover:text-primary transition-colors"}>
+                <NotificationBell />
+              </span>
+              <Link to="/profile" className={isHomeTransparent ? "text-white/70 hover:text-white transition-colors" : "text-slate-500 hover:text-primary transition-colors"} title="Profile">
                 <User size={20} />
               </Link>
               <button 
                 onClick={handleLogout} 
-                className="text-slate-400 hover:text-rose-500 transition-colors"
+                className={isHomeTransparent ? "text-white/50 hover:text-rose-400 transition-colors cursor-pointer" : "text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"}
                 title="Logout"
               >
                 <LogOut size={20} />
@@ -129,7 +137,9 @@ const Navbar = () => {
           </div>
         ) : (
           <div className="flex items-center gap-4">
-            <Link to="/cart" className="text-slate-500 hover:text-primary transition-colors relative mr-2" title="Shopping Cart">
+            <Link to="/cart" className={`relative mr-2 transition-colors ${
+              isHomeTransparent ? "text-white/70 hover:text-white" : "text-slate-500 hover:text-primary"
+            }`} title="Shopping Cart">
               <ShoppingCart size={20} />
               {itemCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[9px] font-black rounded-full h-4 w-4 flex items-center justify-center border border-white shadow-xs">
@@ -137,7 +147,9 @@ const Navbar = () => {
                 </span>
               )}
             </Link>
-            <Link to="/login" className="font-bold text-sm text-slate-600 hover:text-slate-900 px-4 py-2 transition-colors">
+            <Link to="/login" className={`font-bold text-sm px-4 py-2 transition-colors ${
+              isHomeTransparent ? "text-white/80 hover:text-white" : "text-slate-600 hover:text-slate-900"
+            }`}>
               Login
             </Link>
             <Motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
@@ -154,7 +166,11 @@ const Navbar = () => {
 
       {/* Mobile Menu Button */}
       <button 
-        className="lg:hidden p-3 bg-slate-50 rounded-xl text-slate-800 transition-all hover:bg-slate-100" 
+        className={`lg:hidden p-3 rounded-xl transition-all ${
+          isHomeTransparent 
+            ? "bg-white/10 text-white hover:bg-white/20" 
+            : "bg-slate-50 text-slate-800 hover:bg-slate-100"
+        }`} 
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       >
         {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -190,17 +206,17 @@ const Navbar = () => {
                     Post a New Ad
                   </Link>
                   <div className="flex flex-col gap-3">
-                    <Link to="/cart" className="w-full py-4 bg-indigo-50 border border-indigo-100 text-primary rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link to="/cart" className="w-full py-4 bg-primary/10 border border-primary/20 text-primary rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
                       <ShoppingCart size={20} /> Cart {itemCount > 0 && `(${itemCount})`}
                     </Link>
-                    <Link to="/ecosystem/my-builds" className="w-full py-4 bg-indigo-50/50 border border-indigo-100/50 text-primary rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link to="/ecosystem/my-builds" className="w-full py-4 bg-primary/5 border border-primary/10 text-primary rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
                       🌿 My Builds
                     </Link>
                     <div className="flex gap-4">
                       <Link to="/favorites" className="flex-1 py-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
                         <Heart size={20} /> Favorites
                       </Link>
-                      <Link to="/orders" className="flex-1 py-4 bg-indigo-50/50 border border-indigo-100/50 text-primary rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Link to="/orders" className="flex-1 py-4 bg-primary/5 border border-primary/10 text-primary rounded-2xl flex items-center justify-center gap-3 font-bold" onClick={() => setIsMobileMenuOpen(false)}>
                         <Package size={20} /> Orders
                       </Link>
                     </div>

@@ -95,6 +95,7 @@ export const createPaymentIntent = async (req, res, next) => {
       amount: totalInCents,
       currency: "usd",
       metadata: {
+        type: "checkout",
         userId: userId.toString(),
         cartSize: String(cart.items.length),
         shippingAddress: JSON.stringify(shippingAddress),

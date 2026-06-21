@@ -23,6 +23,25 @@ const FeaturedPetsSection = () => {
     fetchPets();
   }, []);
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 25 },
+    show: { 
+      opacity: 1, 
+      y: 0,
+      transition: { type: "spring", stiffness: 100, damping: 15 }
+    }
+  };
+
   return (
     <section className="py-32 px-[5%] max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
@@ -48,19 +67,22 @@ const FeaturedPetsSection = () => {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <Motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-100px" }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
+        >
           {pets.length > 0 ? (
-            pets.map((pet, i) => (
+            pets.map((pet) => (
               <Motion.div 
                 key={pet._id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                viewport={{ once: true }}
+                variants={itemVariants}
                 className="group cursor-pointer"
               >
                 <Link to={`/marketplace/${pet._id}`}>
-                  <div className="relative rounded-[40px] overflow-hidden aspect-4/5 mb-6 shadow-2xl shadow-indigo-500/5 group-hover:shadow-indigo-500/10 transition-all border border-slate-50">
+                  <div className="relative rounded-[40px] overflow-hidden aspect-4/5 mb-6 shadow-2xl shadow-primary/5 group-hover:shadow-primary/10 transition-all border border-slate-50">
                     <img 
                       src={pet.images?.[0] || "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=1000"} 
                       alt={pet.title} 
@@ -87,7 +109,7 @@ const FeaturedPetsSection = () => {
                <p className="text-slate-400 font-black">No pets available right now. Check back later!</p>
             </div>
           )}
-        </div>
+        </Motion.div>
       )}
     </section>
   );

@@ -5,7 +5,7 @@ import { ShoppingCart, Package, Star, Shield, Zap, ArrowRight } from "lucide-rea
 
 const upcomingCategories = [
   { name: "Premium Food", icon: <Package size={28} />, desc: "Curated nutrition for every species", color: "text-amber-500", bg: "bg-amber-50", items: "120+ Items" },
-  { name: "Habitat Kits", icon: <Shield size={28} />, desc: "Complete bio-active setups", color: "text-indigo-500", bg: "bg-indigo-50", items: "45+ Sets" },
+  { name: "Habitat Kits", icon: <Shield size={28} />, desc: "Complete bio-active setups", color: "text-primary", bg: "bg-primary/10", items: "45+ Sets" },
   { name: "Smart Lighting", icon: <Zap size={28} />, desc: "Expert UV & heat systems", color: "text-teal-500", bg: "bg-teal-50", items: "30+ Models" },
   { name: "Health & Care", icon: <Star size={28} />, desc: "Supplements, treatments & tools", color: "text-emerald-500", bg: "bg-emerald-50", items: "80+ Products" },
 ];

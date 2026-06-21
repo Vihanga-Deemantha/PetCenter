@@ -76,7 +76,7 @@ const CartItem = ({ item }) => {
           <button
             onClick={() => handleQtyChange(item.quantity + 1)}
             disabled={updating || item.quantity >= (item.product?.stock || 99)}
-            className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-primary flex items-center justify-center transition-all disabled:opacity-40"
+            className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-primary/10 hover:text-primary flex items-center justify-center transition-all disabled:opacity-40"
           >
             <Plus size={13} />
           </button>

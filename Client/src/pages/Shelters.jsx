@@ -87,7 +87,7 @@ const Shelters = () => {
         animate={{ opacity: 1, y: 0 }} 
         className="mb-10"
       >
-        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-50 text-primary rounded-full text-xs font-black uppercase tracking-widest border border-indigo-100 mb-4">
+        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-black uppercase tracking-widest border border-primary/20 mb-4">
           <Landmark size={12} /> Partner Networks
         </span>
         <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-slate-900 mb-2">
@@ -157,7 +157,7 @@ const Shelters = () => {
               <div>
                 {/* Shelter identity block */}
                 <div className="flex items-start gap-4 mb-4">
-                  <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100/50 overflow-hidden flex items-center justify-center shrink-0">
+                  <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20/50 overflow-hidden flex items-center justify-center shrink-0">
                     {sh.logo?.url ? (
                       <img src={sh.logo.url} alt={sh.name} className="w-full h-full object-cover" />
                     ) : (
@@ -208,7 +208,7 @@ const Shelters = () => {
                     <button
                       onClick={() => handleRevealContact(sh._id)}
                       disabled={revealedContacts[sh._id]?.loading}
-                      className="px-3.5 py-2 rounded-lg bg-indigo-50/50 hover:bg-indigo-50 border border-indigo-100/30 text-primary font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5 transition-all disabled:opacity-60 cursor-pointer"
+                      className="px-3.5 py-2 rounded-lg bg-primary/10/50 hover:bg-primary/10 border border-primary/20/30 text-primary font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5 transition-all disabled:opacity-60 cursor-pointer"
                     >
                       {revealedContacts[sh._id]?.loading ? (
                         <>

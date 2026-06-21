@@ -195,7 +195,7 @@ const MyListings = () => {
                   </Link>
                   <Link
                     to={`/edit-listing/${pet._id}`}
-                    className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                    className="p-3 bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm"
                     title="Edit Listing"
                   >
                     <Edit size={18} />

@@ -32,6 +32,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminProductManagement from "./pages/AdminProductManagement";
 import AdminOrdersManagement from "./pages/AdminOrdersManagement";
 import ComingSoon from "./pages/ComingSoon";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 // Phase 3 Pages
@@ -91,8 +92,8 @@ function App() {
   return (
     <AuthProvider>
       <NotificationProvider>
-        <FavoritesProvider>
-          <CartProvider>
+        <CartProvider>
+          <FavoritesProvider>
             <BuilderProvider>
               <Router>
           <DogDockPortal />
@@ -128,7 +129,7 @@ function App() {
               <Route path="/shelters" element={<PaddedContainer><Shelters /></PaddedContainer>} />
               <Route path="/shelters/:id" element={<PaddedContainer><ShelterDetail /></PaddedContainer>} />
               <Route path="/my-donations" element={<PrivateRoute><PaddedContainer><MyDonations /></PaddedContainer></PrivateRoute>} />
-              <Route path="/about" element={<PaddedContainer><ComingSoon /></PaddedContainer>} />
+              <Route path="/about" element={<About />} />
               <Route path="/profile" element={<PrivateRoute><PaddedContainer><Profile /></PaddedContainer></PrivateRoute>} />
               <Route path="/favorites" element={<PrivateRoute><PaddedContainer><Favorites /></PaddedContainer></PrivateRoute>} />
               <Route path="*" element={<PaddedContainer><NotFound /></PaddedContainer>} />
@@ -150,8 +151,8 @@ function App() {
           </Routes>
           </Router>
             </BuilderProvider>
-          </CartProvider>
-        </FavoritesProvider>
+          </FavoritesProvider>
+        </CartProvider>
       </NotificationProvider>
     </AuthProvider>
   );

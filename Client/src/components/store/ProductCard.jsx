@@ -128,7 +128,7 @@ const ProductCard = ({ product }) => {
               ? "bg-slate-100 text-slate-400 cursor-not-allowed"
               : added
               ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
-              : "bg-linear-to-br from-primary to-accent text-white shadow-lg shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98]"
+              : "bg-linear-to-br from-primary to-accent text-white shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-[0.98]"
           }`}
         >
           {adding ? (

@@ -443,7 +443,7 @@ const InteractiveDog = ({ compact = false }) => {
 
   const shellClassName = compact
     ? "relative select-none overflow-visible flex flex-col items-end gap-0"
-    : "glass-card relative p-6 bg-white/75 backdrop-blur-xl border border-white/50 shadow-2xl shadow-indigo-500/10 rounded-4xl w-full max-w-87.5 mx-auto overflow-hidden flex flex-col gap-5 select-none";
+    : "glass-card relative p-6 bg-white/75 backdrop-blur-xl border border-white/50 shadow-2xl shadow-primary/10 rounded-4xl w-full max-w-87.5 mx-auto overflow-hidden flex flex-col gap-5 select-none";
 
   const stageClassName = compact
     ? "relative w-full h-[224px] overflow-visible flex items-end justify-end pr-1 pb-1"
@@ -500,12 +500,12 @@ const InteractiveDog = ({ compact = false }) => {
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`p-1.5 rounded-lg transition-colors border ${soundEnabled ? 'bg-indigo-50 border-indigo-100 text-primary' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
+              className={`p-1.5 rounded-lg transition-colors border ${soundEnabled ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
               title={soundEnabled ? "Mute sounds" : "Unmute sounds"}
             >
               {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
             </button>
-            <span className="badge bg-indigo-50 text-primary border border-indigo-100 font-black text-[10px]">
+            <span className="badge bg-primary/10 text-primary border border-primary/20 font-black text-[10px]">
               {mood}
             </span>
           </div>
@@ -524,7 +524,7 @@ const InteractiveDog = ({ compact = false }) => {
             {zzzList.map((z, idx) => (
               <span
                 key={z.id}
-                className="absolute font-black text-indigo-500/80 pointer-events-none select-none text-sm z-30"
+                className="absolute font-black text-primary/80 pointer-events-none select-none text-sm z-30"
                 style={{
                   left: `${175 + dogX}px`,
                   bottom: "105px",

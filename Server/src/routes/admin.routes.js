@@ -1,6 +1,7 @@
 import express from "express";
 import {
   getDashboardStats,
+  getPlatformStats,
   getUsers,
   blockUser,
   unblockUser,
@@ -18,7 +19,10 @@ import { adminGetReviews, adminHideReview } from "../controllers/review.controll
 
 const router = express.Router();
 
-// All admin routes require auth + admin role
+// ── Public (no auth required) ─────────────────────────────────────────────────
+router.get("/stats/public", getPlatformStats);
+
+// All other admin routes require auth + admin role
 router.use(protect, adminOnly);
 
 router.get("/dashboard", getDashboardStats);

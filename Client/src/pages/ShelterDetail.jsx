@@ -74,7 +74,7 @@ const ShelterDetail = () => {
         <div className="lg:col-span-2 space-y-8">
           {/* Profile Card */}
           <div className="glass-card p-8 bg-white/95 border-slate-100 flex flex-col sm:flex-row gap-6 items-start">
-            <div className="w-24 h-24 rounded-card bg-indigo-50 border border-indigo-100/50 overflow-hidden flex items-center justify-center shrink-0">
+            <div className="w-24 h-24 rounded-card bg-primary/10 border border-primary/20/50 overflow-hidden flex items-center justify-center shrink-0">
               {shelter.logo?.url ? (
                 <img src={shelter.logo.url} alt={shelter.name} className="w-full h-full object-cover" />
               ) : (
@@ -204,7 +204,7 @@ const ShelterDetail = () => {
                 <button
                   onClick={handleRevealContact}
                   disabled={revealing}
-                  className="w-full py-3 rounded-xl bg-indigo-50 hover:bg-indigo-50 border border-indigo-100/30 text-primary font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all disabled:opacity-60 cursor-pointer"
+                  className="w-full py-3 rounded-xl bg-primary/10 hover:bg-primary/10 border border-primary/20/30 text-primary font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all disabled:opacity-60 cursor-pointer"
                 >
                   {revealing ? (
                     <>

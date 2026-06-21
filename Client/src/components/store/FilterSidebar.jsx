@@ -106,8 +106,8 @@ const FilterSidebar = ({ filters, onChange, onClear, productCounts = {} }) => {
                 onClick={() => togglePet(pet)}
                 className={`flex flex-col items-center gap-1 p-2 rounded-xl text-[11px] font-black transition-all border capitalize ${
                   active
-                    ? "bg-indigo-50 border-primary text-primary"
-                    : "border-slate-100 text-slate-500 hover:border-indigo-200 hover:bg-indigo-50/30"
+                    ? "bg-primary/10 border-primary text-primary"
+                    : "border-slate-100 text-slate-500 hover:border-indigo-200 hover:bg-primary/10/30"
                 }`}
               >
                 <span className="text-base">{PET_ICONS[pet]}</span>

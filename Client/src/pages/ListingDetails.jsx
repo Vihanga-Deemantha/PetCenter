@@ -105,10 +105,10 @@ const ListingDetails = () => {
             <h1 className="text-5xl md:text-6xl font-black text-slate-900 tracking-tighter mb-6 leading-tight">{pet.title}</h1>
 
             <div className="flex flex-wrap gap-3 mb-12">
-              <span className="bg-indigo-50 text-indigo-700 px-5 py-2 rounded-2xl font-black text-sm uppercase tracking-widest border border-indigo-100">{pet.petType}</span>
-              <span className="bg-indigo-50 text-indigo-700 px-5 py-2 rounded-2xl font-black text-sm uppercase tracking-widest border border-indigo-100">{pet.breed}</span>
-              <span className="bg-indigo-50 text-indigo-700 px-5 py-2 rounded-2xl font-black text-sm uppercase tracking-widest border border-indigo-100">{pet.age} months old</span>
-              <span className="bg-indigo-50 text-indigo-700 px-5 py-2 rounded-2xl font-black text-sm uppercase tracking-widest border border-indigo-100">{pet.gender}</span>
+              <span className="bg-primary/10 text-primary px-5 py-2 rounded-2xl font-black text-sm uppercase tracking-widest border border-primary/20">{pet.petType}</span>
+              <span className="bg-primary/10 text-primary px-5 py-2 rounded-2xl font-black text-sm uppercase tracking-widest border border-primary/20">{pet.breed}</span>
+              <span className="bg-primary/10 text-primary px-5 py-2 rounded-2xl font-black text-sm uppercase tracking-widest border border-primary/20">{pet.age} months old</span>
+              <span className="bg-primary/10 text-primary px-5 py-2 rounded-2xl font-black text-sm uppercase tracking-widest border border-primary/20">{pet.gender}</span>
             </div>
 
             <div className="glass-card p-10 bg-white border-slate-100 shadow-sm relative overflow-hidden">
@@ -128,7 +128,7 @@ const ListingDetails = () => {
 
         {/* Sidebar */}
         <Motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-4 sticky top-28">
-          <div className="glass-card p-10 bg-white shadow-2xl shadow-indigo-500/10 border-slate-100">
+          <div className="glass-card p-10 bg-white shadow-2xl shadow-primary/10 border-slate-100">
             {/* Price */}
             <div className="flex justify-between items-center mb-10 pb-8 border-b border-slate-100">
               <div className="flex items-center gap-4">

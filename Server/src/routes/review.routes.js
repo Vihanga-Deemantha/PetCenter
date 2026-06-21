@@ -9,12 +9,17 @@ import {
   adminGetReviews,
   adminHideReview,
   getReviewEligibility,
+  getPublicTestimonials,
 } from "../controllers/review.controller.js";
 
 const router = express.Router();
 
 // ── Product reviews (mounted at /api/v1/products/:id/reviews via product routes)
 // These are re-exported and used in product.routes.js as nested routes
+
+// ── Public routes ─────────────────────────────────────────────────────────────
+// Curated 5-star testimonials for homepage
+router.get("/testimonials", getPublicTestimonials);
 
 // ── Stand-alone review routes ────────────────────────────────────────────────
 // User can edit/delete their own review

@@ -199,7 +199,7 @@ export default function Favorites() {
                     <div className="p-6 flex-1 flex flex-col">
                       <div className="mb-4">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-black rounded uppercase tracking-wider">{item.petType}</span>
+                          <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-black rounded uppercase tracking-wider">{item.petType}</span>
                           <span className={`px-2 py-0.5 text-[10px] font-black rounded uppercase tracking-wider ${
                             item.listingType === "sale" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
                           }`}>
@@ -242,7 +242,7 @@ export default function Favorites() {
                   onClick={() => setPage(i + 1)}
                   className={`w-10 h-10 rounded-xl font-black text-sm transition-all ${
                     page === i + 1
-                      ? "bg-primary text-white shadow-lg shadow-indigo-500/30"
+                      ? "bg-primary text-white shadow-lg shadow-primary/30"
                       : "border border-slate-200 bg-white text-slate-600 hover:border-primary hover:text-primary"
                   }`}
                 >

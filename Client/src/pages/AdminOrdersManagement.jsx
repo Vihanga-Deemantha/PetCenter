@@ -85,7 +85,7 @@ const AdminOrdersManagement = () => {
           <h1 className="text-3xl font-black text-slate-900 tracking-tighter">Orders</h1>
           <p className="text-slate-500 font-medium">{pagination.totalItems || 0} orders total</p>
         </div>
-        <button onClick={fetchOrders} className="p-3 bg-white border border-slate-200 rounded-xl text-primary hover:bg-indigo-50 transition-all">
+        <button onClick={fetchOrders} className="p-3 bg-white border border-slate-200 rounded-xl text-primary hover:bg-primary/10 transition-all">
           <RefreshCw size={16} />
         </button>
       </div>
@@ -114,7 +114,7 @@ const AdminOrdersManagement = () => {
             <button key={s}
               onClick={() => { setStatusFilter(s); setPage(1); }}
               className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all ${
-                statusFilter === s ? "bg-primary text-white shadow-lg shadow-indigo-500/30" : "bg-white border border-slate-200 text-slate-500 hover:border-primary/30 hover:text-primary"
+                statusFilter === s ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-white border border-slate-200 text-slate-500 hover:border-primary/30 hover:text-primary"
               }`}>
               {s || "All"}
             </button>
@@ -194,7 +194,7 @@ const AdminOrdersManagement = () => {
                       <Link
                         to={`/orders/${order._id}`}
                         target="_blank"
-                        className="p-2 rounded-xl bg-slate-50 text-slate-500 hover:bg-indigo-50 hover:text-primary transition-all inline-flex"
+                        className="p-2 rounded-xl bg-slate-50 text-slate-500 hover:bg-primary/10 hover:text-primary transition-all inline-flex"
                         title="View order"
                       >
                         <Eye size={15} />

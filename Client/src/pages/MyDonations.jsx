@@ -134,7 +134,7 @@ const MyDonations = () => {
                   
                   <Link
                     to={`/campaigns/${campaign._id}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-black text-primary hover:text-indigo-700 mt-4 sm:mt-0 transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs font-black text-primary hover:text-primary mt-4 sm:mt-0 transition-colors"
                   >
                     View Cause <ArrowRight size={13} />
                   </Link>

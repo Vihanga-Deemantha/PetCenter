@@ -60,7 +60,7 @@ export default function NotificationBell() {
           alignItems: "center",
           justifyContent: "center",
           position: "relative",
-          color: "#64748b",
+          color: "currentColor",
         }}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">

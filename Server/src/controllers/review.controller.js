@@ -291,3 +291,21 @@ export const getReviewEligibility = async (req, res, next) => {
     next(error);
   }
 };
+
+// ─── GET /reviews/testimonials — Public: curated 5-star product reviews ────────
+export const getPublicTestimonials = async (req, res, next) => {
+  try {
+    const { limit = 6 } = req.query;
+
+    const testimonials = await Review.find({ rating: 5, isVisible: true, comment: { $ne: "" } })
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .populate("userId", "name profileImage")
+      .populate("productId", "name")
+      .lean();
+
+    return sendSuccess(res, testimonials);
+  } catch (error) {
+    next(error);
+  }
+};

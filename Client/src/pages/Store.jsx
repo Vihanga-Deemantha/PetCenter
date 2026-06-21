@@ -71,7 +71,7 @@ const Store = () => {
       {/* Header */}
       <Motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
         <div className="flex items-center gap-3 mb-3">
-          <span className="px-3 py-1.5 bg-indigo-50 text-primary rounded-full text-[11px] font-black uppercase tracking-widest border border-indigo-100">
+          <span className="px-3 py-1.5 bg-primary/10 text-primary rounded-full text-[11px] font-black uppercase tracking-widest border border-primary/20">
             Pet Supplies
           </span>
         </div>
@@ -172,7 +172,7 @@ const Store = () => {
 
               {/* Pagination */}
               {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-center gap-3 mt-12">
+                <div className="flex flex-wrap items-center justify-center gap-3 mt-12">
                   <button
                     onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={page === 1}
@@ -186,7 +186,7 @@ const Store = () => {
                       onClick={() => setPage(i + 1)}
                       className={`w-10 h-10 rounded-xl font-black text-sm transition-all ${
                         page === i + 1
-                          ? "bg-primary text-white shadow-lg shadow-indigo-500/30"
+                          ? "bg-primary text-white shadow-lg shadow-primary/30"
                           : "border border-slate-200 bg-white text-slate-600 hover:border-primary hover:text-primary"
                       }`}
                     >

@@ -20,3 +20,6 @@ export const adminGetReviews = (params = {}) =>
 
 export const adminHideReview = (reviewId) =>
   axiosInstance.patch(`/admin/reviews/${reviewId}/hide`);
+
+export const getPublicTestimonials = (limit = 6) =>
+  axiosInstance.get("/reviews/testimonials", { params: { limit } });

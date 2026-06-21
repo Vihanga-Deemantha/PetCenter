@@ -88,7 +88,7 @@ const Cart = () => {
           <OrderSummary items={cartItems} total={cartTotal}>
             <button
               onClick={() => navigate("/checkout")}
-              className="w-full mt-4 py-4 rounded-xl font-black text-white bg-linear-to-br from-primary to-accent shadow-lg shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              className="w-full mt-4 py-4 rounded-xl font-black text-white bg-linear-to-br from-primary to-accent shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
             >
               Proceed to Checkout <ArrowRight size={18} />
             </button>

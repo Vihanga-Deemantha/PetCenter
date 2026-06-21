@@ -168,7 +168,7 @@ const CreateListing = () => {
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -20 }}
-        className="glass-card p-8 md:p-12 bg-white shadow-2xl shadow-indigo-500/10 border-slate-100"
+        className="glass-card p-8 md:p-12 bg-white shadow-2xl shadow-primary/10 border-slate-100"
       >
         {error && (
           <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3 p-4 bg-rose-50 text-rose-600 rounded-xl mb-8 border border-rose-100 text-sm font-bold">
@@ -276,7 +276,7 @@ const CreateListing = () => {
               <label className="flex text-xs font-black uppercase tracking-widest text-slate-400 mb-3 items-center gap-2">
                 <ImagePlus size={16} className="text-primary" /> Pet Photos (1-5 Required)
               </label>
-              <label className="flex flex-col items-center justify-center h-48 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 cursor-pointer hover:border-primary/40 hover:bg-indigo-50/30 transition-all">
+              <label className="flex flex-col items-center justify-center h-48 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 cursor-pointer hover:border-primary/40 hover:bg-primary/10/30 transition-all">
                 <ImagePlus size={36} className="text-slate-400 mb-3" />
                 <span className="text-sm font-bold text-slate-500">Click to Select Photos</span>
                 <span className="text-xs text-slate-400 mt-2">JPG, PNG or WebP — Max 5MB Limit per image</span>

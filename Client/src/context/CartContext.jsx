@@ -97,6 +97,12 @@ export const CartProvider = ({ children }) => {
     setCartTotal(0);
   }, []);
 
+  const clearLocalCartOnly = useCallback(() => {
+    setCartItems([]);
+    setItemCount(0);
+    setCartTotal(0);
+  }, []);
+
   return (
     <CartContext.Provider value={{
       cartItems,
@@ -109,6 +115,7 @@ export const CartProvider = ({ children }) => {
       updateQuantity,
       removeItem,
       clearCart: clearCartLocal,
+      clearLocalCartOnly,
     }}>
       {children}
     </CartContext.Provider>

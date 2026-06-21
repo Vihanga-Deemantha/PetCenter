@@ -49,7 +49,7 @@ const HowItWorksSection = () => {
               viewport={{ once: true }}
               className="flex flex-col items-center text-center gap-8 relative z-10 group"
             >
-              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-primary shadow-2xl shadow-indigo-500/10 border border-slate-50 group-hover:bg-primary group-hover:text-white transition-all duration-500">
+              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-primary shadow-2xl shadow-primary/10 border border-slate-50 group-hover:bg-primary group-hover:text-white transition-all duration-500">
                 {step.icon}
               </div>
               <div>

@@ -54,7 +54,7 @@ const OrderHistory = () => {
             key={s}
             onClick={() => { setStatusFilter(s); setPage(1); }}
             className={`px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all ${
-              statusFilter === s ? "bg-primary text-white shadow-lg shadow-indigo-500/30" : "bg-white border border-slate-200 text-slate-500 hover:border-primary/30 hover:text-primary"
+              statusFilter === s ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-white border border-slate-200 text-slate-500 hover:border-primary/30 hover:text-primary"
             }`}
           >
             {s || "All Orders"}
@@ -86,7 +86,7 @@ const OrderHistory = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                 >
-                  <Link to={`/orders/${order._id}`} className="block glass-card bg-white border-slate-100 shadow-sm p-5 hover:shadow-xl hover:border-indigo-100 transition-all group">
+                  <Link to={`/orders/${order._id}`} className="block glass-card bg-white border-slate-100 shadow-sm p-5 hover:shadow-xl hover:border-primary/20 transition-all group">
                     <div className="flex items-center gap-4">
                       {/* First product image */}
                       <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 shrink-0">

@@ -203,7 +203,7 @@ const ProductFormModal = ({ product, onSave, onClose }) => {
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={saving}
-            className="flex-1 py-3 bg-linear-to-br from-primary to-accent text-white font-black rounded-xl shadow-lg shadow-indigo-500/30 hover:scale-[1.01] transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+            className="flex-1 py-3 bg-linear-to-br from-primary to-accent text-white font-black rounded-xl shadow-lg shadow-primary/30 hover:scale-[1.01] transition-all disabled:opacity-60 flex items-center justify-center gap-2">
             {saving ? <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" /> : null}
             {isEdit ? "Save Changes" : "Create Product"}
           </button>
@@ -339,7 +339,7 @@ const AdminProductManagement = () => {
           <option value="">All Categories</option>
           {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <button onClick={fetchProducts} className="p-3 bg-white border border-slate-200 rounded-xl text-primary hover:bg-indigo-50 transition-all">
+        <button onClick={fetchProducts} className="p-3 bg-white border border-slate-200 rounded-xl text-primary hover:bg-primary/10 transition-all">
           <RefreshCw size={16} />
         </button>
       </div>
@@ -385,7 +385,7 @@ const AdminProductManagement = () => {
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      <span className="px-2 py-1 bg-indigo-50 text-primary rounded-lg text-[10px] font-black uppercase tracking-wider">{p.category}</span>
+                      <span className="px-2 py-1 bg-primary/10 text-primary rounded-lg text-[10px] font-black uppercase tracking-wider">{p.category}</span>
                     </td>
                     <td className="px-5 py-4 font-black text-slate-900">{formatPrice(p.price)}</td>
                     <td className="px-5 py-4">
@@ -403,7 +403,7 @@ const AdminProductManagement = () => {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => { setEditProduct(p); setShowForm(true); }} className="p-2 rounded-xl bg-slate-50 text-slate-500 hover:bg-indigo-50 hover:text-primary transition-all">
+                        <button onClick={() => { setEditProduct(p); setShowForm(true); }} className="p-2 rounded-xl bg-slate-50 text-slate-500 hover:bg-primary/10 hover:text-primary transition-all">
                           <Pencil size={14} />
                         </button>
                         <button onClick={() => setDeleteTarget(p)} className="p-2 rounded-xl bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-500 transition-all">

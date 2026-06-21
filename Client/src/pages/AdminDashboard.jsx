@@ -284,11 +284,11 @@ const AdminDashboard = ({ activeTabOverride = "overview" }) => {
   };
 
   const statCards = stats?.cards ? [
-    { label: "Total Users", value: stats.cards.users.total, trend: stats.cards.users.trend, icon: <Users size={22} />, color: "bg-indigo-50 text-indigo-600 border-indigo-100", onClick: () => setActiveTab("users") },
+    { label: "Total Users", value: stats.cards.users.total, trend: stats.cards.users.trend, icon: <Users size={22} />, color: "bg-primary/10 text-primary border-primary/20", onClick: () => setActiveTab("users") },
     { label: "Pet Listings", value: stats.cards.listings.total, trend: stats.cards.listings.trend, icon: <ClipboardList size={22} />, color: "bg-emerald-50 text-emerald-600 border-emerald-100", onClick: () => setActiveTab("listings") },
     { label: "Store Products", value: stats.cards.products.total, trend: stats.cards.products.trend, icon: <ShoppingBag size={22} />, color: "bg-amber-50 text-amber-600 border-amber-100", onClick: null },
     { label: "Orders Count", value: stats.cards.orders.total, trend: stats.cards.orders.trend, icon: <Activity size={22} />, color: "bg-rose-50 text-rose-600 border-rose-100", onClick: null },
-    { label: "Store Revenue", value: `$${stats.cards.revenue.totalInDollars}`, trend: stats.cards.revenue.trend, icon: <DollarSign size={22} />, color: "bg-indigo-50 text-indigo-600 border-indigo-100", onClick: null },
+    { label: "Store Revenue", value: `$${stats.cards.revenue.totalInDollars}`, trend: stats.cards.revenue.trend, icon: <DollarSign size={22} />, color: "bg-primary/10 text-primary border-primary/20", onClick: null },
     { label: "Active Campaigns", value: stats.cards.campaigns.total, trend: stats.cards.campaigns.trend, icon: <Flame size={22} />, color: "bg-rose-50 text-rose-600 border-rose-100", onClick: null },
     { label: "Donation Count", value: stats.cards.donations.total, trend: stats.cards.donations.trend, icon: <Heart size={22} />, color: "bg-pink-50 text-pink-600 border-pink-100", onClick: null },
     { label: "Donation Revenue", value: `$${stats.cards.donationRevenue.totalInDollars}`, trend: stats.cards.donationRevenue.trend, icon: <Gift size={22} />, color: "bg-purple-50 text-purple-600 border-purple-100", onClick: null },
@@ -315,7 +315,7 @@ const AdminDashboard = ({ activeTabOverride = "overview" }) => {
             Welcome, <span className="text-primary font-black">{user?.name}</span>
           </p>
         </div>
-        <button onClick={fetchStats} className="p-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-indigo-50 hover:text-primary transition-all cursor-pointer" title="Refresh stats">
+        <button onClick={fetchStats} className="p-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-primary/10 hover:text-primary transition-all cursor-pointer" title="Refresh stats">
           <RefreshCw size={18} />
         </button>
       </div>
@@ -493,7 +493,7 @@ const AdminDashboard = ({ activeTabOverride = "overview" }) => {
                   {stats.timeline.map((act) => {
                     // Type styling map
                     const typeMap = {
-                      user_signup: { bg: "bg-indigo-50 text-indigo-600 border-indigo-100", icon: <Users size={14} /> },
+                      user_signup: { bg: "bg-primary/10 text-primary border-primary/20", icon: <Users size={14} /> },
                       product_order: { bg: "bg-emerald-50 text-emerald-600 border-emerald-100", icon: <ShoppingBag size={14} /> },
                       campaign_donation: { bg: "bg-rose-50 text-rose-600 border-rose-100", icon: <Heart size={14} /> }
                     };
@@ -543,7 +543,7 @@ const AdminDashboard = ({ activeTabOverride = "overview" }) => {
                 <button
                   key={s}
                   onClick={() => setListingFilter(s)}
-                  className={`px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all ${listingFilter === s ? "bg-primary text-white shadow-lg shadow-indigo-500/30" : "bg-white text-slate-500 border border-slate-200 hover:border-primary/30 hover:text-primary"}`}
+                  className={`px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all ${listingFilter === s ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-white text-slate-500 border border-slate-200 hover:border-primary/30 hover:text-primary"}`}
                 >
                   {s || "All"}
                 </button>
@@ -605,7 +605,7 @@ const AdminDashboard = ({ activeTabOverride = "overview" }) => {
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex items-center justify-end gap-2">
-                                <Link to={`/marketplace/${l._id}`} className="p-2 rounded-xl bg-slate-50 text-slate-500 hover:bg-indigo-50 hover:text-primary transition-all" title="View listing">
+                                <Link to={`/marketplace/${l._id}`} className="p-2 rounded-xl bg-slate-50 text-slate-500 hover:bg-primary/10 hover:text-primary transition-all" title="View listing">
                                   <Eye size={16} />
                                 </Link>
                                 {l.status === "pending" && (
@@ -664,7 +664,7 @@ const AdminDashboard = ({ activeTabOverride = "overview" }) => {
                   className="pl-10 pr-4 py-3 w-72 rounded-xl bg-white border border-slate-200 focus:ring-2 focus:ring-primary/20 outline-none font-semibold text-sm"
                 />
               </div>
-              <button onClick={fetchUsers} className="p-3 bg-white border border-slate-200 rounded-xl text-primary hover:bg-indigo-50 transition-all">
+              <button onClick={fetchUsers} className="p-3 bg-white border border-slate-200 rounded-xl text-primary hover:bg-primary/10 transition-all">
                 <RefreshCw size={16} />
               </button>
             </div>

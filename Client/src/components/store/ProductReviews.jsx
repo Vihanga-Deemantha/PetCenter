@@ -211,7 +211,7 @@ export default function ProductReviews({ productId }) {
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="bg-white border border-primary/20 rounded-3xl p-8 shadow-xl shadow-indigo-500/5"
+                className="bg-white border border-primary/20 rounded-3xl p-8 shadow-xl shadow-primary/5"
               >
                 <h3 className="text-xl font-black text-slate-900 mb-6">
                   {editingId ? "Update Your Review" : "Write a Review"}
@@ -322,7 +322,7 @@ export default function ProductReviews({ productId }) {
                   <div key={review._id} className="border-b border-slate-100 pb-6 last:border-0 last:pb-0">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-primary font-black overflow-hidden">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black overflow-hidden">
                           {review.userId?.profileImage ? (
                             <img src={review.userId.profileImage} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -345,7 +345,7 @@ export default function ProductReviews({ productId }) {
                               {new Date(review.createdAt).toLocaleDateString()}
                             </span>
                             {isUserReview && (
-                              <span className="px-1.5 py-0.5 bg-indigo-50 text-primary border border-indigo-100 text-[9px] rounded-md font-black uppercase tracking-wider">
+                              <span className="px-1.5 py-0.5 bg-primary/10 text-primary border border-primary/20 text-[9px] rounded-md font-black uppercase tracking-wider">
                                 Your Review
                               </span>
                             )}

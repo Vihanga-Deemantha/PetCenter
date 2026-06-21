@@ -67,7 +67,7 @@ const StripeDonationForm = ({ onSuccess, amountInCents }) => {
       <button
         type="submit"
         disabled={!stripe || processing}
-        className="w-full py-4 rounded-xl font-black text-white bg-linear-to-br from-primary to-accent shadow-lg shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-base cursor-pointer"
+        className="w-full py-4 rounded-xl font-black text-white bg-linear-to-br from-primary to-accent shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-base cursor-pointer"
       >
         {processing ? (
           <>

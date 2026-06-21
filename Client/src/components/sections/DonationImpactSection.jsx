@@ -1,14 +1,29 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
-import { User, Search, Plus, Heart, Users, Globe, ArrowRight, Star } from "lucide-react";
+import { Heart, Users, Globe, ArrowRight } from "lucide-react";
 import impactImage from "../../assets/donation_impact_pets_1775087943712.png";
+import { getPublicStats } from "../../api/admin.api";
 
 const DonationImpactSection = () => {
-  const stats = [
-    { label: "Rescued Pets", value: "12k+", icon: <Heart className="text-rose-500" /> },
-    { label: "Global Partners", value: "250+", icon: <Globe className="text-emerald-500" /> },
-    { label: "Happy Families", value: "50k+", icon: <Users className="text-amber-500" /> }
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    getPublicStats()
+      .then((res) => setStats(res.data.data))
+      .catch(() => {});
+  }, []);
+
+  const formatStat = (num) => {
+    if (num === undefined || num === null) return "-";
+    if (num >= 1000) return `${(num / 1000).toFixed(1).replace(/\.0$/, "")}k+`;
+    return `${num}+`;
+  };
+
+  const impactStats = [
+    { label: "Rescued Pets", value: formatStat(stats?.rescuedPets), icon: <Heart className="text-rose-500" /> },
+    { label: "Global Partners", value: formatStat(stats?.globalPartners), icon: <Globe className="text-emerald-500" /> },
+    { label: "Happy Families", value: formatStat(stats?.happyFamilies), icon: <Users className="text-amber-500" /> }
   ];
 
   return (
@@ -68,7 +83,7 @@ const DonationImpactSection = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {stats.map((stat, i) => (
+            {impactStats.map((stat, i) => (
               <Motion.div 
                 key={i}
                 initial={{ opacity: 0, y: 15 }}

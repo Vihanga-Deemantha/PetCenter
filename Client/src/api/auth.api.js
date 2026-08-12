@@ -36,3 +36,13 @@ export const refreshToken = async () => {
   const { data } = await axiosInstance.post("/auth/refresh-token");
   return data;
 };
+
+export const forgotPassword = async (email) => {
+  const { data } = await axiosInstance.post("/auth/forgot-password", { email });
+  return data;
+};
+
+export const resetPassword = async (resetToken, password) => {
+  const { data } = await axiosInstance.put(`/auth/reset-password/${resetToken}`, { password });
+  return data;
+};

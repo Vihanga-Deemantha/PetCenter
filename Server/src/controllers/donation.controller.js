@@ -96,13 +96,31 @@ export const getMyDonations = async (req, res, next) => {
 // GET /api/v1/admin/donations — Admin Only
 export const getAdminDonations = async (req, res, next) => {
   try {
-    const donations = await Donation.find()
-      .populate("campaignId", "title goalAmount raisedAmount")
-      .populate("userId", "name email")
-      .sort({ createdAt: -1 })
-      .lean();
+    const { page = 1, limit = 20, status } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    return sendSuccess(res, donations);
+    const filter = {};
+    if (status) filter.status = status;
+
+    const [donations, total] = await Promise.all([
+      Donation.find(filter)
+        .populate("campaignId", "title goalAmount raisedAmount")
+        .populate("userId", "name email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      Donation.countDocuments(filter),
+    ]);
+
+    return sendSuccess(res, donations, 200, {
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / parseInt(limit)),
+        totalItems: total,
+        itemsPerPage: parseInt(limit),
+      },
+    });
   } catch (error) {
     next(error);
   }

@@ -90,6 +90,12 @@ const Login = () => {
             </div>
           </div>
 
+          <div className="flex justify-end">
+            <Link to="/forgot-password" className="text-sm font-bold text-primary hover:underline decoration-2 underline-offset-4">
+              Forgot Password?
+            </Link>
+          </div>
+
           <button type="submit" className="btn btn-primary w-full py-5 text-lg group" disabled={loading}>
             <span className="flex items-center justify-center gap-3">
               {loading ? (

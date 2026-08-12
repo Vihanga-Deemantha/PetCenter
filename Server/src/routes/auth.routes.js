@@ -7,6 +7,8 @@ import {
   getMe,
   updateProfile,
   uploadProfilePhotoHandler,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/auth.controller.js";
 import { protect } from "../middleware/auth.js";
 import { uploadProfilePhoto } from "../utils/uploadImage.js";
@@ -18,6 +20,8 @@ const router = express.Router();
 router.post("/register", authLimiter, register);
 router.post("/login", authLimiter, login);
 router.post("/refresh-token", refreshToken);
+router.post("/forgot-password", authLimiter, forgotPassword);
+router.put("/reset-password/:resetToken", resetPassword);
 
 // Private
 router.post("/logout", protect, logout);

@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+import morgan from "morgan";
+import compression from "compression";
 
 import connectDB from "./src/config/db.js";
 import authRoutes from "./src/routes/auth.routes.js";
@@ -33,11 +35,21 @@ connectDB();
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: process.env.CLIENT_URL?.split(",").map(s => s.trim()) || "http://localhost:5173",
     credentials: true, // Allow cookies
   })
 );
 app.use(nosqlSanitize);
+
+// ── Request Logging ──────────────────────────────────────────────────────────
+if (process.env.NODE_ENV === "production") {
+  app.use(morgan("combined"));
+} else {
+  app.use(morgan("dev"));
+}
+
+// ── Response Compression ─────────────────────────────────────────────────────
+app.use(compression());
 
 // ── Stripe Webhooks (must be BEFORE body parsers) ──────────────────────────────
 // Webhooks require raw body for signature verification

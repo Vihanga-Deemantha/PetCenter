@@ -189,6 +189,17 @@ export const deleteListing = async (req, res, next) => {
       return sendError(res, "Not authorized to delete this listing", 403);
     }
 
+    // Clean up Cloudinary images
+    if (listing.imagePublicIds && listing.imagePublicIds.length > 0) {
+      for (const publicId of listing.imagePublicIds) {
+        try {
+          await cloudinary.uploader.destroy(publicId);
+        } catch (err) {
+          console.error(`Failed to delete Cloudinary image ${publicId}:`, err.message);
+        }
+      }
+    }
+
     await PetListing.findByIdAndUpdate(req.params.id, { status: "removed" });
 
     return sendSuccess(res, { message: "Listing removed successfully" });

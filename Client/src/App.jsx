@@ -34,6 +34,8 @@ import AdminOrdersManagement from "./pages/AdminOrdersManagement";
 import ComingSoon from "./pages/ComingSoon";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 // Phase 3 Pages
 import Campaigns from "./pages/Campaigns";
@@ -103,6 +105,8 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<PaddedContainer><Login /></PaddedContainer>} />
               <Route path="/register" element={<PaddedContainer><Register /></PaddedContainer>} />
+              <Route path="/forgot-password" element={<PaddedContainer><ForgotPassword /></PaddedContainer>} />
+              <Route path="/reset-password/:resetToken" element={<PaddedContainer><ResetPassword /></PaddedContainer>} />
               <Route path="/marketplace" element={<PaddedContainer><Marketplace /></PaddedContainer>} />
               <Route path="/marketplace/:id" element={<PaddedContainer><ListingDetails /></PaddedContainer>} />
               <Route path="/create-listing" element={<PrivateRoute><PaddedContainer><CreateListing /></PaddedContainer></PrivateRoute>} />
@@ -135,8 +139,8 @@ function App() {
               <Route path="*" element={<PaddedContainer><NotFound /></PaddedContainer>} />
             </Route>
 
-            {/* Admin Shell Interface */}
-            <Route path="/admin" element={<AdminLayout />}>
+            {/* Admin Shell Interface — guarded by PrivateRoute */}
+            <Route path="/admin" element={<PrivateRoute roles={["admin"]}><AdminLayout /></PrivateRoute>}>
               <Route index element={<AdminDashboard activeTabOverride="overview" />} />
               <Route path="users" element={<AdminDashboard activeTabOverride="users" />} />
               <Route path="listings" element={<AdminDashboard activeTabOverride="listings" />} />

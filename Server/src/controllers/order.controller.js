@@ -335,10 +335,21 @@ export const updateOrderStatus = async (req, res, next) => {
       return sendSuccess(res, { order, message: `Order status is already ${status}` });
     }
 
-    order.status = status;
-    if (status === "cancelled") {
+    // If admin is cancelling, issue a real Stripe refund first
+    if (status === "cancelled" && previousStatus !== "cancelled") {
+      try {
+        await stripe.refunds.create({
+          payment_intent: order.paymentIntentId,
+          reason: "requested_by_customer",
+        });
+      } catch (refundError) {
+        console.error("Admin Stripe refund failed:", refundError.message);
+        return sendError(res, "Stripe refund failed. Order status not changed.", 500);
+      }
       order.paymentStatus = "refunded";
     }
+
+    order.status = status;
     await order.save();
 
     // Notify the order's user about the status change
@@ -419,6 +430,21 @@ export const cancelOrder = async (req, res, next) => {
     // Only allow cancelling if pending or processing
     if (order.status !== "processing" && order.status !== "pending") {
       return sendError(res, `Cannot cancel order in ${order.status} status`, 400);
+    }
+
+    // Issue actual Stripe refund before marking as cancelled
+    try {
+      await stripe.refunds.create({
+        payment_intent: order.paymentIntentId,
+        reason: "requested_by_customer",
+      });
+    } catch (refundError) {
+      console.error("Stripe refund failed:", refundError.message);
+      return sendError(
+        res,
+        "Unable to process refund. Please contact support.",
+        500
+      );
     }
 
     order.status = "cancelled";

@@ -77,7 +77,7 @@ const PrincipleRow = ({ number, title, description }) => (
     variants={fadeUp}
     className="flex gap-6 items-start py-8 border-b border-slate-100 last:border-0"
   >
-    <span className="text-5xl font-black text-slate-100 leading-none select-none shrink-0 w-12 text-center">
+    <span className="text-5xl font-black text-slate-200 leading-none select-none shrink-0 w-12 text-center">
       {number}
     </span>
     <div>
@@ -105,16 +105,16 @@ const About = () => {
   return (
     <div>
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section className="relative py-40 overflow-hidden bg-slate-950 text-white">
+      <section className="relative py-40 overflow-hidden bg-slate-50 text-slate-900">
         {/* Gradient blobs */}
         <div
-          className="absolute inset-0 opacity-30"
+          className="absolute inset-0 opacity-40"
           style={{
             background:
-              "radial-gradient(ellipse 80% 60% at 20% 50%, hsl(246 80% 40%), transparent), radial-gradient(ellipse 60% 60% at 80% 40%, hsl(180 70% 35%), transparent)",
+              "radial-gradient(ellipse 80% 60% at 20% 50%, rgba(99, 102, 241, 0.15), transparent), radial-gradient(ellipse 60% 60% at 80% 40%, rgba(139, 92, 246, 0.15), transparent)",
           }}
         />
-        <div className="absolute inset-0 bg-slate-950/50" />
+        <div className="absolute inset-0 bg-slate-50/50" />
 
         <div className="relative z-10 max-w-5xl mx-auto px-[5%] text-center">
           <Motion.div
@@ -124,7 +124,7 @@ const About = () => {
             className="flex flex-col items-center gap-8"
           >
             <Motion.div variants={fadeUp}>
-              <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 border border-white/10 rounded-full text-xs font-black uppercase tracking-widest text-teal-300 backdrop-blur-md">
+              <span className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary/10 border border-primary/20 rounded-full text-xs font-black uppercase tracking-widest text-primary backdrop-blur-md">
                 <PawPrint size={14} className="animate-pulse" /> Our Story
               </span>
             </Motion.div>
@@ -135,7 +135,7 @@ const About = () => {
             >
               A better world,{" "}
               <span
-                className="inline-block px-2 bg-gradient-to-r from-indigo-300 to-teal-300 bg-clip-text text-transparent italic"
+                className="inline-block px-2 bg-linear-to-r from-primary to-accent bg-clip-text text-transparent italic"
                 style={{ paddingTop: "0.1em", paddingBottom: "0.1em" }}
               >
                 for every pet.
@@ -144,7 +144,7 @@ const About = () => {
 
             <Motion.p
               variants={fadeUp}
-              className="text-xl text-slate-300 max-w-2xl leading-relaxed font-medium"
+              className="text-xl text-slate-500 max-w-2xl leading-relaxed font-medium"
             >
               PetCenter was born from a simple belief: that pets deserve
               a world built around their needs — safe, thoughtful, and full of
@@ -166,7 +166,7 @@ const About = () => {
               <Link
                 to="/products"
                 id="about-cta-store"
-                className="btn bg-white/10 border border-white/20 text-white px-8 py-4 rounded-2xl hover:bg-white/20 transition-all"
+                className="btn bg-white border border-slate-200 text-slate-700 px-8 py-4 rounded-2xl hover:border-primary hover:text-primary transition-all shadow-sm"
               >
                 Visit Store
               </Link>
@@ -347,7 +347,7 @@ const About = () => {
                 description="We're not just a platform — we're advocates. From rescue campaigns to adoption listings, we actively support the well-being of animals in need."
               />
               <ValueCard
-                icon={<Globe size={26} className="text-teal-500" />}
+                icon={<Globe size={26} className="text-accent" />}
                 title="Inclusive Community"
                 description="Whether you have a goldfish or a bearded dragon, a puppy or a boa constrictor — PetCenter is built for every kind of pet owner, everywhere."
               />
@@ -412,12 +412,12 @@ const About = () => {
       </section>
 
       {/* ── CTA Banner ────────────────────────────────────────────────────── */}
-      <section className="py-32 bg-slate-950 relative overflow-hidden">
+      <section className="py-32 bg-slate-50 relative overflow-hidden">
         <div
-          className="absolute inset-0 opacity-20"
+          className="absolute inset-0 opacity-40"
           style={{
             background:
-              "radial-gradient(ellipse 70% 70% at 30% 50%, hsl(246 80% 50%), transparent), radial-gradient(ellipse 50% 60% at 75% 30%, hsl(180 70% 40%), transparent)",
+              "radial-gradient(ellipse 70% 70% at 30% 50%, rgba(99, 102, 241, 0.1), transparent), radial-gradient(ellipse 50% 60% at 75% 30%, rgba(139, 92, 246, 0.1), transparent)",
           }}
         />
         <div className="relative z-10 max-w-4xl mx-auto px-[5%] text-center">
@@ -437,14 +437,14 @@ const About = () => {
 
             <Motion.h2
               variants={fadeUp}
-              className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-tight"
+              className="text-4xl md:text-6xl font-black text-slate-950 tracking-tighter leading-tight"
             >
               Ready to join the community?
             </Motion.h2>
 
             <Motion.p
               variants={fadeUp}
-              className="text-xl text-slate-400 font-medium max-w-xl"
+              className="text-xl text-slate-500 font-medium max-w-xl"
             >
               Browse thousands of pets, shop premium supplies, support rescue
               missions, and design breathtaking ecosystems.
@@ -468,7 +468,7 @@ const About = () => {
               <Link
                 to="/products"
                 id="about-bottom-cta-store"
-                className="btn bg-white/10 border border-white/20 text-white px-10 py-5 text-lg rounded-2xl hover:bg-white/20 transition-all"
+                className="btn bg-white border border-slate-200 text-slate-700 px-10 py-5 text-lg rounded-2xl hover:border-primary hover:text-primary transition-all shadow-sm flex items-center gap-2"
               >
                 <ShoppingBag size={20} /> Shop Store
               </Link>
@@ -484,7 +484,7 @@ const About = () => {
                 Questions?{" "}
                 <a
                   href="mailto:hello@petcenter.lk"
-                  className="text-teal-400 hover:text-teal-300 font-bold transition-colors"
+                  className="text-primary hover:text-accent font-bold transition-colors"
                 >
                   hello@petcenter.lk
                 </a>

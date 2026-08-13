@@ -143,23 +143,27 @@ async function handleDonationSucceeded(paymentIntent) {
   donation.status = "completed";
   await donation.save();
 
-  // Atomically update Campaign goal progress
-  const campaign = await Campaign.findOne({ _id: campaignId, deletedAt: null });
-  if (!campaign) {
+  // Atomically update Campaign goal progress (prevents race conditions under concurrent webhooks)
+  const updatedCampaign = await Campaign.findOneAndUpdate(
+    { _id: campaignId, deletedAt: null },
+    { $inc: { raisedAmount: amount, donorCount: 1 } },
+    { new: true }
+  );
+
+  if (!updatedCampaign) {
     console.warn(`🚨 Campaign ${campaignId} not found or soft deleted during donation completion`);
     return;
   }
 
-  campaign.raisedAmount += amount;
-  campaign.donorCount += 1;
-
-  // Mark goal reached if raised amount meets or exceeds target
-  if (campaign.raisedAmount >= campaign.goalAmount && campaign.status === "active") {
-    campaign.status = "goal_reached";
+  // Check if goal reached (second atomic update to avoid TOCTOU)
+  if (updatedCampaign.raisedAmount >= updatedCampaign.goalAmount && updatedCampaign.status === "active") {
+    await Campaign.findOneAndUpdate(
+      { _id: campaignId, status: "active", raisedAmount: { $gte: updatedCampaign.goalAmount } },
+      { status: "goal_reached" }
+    );
   }
 
-  await campaign.save();
-  console.log(`✅ Campaign ${campaignId} updated with donation. Raised: $${(campaign.raisedAmount / 100).toFixed(2)}`);
+  console.log(`✅ Campaign ${campaignId} updated with donation. Raised: $${(updatedCampaign.raisedAmount / 100).toFixed(2)}`);
 }
 
 // ─── Process Refunds ─────────────────────────────────────────────────────────
@@ -211,19 +215,31 @@ async function handleChargeRefunded(charge) {
 
     console.log(`✅ Donation ${donation._id} marked as refunded`);
 
-    // Reverse campaign contributions
-    const campaign = await Campaign.findOne({ _id: donation.campaignId, deletedAt: null });
-    if (campaign) {
-      campaign.raisedAmount = Math.max(0, campaign.raisedAmount - donation.amount);
-      campaign.donorCount = Math.max(0, campaign.donorCount - 1);
+    // Reverse campaign contributions atomically
+    const updated = await Campaign.findOneAndUpdate(
+      { _id: donation.campaignId, deletedAt: null },
+      { $inc: { raisedAmount: -donation.amount, donorCount: -1 } },
+      { new: true }
+    );
 
-      // Re-open campaign if it was goal_reached but falls below target
-      if (campaign.status === "goal_reached" && campaign.raisedAmount < campaign.goalAmount) {
-        campaign.status = "active";
+    if (updated) {
+      // Clamp to zero (prevent negative values from double-refunds)
+      if (updated.raisedAmount < 0 || updated.donorCount < 0) {
+        await Campaign.findByIdAndUpdate(updated._id, {
+          raisedAmount: Math.max(0, updated.raisedAmount),
+          donorCount: Math.max(0, updated.donorCount),
+        });
       }
 
-      await campaign.save();
-      console.log(`✅ Campaign ${campaign._id} updated after refund. Raised: $${(campaign.raisedAmount / 100).toFixed(2)}`);
+      // Re-open campaign if it was goal_reached but falls below target
+      if (updated.status === "goal_reached" && updated.raisedAmount < updated.goalAmount) {
+        await Campaign.findOneAndUpdate(
+          { _id: updated._id, status: "goal_reached" },
+          { status: "active" }
+        );
+      }
+
+      console.log(`✅ Campaign ${updated._id} updated after refund. Raised: $${(Math.max(0, updated.raisedAmount) / 100).toFixed(2)}`);
     }
   }
 }

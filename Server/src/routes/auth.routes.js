@@ -19,9 +19,9 @@ const router = express.Router();
 // Public + rate limited
 router.post("/register", authLimiter, register);
 router.post("/login", authLimiter, login);
-router.post("/refresh-token", refreshToken);
+router.post("/refresh-token", authLimiter, refreshToken);
 router.post("/forgot-password", authLimiter, forgotPassword);
-router.put("/reset-password/:resetToken", resetPassword);
+router.put("/reset-password/:resetToken", authLimiter, resetPassword);
 
 // Private
 router.post("/logout", protect, logout);

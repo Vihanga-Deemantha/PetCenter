@@ -1,11 +1,12 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Outlet, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { FavoritesProvider } from "./context/FavoritesContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import PrivateRoute from "./components/PrivateRoute";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import PageTransitionDog from "./components/animations/PageTransitionDog";
@@ -31,11 +32,15 @@ import Unauthorized from "./pages/Unauthorized";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminProductManagement from "./pages/AdminProductManagement";
 import AdminOrdersManagement from "./pages/AdminOrdersManagement";
-import ComingSoon from "./pages/ComingSoon";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import Help from "./pages/Help";
+import Safety from "./pages/Safety";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import Contact from "./pages/Contact";
 
 // Phase 3 Pages
 import Campaigns from "./pages/Campaigns";
@@ -73,17 +78,23 @@ const GlobalLayout = () => (
   </div>
 );
 
-const DogDockPortal = () =>
-  typeof document === "undefined"
-    ? null
-    : createPortal(
-        <div className="fixed bottom-2 right-2 sm:bottom-4 sm:right-4 pointer-events-none" style={{ zIndex: 9999 }}>
-          <div className="pointer-events-auto w-72 sm:w-80 md:w-96 transform-gpu drop-shadow-2xl">
-            <InteractiveDog compact />
-          </div>
-        </div>,
-        document.body,
-      );
+// The mascot is a large (up to 384px) fixed-position overlay — fun on the
+// homepage, but on every other page it sits directly on top of "Add to
+// Cart" buttons, product cards, and form controls. Confining it to "/" keeps
+// the feature without it fighting for clicks on commerce pages.
+const DogDockPortal = () => {
+  const location = useLocation();
+  if (location.pathname !== "/" || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="fixed bottom-2 right-2 sm:bottom-4 sm:right-4 pointer-events-none" style={{ zIndex: 9999 }}>
+      <div className="pointer-events-auto w-72 sm:w-80 md:w-96 transform-gpu drop-shadow-2xl">
+        <InteractiveDog compact />
+      </div>
+    </div>,
+    document.body,
+  );
+};
 
 // Helper for padding global routes
 const PaddedContainer = ({ children }) => (
@@ -92,6 +103,7 @@ const PaddedContainer = ({ children }) => (
 
 function App() {
   return (
+    <ErrorBoundary>
     <AuthProvider>
       <NotificationProvider>
         <CartProvider>
@@ -120,7 +132,7 @@ function App() {
               <Route path="/orders" element={<PrivateRoute><PaddedContainer><OrderHistory /></PaddedContainer></PrivateRoute>} />
               <Route path="/orders/:orderId" element={<PrivateRoute><PaddedContainer><OrderDetail /></PaddedContainer></PrivateRoute>} />
               <Route path="/unauthorized" element={<PaddedContainer><Unauthorized /></PaddedContainer>} />
-              <Route path="/ecosystems" element={<PaddedContainer><ComingSoon /></PaddedContainer>} />
+              <Route path="/ecosystems" element={<Navigate to="/ecosystem" replace />} />
               {/* Phase 4 — Ecosystem Builder */}
               <Route path="/ecosystem" element={<PaddedContainer><EcosystemPicker /></PaddedContainer>} />
               <Route path="/ecosystem/build/:petType" element={<PaddedContainer><EcosystemBuilder /></PaddedContainer>} />
@@ -134,6 +146,11 @@ function App() {
               <Route path="/shelters/:id" element={<PaddedContainer><ShelterDetail /></PaddedContainer>} />
               <Route path="/my-donations" element={<PrivateRoute><PaddedContainer><MyDonations /></PaddedContainer></PrivateRoute>} />
               <Route path="/about" element={<About />} />
+              <Route path="/help" element={<PaddedContainer><Help /></PaddedContainer>} />
+              <Route path="/safety" element={<PaddedContainer><Safety /></PaddedContainer>} />
+              <Route path="/terms" element={<PaddedContainer><Terms /></PaddedContainer>} />
+              <Route path="/privacy" element={<PaddedContainer><Privacy /></PaddedContainer>} />
+              <Route path="/contact" element={<PaddedContainer><Contact /></PaddedContainer>} />
               <Route path="/profile" element={<PrivateRoute><PaddedContainer><Profile /></PaddedContainer></PrivateRoute>} />
               <Route path="/favorites" element={<PrivateRoute><PaddedContainer><Favorites /></PaddedContainer></PrivateRoute>} />
               <Route path="*" element={<PaddedContainer><NotFound /></PaddedContainer>} />
@@ -159,6 +176,7 @@ function App() {
         </CartProvider>
       </NotificationProvider>
     </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { ShoppingCart, ArrowRight, Trash2, ShoppingBag } from "lucide-react";
+import { ShoppingCart, ArrowRight, Trash2, ShoppingBag, AlertTriangle } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import CartItem from "../components/store/CartItem";
@@ -9,7 +9,7 @@ import OrderSummary from "../components/store/OrderSummary";
 
 const Cart = () => {
   const { user } = useAuth();
-  const { cartItems, itemCount, cartTotal, loading, clearCart } = useCart();
+  const { cartItems, itemCount, cartTotal, loading, error, fetchCart, clearCart } = useCart();
   const navigate = useNavigate();
 
   if (!user) {
@@ -30,6 +30,16 @@ const Cart = () => {
           {[...Array(3)].map((_, i) => <div key={i} className="h-28 bg-slate-100 rounded-2xl" />)}
         </div>
         <div className="h-64 bg-slate-100 rounded-2xl" />
+      </div>
+    );
+  }
+
+  if (error && cartItems.length === 0) {
+    return (
+      <div className="text-center py-24">
+        <AlertTriangle size={52} className="mx-auto mb-4 text-rose-300" />
+        <h2 className="text-2xl font-black text-slate-900 mb-2">{error}</h2>
+        <button onClick={fetchCart} className="btn btn-primary mt-2">Try Again</button>
       </div>
     );
   }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { registerUser } from "../api/auth.api";
@@ -16,8 +16,13 @@ const Register = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { login } = useAuth();
+  const { user, login } = useAuth();
   const navigate = useNavigate();
+
+  // Already signed in — don't re-render the register form, just leave
+  useEffect(() => {
+    if (user) navigate("/", { replace: true });
+  }, [user, navigate]);
 
   const onChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });

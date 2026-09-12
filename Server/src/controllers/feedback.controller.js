@@ -28,7 +28,7 @@ export const submitFeedback = async (req, res, next) => {
     const feedback = await PlatformFeedback.findOneAndUpdate(
       { userId },
       { userId, rating, comment },
-      { new: true, upsert: true, runValidators: true }
+      { returnDocument: "after", upsert: true, runValidators: true }
     );
 
     // Populate user for the response

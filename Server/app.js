@@ -5,7 +5,6 @@ import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import compression from "compression";
 
-import connectDB from "./src/config/db.js";
 import authRoutes from "./src/routes/auth.routes.js";
 import listingRoutes from "./src/routes/listing.routes.js";
 import productRoutes from "./src/routes/product.routes.js";
@@ -26,10 +25,10 @@ import errorHandler from "./src/middleware/errorHandler.js";
 import { generalLimiter } from "./src/middleware/rateLimit.js";
 import { nosqlSanitize } from "./src/middleware/nosqlSanitize.js";
 
+// Building the app has no side effects (no DB connection, no listening) so
+// it can be imported safely by tests — server.js is the only entrypoint that
+// actually connects to a database and starts the server.
 const app = express();
-
-// Connect to MongoDB
-connectDB();
 
 // ── Security ──────────────────────────────────────────────────────────────────
 app.use(helmet());

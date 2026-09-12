@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { createListing } from "../api/listing.api";
 import { motion as Motion, AnimatePresence } from "framer-motion";
@@ -33,21 +33,29 @@ const CreateListing = () => {
     const savedDraft = localStorage.getItem("listingDraft");
     if (savedDraft) {
       try {
-        setFormData(JSON.parse(savedDraft));
+        // Merge rather than replace — contactDetails is deliberately never
+        // persisted, so this keeps that field a controlled "" instead of
+        // undefined for any draft saved after this change.
+        setFormData((prev) => ({ ...prev, ...JSON.parse(savedDraft) }));
       } catch {
         // ignore invalid JSON
       }
     }
   }, []);
 
-  // Save to localStorage when formData changes
+  // Save to localStorage when formData changes — everything except
+  // contactDetails, which is personal contact info (phone/email) that has no
+  // business sitting in browser storage indefinitely just for draft recovery.
   useEffect(() => {
-    localStorage.setItem("listingDraft", JSON.stringify(formData));
+    const { contactDetails: _contactDetails, ...draftSafeFields } = formData;
+    localStorage.setItem("listingDraft", JSON.stringify(draftSafeFields));
   }, [formData]);
 
   const onChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
+  // Previews are appended to, not regenerated wholesale, so a file already in
+  // the list never gets a second (leaked) object URL created for it.
   const onImageChange = (e) => {
     const files = Array.from(e.target.files);
     const total = images.length + files.length;
@@ -55,18 +63,28 @@ const CreateListing = () => {
       setError("Maximum 5 images allowed");
       return;
     }
-    const newFiles = [...images, ...files];
-    setImages(newFiles);
-    setPreviews(newFiles.map((f) => URL.createObjectURL(f)));
+    setImages((prev) => [...prev, ...files]);
+    setPreviews((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))]);
     setError("");
   };
 
   const removeImage = (i) => {
-    const newFiles = images.filter((_, idx) => idx !== i);
-    const newPreviews = previews.filter((_, idx) => idx !== i);
-    setImages(newFiles);
-    setPreviews(newPreviews);
+    setImages((prev) => prev.filter((_, idx) => idx !== i));
+    setPreviews((prev) => {
+      URL.revokeObjectURL(prev[i]);
+      return prev.filter((_, idx) => idx !== i);
+    });
   };
+
+  // Revoke any remaining preview URLs if the user navigates away without
+  // submitting (submit already clears them via the success/draft-reset path).
+  const previewsRef = useRef(previews);
+  useEffect(() => {
+    previewsRef.current = previews;
+  }, [previews]);
+  useEffect(() => {
+    return () => previewsRef.current.forEach((url) => URL.revokeObjectURL(url));
+  }, []);
 
   const validateStep = () => {
     if (step === 1) {

@@ -108,7 +108,7 @@ export default function EcosystemBuilder() {
   // ── Add all to cart ────────────────────────────────────────────────────────
   const handleAddToCart = async () => {
     if (!user) {
-      navigate(`/login?redirect=/ecosystem/build/${petType}?step=3`);
+      navigate(`/login?redirect=${encodeURIComponent(`/ecosystem/build/${petType}?step=3`)}`);
       return;
     }
     setCartLoading(true);
@@ -136,7 +136,7 @@ export default function EcosystemBuilder() {
   // ── Save build ─────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!user) {
-      navigate(`/login?redirect=/ecosystem/build/${petType}?step=3`);
+      navigate(`/login?redirect=${encodeURIComponent(`/ecosystem/build/${petType}?step=3`)}`);
       return;
     }
     if (!buildName.trim()) return;

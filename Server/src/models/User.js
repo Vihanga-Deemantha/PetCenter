@@ -58,6 +58,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       select: false,
     },
+    // Bumped whenever every existing session for this user must be
+    // invalidated (e.g. a password reset). Every access/refresh token embeds
+    // the version it was issued under; a mismatch against the current value
+    // rejects the token even though it hasn't expired yet.
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
     resetPasswordToken: {
       type: String,
       select: false,
@@ -89,6 +97,7 @@ userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
   delete obj.refreshToken;
+  delete obj.tokenVersion;
   return obj;
 };
 

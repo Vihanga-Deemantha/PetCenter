@@ -133,7 +133,7 @@ export default function ProductReviews({ productId }) {
       await deleteReview(reviewId);
       fetchReviews();
       checkEligibility();
-    } catch (err) {
+    } catch {
       alert("Failed to delete review. Please try again.");
     }
   };
@@ -304,7 +304,13 @@ export default function ProductReviews({ productId }) {
           </div>
 
           {/* Review items */}
-          {reviews.length === 0 ? (
+          {loading ? (
+            <div className="space-y-4 animate-pulse">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-24 bg-slate-100 rounded-2xl" />
+              ))}
+            </div>
+          ) : reviews.length === 0 ? (
             <div className="text-center py-16 bg-slate-50 border border-dashed border-slate-200 rounded-3xl">
               <MessageSquare size={36} className="mx-auto text-slate-300 mb-3" />
               <h4 className="font-black text-slate-700">No Reviews Yet</h4>

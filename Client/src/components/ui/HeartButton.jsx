@@ -38,6 +38,7 @@ export default function HeartButton({
       onClick={handleClick}
       aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
       title={favorited ? "Remove from favorites" : "Save to favorites"}
+      className={className}
       style={{
         display: "flex",
         alignItems: "center",

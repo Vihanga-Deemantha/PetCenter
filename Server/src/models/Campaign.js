@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import sanitizeHtml from "sanitize-html";
 
 const campaignSchema = new mongoose.Schema(
   {
@@ -65,6 +66,12 @@ const campaignSchema = new mongoose.Schema(
     deadline: {
       type: Date,
     },
+    // Set once the scheduled closing-soon check has notified the creator, so
+    // the same campaign doesn't get re-notified on every subsequent run.
+    closingSoonNotified: {
+      type: Boolean,
+      default: false,
+    },
     beneficiary: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Shelter",
@@ -100,17 +107,29 @@ const campaignSchema = new mongoose.Schema(
 // Indexes
 campaignSchema.index({ title: "text", description: "text" });
 
-// Sanitize HTML description on save/update
-function sanitizeHtml(html) {
-  if (!html) return html;
-  return html
-    .replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, "")
-    .replace(/on\w+\s*=\s*(['"][^'"]*['"]|[^>\s]*)/gi, "");
-}
+// Sanitize any HTML in admin-authored campaign copy against an explicit
+// allow-list, rather than a regex blocklist that only catches known patterns
+// (data: URIs, obfuscated handlers, etc. all slip past a blocklist).
+const RICH_TEXT_SANITIZE_OPTIONS = {
+  allowedTags: ["b", "strong", "i", "em", "u", "p", "br", "ul", "ol", "li", "a", "h3", "h4"],
+  allowedAttributes: { a: ["href", "target", "rel"] },
+  allowedSchemes: ["http", "https", "mailto"],
+  transformTags: {
+    a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer nofollow" }),
+  },
+};
+
+const PLAIN_TEXT_SANITIZE_OPTIONS = { allowedTags: [], allowedAttributes: {} };
 
 campaignSchema.pre("save", function () {
   if (this.isModified("description")) {
-    this.description = sanitizeHtml(this.description);
+    this.description = sanitizeHtml(this.description, RICH_TEXT_SANITIZE_OPTIONS);
+  }
+  if (this.isModified("title")) {
+    this.title = sanitizeHtml(this.title, PLAIN_TEXT_SANITIZE_OPTIONS);
+  }
+  if (this.isModified("shortDescription")) {
+    this.shortDescription = sanitizeHtml(this.shortDescription, PLAIN_TEXT_SANITIZE_OPTIONS);
   }
 });
 

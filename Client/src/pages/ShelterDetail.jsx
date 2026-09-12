@@ -14,6 +14,7 @@ const ShelterDetail = () => {
   // Scrape-safe contact details reveal
   const [contact, setContact] = useState(null);
   const [revealing, setRevealing] = useState(false);
+  const [needsAuth, setNeedsAuth] = useState(false);
 
   const fetchDetails = useCallback(async () => {
     try {
@@ -36,8 +37,12 @@ const ShelterDetail = () => {
       const res = await revealShelterContact(id);
       setContact(res.data.data);
     } catch (err) {
-      console.error(err);
-      setContact({ phone: "Failed to reveal", email: "Failed to reveal" });
+      if (err.response?.status === 401) {
+        setNeedsAuth(true);
+      } else {
+        console.error(err);
+        setContact({ phone: "Failed to reveal", email: "Failed to reveal" });
+      }
     }
     setRevealing(false);
   };
@@ -195,6 +200,18 @@ const ShelterDetail = () => {
                     </a>
                   </div>
                 )}
+              </div>
+            ) : needsAuth ? (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-400 font-bold">
+                  Sign in to view this shelter's phone number and email.
+                </p>
+                <Link
+                  to={`/login?redirect=${encodeURIComponent(`/shelters/${id}`)}`}
+                  className="w-full py-3 rounded-xl bg-primary/10 border border-primary/20 text-primary font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all"
+                >
+                  Log In to Reveal Contact
+                </Link>
               </div>
             ) : (
               <div className="space-y-3">

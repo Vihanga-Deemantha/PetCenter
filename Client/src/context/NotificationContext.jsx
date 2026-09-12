@@ -9,16 +9,23 @@ export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const intervalRef = useRef(null);
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
+    setLoading(true);
+    setError(null);
     try {
       const res = await getNotifications({ limit: 20 });
       setNotifications(res.data.data || []);
       setUnreadCount(res.data.meta?.unreadCount ?? 0);
     } catch {
-      // silently fail
+      // A failed fetch must not read as "you're all caught up" — that's a
+      // materially different (and false) message to show the user.
+      setError("Couldn't load notifications.");
+    } finally {
+      setLoading(false);
     }
   }, [user]);
 
@@ -86,6 +93,7 @@ export function NotificationProvider({ children }) {
         notifications,
         unreadCount,
         loading,
+        error,
         fetchNotifications,
         markRead,
         markAllAsRead,
@@ -97,6 +105,7 @@ export function NotificationProvider({ children }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useNotifications = () => {
   const ctx = useContext(NotificationContext);
   if (!ctx) throw new Error("useNotifications must be used inside NotificationProvider");

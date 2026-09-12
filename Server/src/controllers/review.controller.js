@@ -2,7 +2,9 @@ import mongoose from "mongoose";
 import Review from "../models/Review.js";
 import Order from "../models/Order.js";
 import Product from "../models/Products.js";
+import User from "../models/User.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
+import { createNotification } from "./notification.controller.js";
 
 // ─── Helper: recalculate product's averageRating and reviewCount ──────────────
 async function recalculateProductRating(productId) {
@@ -112,6 +114,23 @@ export const createReview = async (req, res, next) => {
 
     // Recalculate product rating
     await recalculateProductRating(productId);
+
+    // Products have no individual seller/owner to notify (unlike pet
+    // listings), so a low rating — the kind that actually needs someone's
+    // attention — goes to admins for moderation instead of nobody at all.
+    if (review.rating <= 2) {
+      const product = await Product.findById(productId).select("name").lean();
+      const admins = await User.find({ role: "admin" }).select("_id");
+      for (const admin of admins) {
+        await createNotification({
+          userId: admin._id,
+          type: "review_received",
+          title: `New ${review.rating}-Star Product Review`,
+          message: `${req.user.name} left a ${review.rating}-star review on "${product?.name || "a product"}".`,
+          link: "/admin/products",
+        });
+      }
+    }
 
     const populated = await Review.findById(review._id)
       .populate("userId", "name profileImage")
@@ -233,7 +252,7 @@ export const adminHideReview = async (req, res, next) => {
     const review = await Review.findByIdAndUpdate(
       id,
       { isVisible: false },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     if (!review) return sendError(res, "Review not found", 404);

@@ -67,12 +67,14 @@ const Shelters = () => {
         }
       }));
     } catch (err) {
-      console.error(err);
+      const needsAuth = err.response?.status === 401;
+      if (!needsAuth) console.error(err);
       setRevealedContacts(prev => ({
         ...prev,
         [id]: {
-          phone: "Failed to reveal",
-          email: "Failed to reveal",
+          phone: needsAuth ? null : "Failed to reveal",
+          email: needsAuth ? null : "Failed to reveal",
+          needsAuth,
           loading: false
         }
       }));
@@ -204,6 +206,13 @@ const Shelters = () => {
                         <a href={`mailto:${revealedContacts[sh._id].email}`} className="text-primary hover:underline">{revealedContacts[sh._id].email}</a>
                       </div>
                     </div>
+                  ) : revealedContacts[sh._id]?.needsAuth ? (
+                    <Link
+                      to={`/login?redirect=${encodeURIComponent("/shelters")}`}
+                      className="px-3.5 py-2 rounded-lg bg-primary/10 border border-primary/20 text-primary font-black text-[11px] uppercase tracking-wider inline-flex items-center gap-1.5"
+                    >
+                      Log In to Reveal
+                    </Link>
                   ) : (
                     <button
                       onClick={() => handleRevealContact(sh._id)}

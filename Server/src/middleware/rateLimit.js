@@ -23,3 +23,16 @@ export const generalLimiter = rateLimit({
     message: "Too many requests, please slow down",
   },
 });
+
+// Sensitive/cost-bearing actions (contact reveal, payment-intent creation):
+// 20 requests per 15 minutes per IP
+export const sensitiveActionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many requests, please try again later",
+  },
+});

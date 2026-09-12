@@ -34,10 +34,23 @@ const ShelterFormModal = ({ shelter, onSave, onClose }) => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Revoke the previously-staged blob (if any) before creating a new one
+      if (logoFile.current) URL.revokeObjectURL(logoPreview);
       logoFile.current = file;
       setLogoPreview(URL.createObjectURL(file));
     }
   };
+
+  // Revoke a still-staged blob preview if the modal closes without saving
+  const logoPreviewRef = useRef(logoPreview);
+  useEffect(() => {
+    logoPreviewRef.current = logoPreview;
+  }, [logoPreview]);
+  useEffect(() => {
+    return () => {
+      if (logoFile.current) URL.revokeObjectURL(logoPreviewRef.current);
+    };
+  }, []);
 
   const validate = () => {
     const errs = {};

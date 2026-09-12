@@ -10,23 +10,35 @@ export function FavoritesProvider({ children }) {
   // Set of "itemType:itemId" strings for O(1) lookup
   const [favSet, setFavSet] = useState(new Set());
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Load all favorites when user logs in
-  useEffect(() => {
+  const loadFavorites = useCallback(() => {
     if (!user) {
       setFavSet(new Set());
+      setError(null);
       return;
     }
     setLoading(true);
+    setError(null);
     getFavorites({ limit: 500 })
       .then((res) => {
         const items = res.data.data || [];
         const set = new Set(items.map((f) => `${f.itemType}:${f.itemId}`));
         setFavSet(set);
       })
-      .catch(() => {}) // silently fail — not critical
+      .catch(() => {
+        // A failed load must not look like "nothing is favorited" — every
+        // heart icon site-wide reads from favSet, so leaving it empty here
+        // would make every previously-saved item appear unsaved.
+        setError("Couldn't load your favorites.");
+      })
       .finally(() => setLoading(false));
   }, [user]);
+
+  useEffect(() => {
+    loadFavorites();
+  }, [loadFavorites]);
 
   const isFavorited = useCallback(
     (itemType, itemId) => favSet.has(`${itemType}:${itemId}`),
@@ -66,12 +78,13 @@ export function FavoritesProvider({ children }) {
   );
 
   return (
-    <FavoritesContext.Provider value={{ isFavorited, toggleFavorite, loading }}>
+    <FavoritesContext.Provider value={{ isFavorited, toggleFavorite, loading, error, reload: loadFavorites }}>
       {children}
     </FavoritesContext.Provider>
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useFavorites = () => {
   const ctx = useContext(FavoritesContext);
   if (!ctx) throw new Error("useFavorites must be used inside FavoritesProvider");

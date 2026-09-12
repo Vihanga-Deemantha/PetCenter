@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getListing, updateListing } from "../api/listing.api";
+import { getListing, updateListing, revealListingContact } from "../api/listing.api";
 import { motion as Motion } from "framer-motion";
-import { Save, Tag, MapPin, DollarSign, Info, Upload, CheckCircle, ArrowLeft, Plus } from "lucide-react";
+import { Save, Tag, MapPin, DollarSign, Info, Upload, CheckCircle, ArrowLeft, Plus, X, ImagePlus } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const EditListing = () => {
@@ -24,12 +24,21 @@ const EditListing = () => {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // Photo management: existing images as {url, publicId}, newly staged local
+  // files as {url: blobUrl, publicId: null, file}, and removed publicIds
+  const [photos, setPhotos] = useState([]);
+  const [removedPublicIds, setRemovedPublicIds] = useState([]);
+  const fileRef = useRef();
+
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchPet = async () => {
       try {
-        const data = await getListing(id);
+        const [data, contactRes] = await Promise.all([
+          getListing(id),
+          revealListingContact(id).catch(() => null),
+        ]);
         const pet = data.data;
         // Map the API data to form data
         setFormData({
@@ -43,8 +52,14 @@ const EditListing = () => {
           description: pet.description || "",
           healthInfo: pet.healthInfo || "",
           listingType: pet.listingType || "sale",
-          contactDetails: pet.contactDetails || "",
+          contactDetails: contactRes?.data?.contactDetails || "",
         });
+        setPhotos(
+          (pet.images || []).map((url, i) => ({
+            url,
+            publicId: pet.imagePublicIds?.[i] || null,
+          }))
+        );
       } catch (error) {
         console.error("Failed to fetch pet details", error);
         alert("Could not load pet details");
@@ -59,12 +74,47 @@ const EditListing = () => {
   const onChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
+  const onPhotoAdd = (e) => {
+    const files = Array.from(e.target.files);
+    const room = 5 - photos.length;
+    if (room <= 0) return;
+    const accepted = files.slice(0, room);
+    const previews = accepted.map((f) => ({ url: URL.createObjectURL(f), publicId: null, file: f }));
+    setPhotos((prev) => [...prev, ...previews]);
+    e.target.value = "";
+  };
+
+  const onPhotoRemove = (index) => {
+    setPhotos((prev) => {
+      const target = prev[index];
+      if (target.publicId) {
+        setRemovedPublicIds((ids) => [...ids, target.publicId]);
+      } else {
+        URL.revokeObjectURL(target.url);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  // Revoke any still-staged local previews if the user navigates away
+  const photosRef = useRef(photos);
+  useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
+  useEffect(() => {
+    return () => {
+      photosRef.current.forEach((p) => p.file && URL.revokeObjectURL(p.url));
+    };
+  }, []);
+
   const onSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
       const fd = new FormData();
       Object.entries(formData).forEach(([k, v]) => fd.append(k, v));
+      photos.filter((p) => p.file).forEach((p) => fd.append("images", p.file));
+      removedPublicIds.forEach((pid) => fd.append("removeImageIds", pid));
       await updateListing(id, fd);
       setSuccess(true);
       setTimeout(() => navigate("/my-listings"), 2000);
@@ -131,6 +181,37 @@ const EditListing = () => {
               required 
               className="w-full px-6 py-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-primary/20 outline-none transition-all font-semibold placeholder:text-slate-300"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Photos</label>
+            <div className="flex flex-wrap gap-3">
+              {photos.map((photo, i) => (
+                <div key={photo.publicId || photo.url} className="w-24 h-24 rounded-xl overflow-hidden border border-slate-200 relative group">
+                  <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => onPhotoRemove(i)}
+                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                    aria-label="Remove photo"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              ))}
+              {photos.length < 5 && (
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="w-24 h-24 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-1 text-slate-400 hover:border-primary hover:text-primary transition-all"
+                >
+                  <ImagePlus size={18} />
+                  <span className="text-[10px] font-black">Add</span>
+                </button>
+              )}
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" multiple onChange={onPhotoAdd} className="hidden" />
+            <p className="text-xs text-slate-400 font-bold mt-2">Up to 5 photos. Hover a photo to remove it.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">

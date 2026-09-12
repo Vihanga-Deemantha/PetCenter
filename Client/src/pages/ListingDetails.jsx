@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getListing } from "../api/listing.api";
+import { getListing, revealListingContact } from "../api/listing.api";
 import { motion as Motion } from "framer-motion";
 import { MapPin, Tag, Calendar, User, Phone, ArrowLeft, Heart, Info, ShieldCheck, Clock, CheckCircle, XCircle } from "lucide-react";
 import HeartButton from "../components/ui/HeartButton";
@@ -21,13 +21,23 @@ const ListingDetails = () => {
   const [activeImg, setActiveImg] = useState(0);
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [showContact, setShowContact] = useState(false);
+  const [contact, setContact] = useState(null);
+  const [revealing, setRevealing] = useState(false);
 
-  const handleReveal = () => {
+  const handleReveal = async () => {
     if (!user) {
       return navigate("/login", { state: { from: `/marketplace/${id}` } });
     }
-    setShowContact(true);
+    if (contact || revealing) return;
+    setRevealing(true);
+    try {
+      const res = await revealListingContact(id);
+      setContact(res.data);
+    } catch {
+      setContact({ contactDetails: "Failed to reveal" });
+    } finally {
+      setRevealing(false);
+    }
   };
 
   useEffect(() => {
@@ -43,6 +53,15 @@ const ListingDetails = () => {
     };
     fetch();
   }, [id]);
+
+  // Owners get their own listing's contact revealed automatically — no
+  // point making someone click "reveal" on their own ad.
+  useEffect(() => {
+    if (user && pet && pet.owner?._id === user._id && !contact && !revealing) {
+      handleReveal();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, pet]);
 
   if (loading) return (
     <div className="text-center py-40">
@@ -185,28 +204,29 @@ const ListingDetails = () => {
               <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
                 <Phone size={14} /> Contact
               </h4>
-              {showContact || (user && pet.owner?._id === user._id) ? (
-                <p className="text-lg font-black text-slate-700 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100">{pet.contactDetails}</p>
+              {contact ? (
+                <p className="text-lg font-black text-slate-700 bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100">{contact.contactDetails}</p>
               ) : (
                 <div className="bg-slate-50 px-5 py-3 rounded-2xl border border-slate-100 flex items-center justify-between">
                   <span className="text-lg font-black text-slate-300 tracking-widest">●●●●●●●●●</span>
-                  <button 
+                  <button
                     onClick={handleReveal}
-                    className="text-primary font-bold text-sm hover:underline"
+                    disabled={revealing}
+                    className="text-primary font-bold text-sm hover:underline disabled:opacity-60"
                   >
-                    Reveal
+                    {revealing ? "Revealing…" : "Reveal"}
                   </button>
                 </div>
               )}
             </div>
 
-            {showContact || (user && pet.owner?._id === user._id) ? (
-              <a href={`tel:${pet.contactDetails}`} className="btn btn-primary w-full py-5 text-lg group">
+            {contact ? (
+              <a href={`tel:${contact.contactDetails}`} className="btn btn-primary w-full py-5 text-lg group">
                 <Phone size={22} /> Contact Seller
               </a>
             ) : (
-              <button onClick={handleReveal} className="btn btn-primary w-full py-5 text-lg group">
-                <Phone size={22} /> Show Phone Number
+              <button onClick={handleReveal} disabled={revealing} className="btn btn-primary w-full py-5 text-lg group">
+                <Phone size={22} /> {revealing ? "Revealing…" : "Show Phone Number"}
               </button>
             )}
 

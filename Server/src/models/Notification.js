@@ -11,10 +11,12 @@ const notificationSchema = new mongoose.Schema(
       type: String,
       enum: [
         "listing_approved",
+        "listing_rejected",
         "listing_removed",
         "order_status_changed",
         "donation_campaign_closing",
         "review_received",
+        "system",
       ],
       required: true,
     },

@@ -21,6 +21,7 @@ export const CartProvider = ({ children }) => {
       return;
     }
     setLoading(true);
+    setError(null);
     try {
       const res = await getCart();
       const { items, itemCount: count, total } = res.data.data;
@@ -28,7 +29,9 @@ export const CartProvider = ({ children }) => {
       setItemCount(count || 0);
       setCartTotal(total || 0);
     } catch {
-      // Silently fail — don't disrupt the UI
+      // A failed fetch is not the same as "cart is empty" — surface it so the
+      // Cart page can show a retry option instead of a misleading empty state
+      setError("Couldn't load your cart. Please try again.");
     } finally {
       setLoading(false);
     }

@@ -26,8 +26,8 @@ const ProductFormModal = ({ product, onSave, onClose }) => {
   const [imagePreviews, setImagePreviews] = useState(
     isEdit ? product.images.map((img) => ({ url: img.url, publicId: img.publicId })) : []
   );
+  const [removedPublicIds, setRemovedPublicIds] = useState([]);
   const fileRef = useRef();
-  const newFiles = useRef([]);
 
   const togglePet = (pet) => {
     setForm((f) => ({
@@ -40,10 +40,34 @@ const ProductFormModal = ({ product, onSave, onClose }) => {
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
-    newFiles.current = [...newFiles.current, ...files];
-    const previews = files.map((f) => ({ url: URL.createObjectURL(f), publicId: null }));
+    const previews = files.map((f) => ({ url: URL.createObjectURL(f), publicId: null, file: f }));
     setImagePreviews((prev) => [...prev, ...previews]);
   };
+
+  // Existing (server-side) images are marked for removal via removeImageIds;
+  // newly-staged local files are simply dropped and their blob URL revoked.
+  const removeImage = (i) => {
+    setImagePreviews((prev) => {
+      const target = prev[i];
+      if (target.publicId) {
+        setRemovedPublicIds((ids) => [...ids, target.publicId]);
+      } else {
+        URL.revokeObjectURL(target.url);
+      }
+      return prev.filter((_, idx) => idx !== i);
+    });
+  };
+
+  // Revoke any still-staged local previews if the modal closes without saving
+  const imagePreviewsRef = useRef(imagePreviews);
+  useEffect(() => {
+    imagePreviewsRef.current = imagePreviews;
+  }, [imagePreviews]);
+  useEffect(() => {
+    return () => {
+      imagePreviewsRef.current.forEach((p) => p.file && URL.revokeObjectURL(p.url));
+    };
+  }, []);
 
   const validate = () => {
     const errs = {};
@@ -66,7 +90,8 @@ const ProductFormModal = ({ product, onSave, onClose }) => {
       fd.append("price", Math.round(parseFloat(form.price) * 100));
       fd.append("stock", parseInt(form.stock));
       form.compatiblePets.forEach((p) => fd.append("compatiblePets", p));
-      newFiles.current.forEach((f) => fd.append("images", f));
+      imagePreviews.filter((p) => p.file).forEach((p) => fd.append("images", p.file));
+      removedPublicIds.forEach((id) => fd.append("removeImageIds", id));
 
       if (isEdit) {
         await updateProduct(product._id, fd);
@@ -183,8 +208,16 @@ const ProductFormModal = ({ product, onSave, onClose }) => {
             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Product Images</label>
             <div className="flex flex-wrap gap-3">
               {imagePreviews.map((img, i) => (
-                <div key={i} className="w-20 h-20 rounded-xl overflow-hidden border border-slate-200 relative group">
+                <div key={img.publicId || img.url} className="w-20 h-20 rounded-xl overflow-hidden border border-slate-200 relative group">
                   <img src={img.url} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                    aria-label="Remove image"
+                  >
+                    <X size={18} />
+                  </button>
                 </div>
               ))}
               <button type="button" onClick={() => fileRef.current?.click()}

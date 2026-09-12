@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getAccessToken, setAccessToken, clearAccessToken } from "./tokenStore.js";
 
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:5011/api/v1",
@@ -6,10 +7,10 @@ const axiosInstance = axios.create({
 });
 
 // ── Request Interceptor ───────────────────────────────────────────────────────
-// Attach access token to every request
+// Attach access token to every request (kept in memory, never localStorage)
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("accessToken");
+    const token = getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -68,14 +69,14 @@ axiosInstance.interceptors.response.use(
         );
 
         const newToken = data.data.accessToken;
-        localStorage.setItem("accessToken", newToken);
+        setAccessToken(newToken);
         processQueue(null, newToken);
 
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return axiosInstance(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        localStorage.removeItem("accessToken");
+        clearAccessToken();
         localStorage.removeItem("user");
         window.location.href = "/login";
         return Promise.reject(refreshError);

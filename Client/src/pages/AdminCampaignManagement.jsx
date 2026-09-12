@@ -28,15 +28,39 @@ const CampaignFormModal = ({ campaign, shelters, onSave, onClose }) => {
   const [imagePreviews, setImagePreviews] = useState(
     isEdit ? campaign.images.map(img => ({ url: img.url, publicId: img.publicId })) : []
   );
+  const [removedPublicIds, setRemovedPublicIds] = useState([]);
   const fileRef = useRef();
-  const newFiles = useRef([]);
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
-    newFiles.current = [...newFiles.current, ...files];
-    const previews = files.map(f => ({ url: URL.createObjectURL(f), publicId: null }));
+    const previews = files.map(f => ({ url: URL.createObjectURL(f), publicId: null, file: f }));
     setImagePreviews(prev => [...prev, ...previews]);
   };
+
+  // Existing (server-side) images are marked for removal via removeImageIds;
+  // newly-staged local files are simply dropped and their blob URL revoked.
+  const removeImage = (i) => {
+    setImagePreviews((prev) => {
+      const target = prev[i];
+      if (target.publicId) {
+        setRemovedPublicIds((ids) => [...ids, target.publicId]);
+      } else {
+        URL.revokeObjectURL(target.url);
+      }
+      return prev.filter((_, idx) => idx !== i);
+    });
+  };
+
+  // Revoke any still-staged local previews if the modal closes without saving
+  const imagePreviewsRef = useRef(imagePreviews);
+  useEffect(() => {
+    imagePreviewsRef.current = imagePreviews;
+  }, [imagePreviews]);
+  useEffect(() => {
+    return () => {
+      imagePreviewsRef.current.forEach((p) => p.file && URL.revokeObjectURL(p.url));
+    };
+  }, []);
 
   const validate = () => {
     const errs = {};
@@ -44,7 +68,7 @@ const CampaignFormModal = ({ campaign, shelters, onSave, onClose }) => {
     if (!form.shortDescription.trim()) errs.shortDescription = "Short description is required";
     if (!form.description.trim()) errs.description = "Description is required";
     if (!form.goalAmount || isNaN(parseFloat(form.goalAmount))) errs.goalAmount = "Valid goal amount required";
-    if (!isEdit && newFiles.current.length === 0) errs.images = "At least one image is required";
+    if (imagePreviews.length === 0) errs.images = "At least one image is required";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -68,7 +92,8 @@ const CampaignFormModal = ({ campaign, shelters, onSave, onClose }) => {
         fd.append("featuredOrder", "");
       }
 
-      newFiles.current.forEach(f => fd.append("images", f));
+      imagePreviews.filter((p) => p.file).forEach((p) => fd.append("images", p.file));
+      removedPublicIds.forEach((id) => fd.append("removeImageIds", id));
 
       if (isEdit) {
         await updateCampaign(campaign._id, fd);
@@ -191,8 +216,16 @@ const CampaignFormModal = ({ campaign, shelters, onSave, onClose }) => {
             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Campaign Images (1-6 images) *</label>
             <div className="grid grid-cols-6 gap-3 mb-3">
               {imagePreviews.map((img, idx) => (
-                <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-slate-200 relative group bg-slate-50">
+                <div key={img.publicId || img.url} className="aspect-square rounded-xl overflow-hidden border border-slate-200 relative group bg-slate-50">
                   <img src={img.url} className="w-full h-full object-cover" alt="preview" />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(idx)}
+                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                    aria-label="Remove image"
+                  >
+                    <X size={18} />
+                  </button>
                 </div>
               ))}
               {imagePreviews.length < 6 && (

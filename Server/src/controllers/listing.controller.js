@@ -1,11 +1,7 @@
 import PetListing from "../models/PetListing.js";
 import cloudinary from "../config/cloudinary.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
-
-// Utility to escape regex characters
-const escapeRegExp = (string) => {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-};
+import escapeRegExp from "../utils/escapeRegExp.js";
 
 // ─── Get All Active Listings (public) ─────────────────────────────────────────
 // GET /api/v1/listings
@@ -75,10 +71,14 @@ export const getListings = async (req, res, next) => {
 // GET /api/v1/listings/:id
 export const getListing = async (req, res, next) => {
   try {
-    const listing = await PetListing.findById(req.params.id).populate(
-      "owner",
-      "name email phone location profileImage createdAt"
-    );
+    // contactDetails (and the owner's account email/phone) are intentionally
+    // excluded here — they're only served, authenticated, via
+    // revealListingContact below. Otherwise the "sign in to reveal contact"
+    // UI is purely cosmetic since the real values would already be sitting
+    // in this response's network payload.
+    const listing = await PetListing.findById(req.params.id)
+      .select("-contactDetails")
+      .populate("owner", "name location profileImage createdAt");
 
     if (!listing || listing.status === "removed") {
       return sendError(res, "Listing not found", 404);
@@ -90,6 +90,27 @@ export const getListing = async (req, res, next) => {
     listing.viewCount = (listing.viewCount || 0) + 1; // Update locally for this response
 
     return sendSuccess(res, listing);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── Reveal Listing Contact Details (auth required) ────────────────────────────
+// POST /api/v1/listings/:id/reveal-contact — Private
+export const revealListingContact = async (req, res, next) => {
+  try {
+    const listing = await PetListing.findById(req.params.id)
+      .select("contactDetails status")
+      .populate("owner", "phone");
+
+    if (!listing || listing.status === "removed") {
+      return sendError(res, "Listing not found", 404);
+    }
+
+    return sendSuccess(res, {
+      contactDetails: listing.contactDetails,
+      ownerPhone: listing.owner?.phone || null,
+    });
   } catch (error) {
     next(error);
   }
@@ -155,13 +176,40 @@ export const updateListing = async (req, res, next) => {
       if (req.body[f] !== undefined) updates[f] = req.body[f];
     });
 
+    // Start from the current image arrays; apply removals, then appends
+    let images = [...listing.images];
+    let imagePublicIds = [...listing.imagePublicIds];
+
+    if (req.body.removeImageIds) {
+      const idsToRemove = Array.isArray(req.body.removeImageIds)
+        ? req.body.removeImageIds
+        : [req.body.removeImageIds];
+
+      const keptIndexes = imagePublicIds
+        .map((publicId, i) => ({ publicId, i }))
+        .filter(({ publicId }) => !idsToRemove.includes(publicId));
+
+      images = keptIndexes.map(({ i }) => images[i]);
+      imagePublicIds = keptIndexes.map(({ publicId }) => publicId);
+
+      for (const publicId of idsToRemove) {
+        try {
+          await cloudinary.uploader.destroy(publicId);
+        } catch (err) {
+          console.error(`Failed to delete Cloudinary image ${publicId}:`, err.message);
+        }
+      }
+    }
+
     // If new images were uploaded, append them
     if (req.files && req.files.length > 0) {
-      updates.images = [...listing.images, ...req.files.map((f) => f.path)];
-      updates.imagePublicIds = [
-        ...listing.imagePublicIds,
-        ...req.files.map((f) => f.filename),
-      ];
+      images = [...images, ...req.files.map((f) => f.path)];
+      imagePublicIds = [...imagePublicIds, ...req.files.map((f) => f.filename)];
+    }
+
+    if (req.body.removeImageIds || (req.files && req.files.length > 0)) {
+      updates.images = images;
+      updates.imagePublicIds = imagePublicIds;
     }
 
     listing = await PetListing.findByIdAndUpdate(req.params.id, updates, {

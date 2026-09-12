@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import stripe from "../config/stripe.js";
 import Cart from "../models/Cart.js";
 import Product from "../models/Products.js";
@@ -163,65 +164,73 @@ export const verifyPayment = async (userId, paymentIntentId, shippingAddress) =>
       };
     }
 
-    // Step 4: Build order with snapshots
-    let totalAmount = 0;
-    const orderItems = [];
+    // Steps 4-7 run atomically: either the order + stock decrement + cart
+    // clear all land together, or none of them do. Stock is decremented with
+    // a single conditional update per item (not read-then-write) so two
+    // concurrent checkouts for the last unit can never both succeed.
+    const session = await mongoose.startSession();
+    let orderId;
+    try {
+      await session.withTransaction(async () => {
+        let totalAmount = 0;
+        const orderItems = [];
 
-    for (const cartItem of cart.items) {
-      const product = await Product.findById(cartItem.productId);
-      if (!product || !product.isActive) {
-        throw new Error("Product no longer available during order creation");
-      }
+        for (const cartItem of cart.items) {
+          const product = await Product.findById(cartItem.productId).session(session);
+          if (!product || !product.isActive) {
+            throw new Error("Product no longer available during order creation");
+          }
 
-      totalAmount += cartItem.priceAtAdd * cartItem.quantity;
-      orderItems.push({
-        productId: product._id,
-        name: product.name,
-        image: product.images[0] || { url: "", publicId: "" },
-        priceAtPurchase: cartItem.priceAtAdd,
-        quantity: cartItem.quantity,
-      });
-    }
+          totalAmount += cartItem.priceAtAdd * cartItem.quantity;
+          orderItems.push({
+            productId: product._id,
+            name: product.name,
+            image: product.images[0] || { url: "", publicId: "" },
+            priceAtPurchase: cartItem.priceAtAdd,
+            quantity: cartItem.quantity,
+          });
+        }
 
-    // Step 5: Create order
-    const order = new Order({
-      userId,
-      items: orderItems,
-      shippingAddress,
-      totalAmount,
-      paymentIntentId,
-      paymentStatus: "paid",
-      status: "processing",
-    });
-
-    await order.save();
-
-    // Step 6: Decrement product stock
-    for (const cartItem of cart.items) {
-      const decrementResult = await Product.findByIdAndUpdate(
-        cartItem.productId,
-        {
-          $inc: {
-            stock: -cartItem.quantity,
-            soldCount: cartItem.quantity,
-          },
-        },
-        { new: true }
-      );
-
-      if (decrementResult.stock < 0) {
-        throw new Error(
-          `Stock went negative for product ${cartItem.productId} - rolling back`
+        const [order] = await Order.create(
+          [
+            {
+              userId,
+              items: orderItems,
+              shippingAddress,
+              totalAmount,
+              paymentIntentId,
+              paymentStatus: "paid",
+              status: "processing",
+            },
+          ],
+          { session }
         );
-      }
-    }
 
-    // Step 7: Clear cart
-    await Cart.findByIdAndUpdate(cart._id, { items: [] });
+        for (const cartItem of cart.items) {
+          const decremented = await Product.findOneAndUpdate(
+            { _id: cartItem.productId, stock: { $gte: cartItem.quantity } },
+            { $inc: { stock: -cartItem.quantity, soldCount: cartItem.quantity } },
+            { returnDocument: "after", session }
+          );
+
+          if (!decremented) {
+            throw new Error(
+              `Insufficient stock for product ${cartItem.productId} — order cannot be completed`
+            );
+          }
+        }
+
+        await Cart.findByIdAndUpdate(cart._id, { items: [] }, { session });
+
+        orderId = order._id;
+      });
+    } finally {
+      await session.endSession();
+    }
 
     return {
       success: true,
-      orderId: order._id,
+      orderId,
       message: "Order created successfully",
     };
   } catch (error) {
@@ -335,6 +344,20 @@ export const updateOrderStatus = async (req, res, next) => {
       return sendSuccess(res, { order, message: `Order status is already ${status}` });
     }
 
+    // A cancelled order has already been refunded via Stripe — the customer
+    // has their money back. "Un-cancelling" it can't be a simple status flip:
+    // there's no way to silently re-charge them, and leaving paymentStatus as
+    // "refunded" while status moves on would let a second cancel attempt a
+    // second refund on an already-fully-refunded charge (which Stripe rejects).
+    // A genuine re-order requires a new payment, not a resurrected old one.
+    if (previousStatus === "cancelled" && status !== "cancelled") {
+      return sendError(
+        res,
+        "This order was already refunded and cannot be reactivated. The customer must place a new order.",
+        400
+      );
+    }
+
     // If admin is cancelling, issue a real Stripe refund first
     if (status === "cancelled" && previousStatus !== "cancelled") {
       try {
@@ -349,8 +372,29 @@ export const updateOrderStatus = async (req, res, next) => {
       order.paymentStatus = "refunded";
     }
 
-    order.status = status;
-    await order.save();
+    // Order save + any stock adjustment land together, atomically.
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        // Reactivation (cancelled -> anything) is blocked above, so the only
+        // stock adjustment possible here is a cancellation restoring stock —
+        // purely additive, no race risk.
+        if (status === "cancelled") {
+          for (const item of order.items) {
+            await Product.findByIdAndUpdate(
+              item.productId,
+              { $inc: { stock: item.quantity, soldCount: -item.quantity } },
+              { session }
+            );
+          }
+        }
+
+        order.status = status;
+        await order.save({ session });
+      });
+    } finally {
+      await session.endSession();
+    }
 
     // Notify the order's user about the status change
     const statusLabels = {
@@ -367,29 +411,6 @@ export const updateOrderStatus = async (req, res, next) => {
         message: `Your order #${order._id.toString().slice(-8).toUpperCase()} ${statusLabels[status]}.`,
         link: `/orders/${order._id}`,
       });
-    }
-
-    // If changing to cancelled, restore stock
-    if (status === "cancelled" && previousStatus !== "cancelled") {
-      for (const item of order.items) {
-        await Product.findByIdAndUpdate(item.productId, {
-          $inc: {
-            stock: item.quantity,
-            soldCount: -item.quantity,
-          },
-        });
-      }
-    }
-    // If changing FROM cancelled to something else, decrement stock back
-    else if (previousStatus === "cancelled" && status !== "cancelled") {
-      for (const item of order.items) {
-        await Product.findByIdAndUpdate(item.productId, {
-          $inc: {
-            stock: -item.quantity,
-            soldCount: item.quantity,
-          },
-        });
-      }
     }
 
     return sendSuccess(res, { order, message: `Order status updated to ${status}` });
@@ -449,16 +470,22 @@ export const cancelOrder = async (req, res, next) => {
 
     order.status = "cancelled";
     order.paymentStatus = "refunded";
-    await order.save();
 
-    // Restore stock
-    for (const item of order.items) {
-      await Product.findByIdAndUpdate(item.productId, {
-        $inc: {
-          stock: item.quantity,
-          soldCount: -item.quantity,
-        },
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        await order.save({ session });
+        // Restore stock (purely additive, no race risk)
+        for (const item of order.items) {
+          await Product.findByIdAndUpdate(
+            item.productId,
+            { $inc: { stock: item.quantity, soldCount: -item.quantity } },
+            { session }
+          );
+        }
       });
+    } finally {
+      await session.endSession();
     }
 
     return sendSuccess(res, { order, message: "Order cancelled successfully" });
@@ -529,7 +556,7 @@ export const getAdminOrders = async (req, res, next) => {
  */
 export const getBestsellers = async (req, res, next) => {
   try {
-    const { limit = 10 } = req.query;
+    const limit = parseInt(req.query.limit) || 10;
 
     // Get top products by soldCount
     const bestsellers = await Product.find({ isActive: true })

@@ -5,7 +5,7 @@ import { useFavorites } from "../context/FavoritesContext";
 import ProductCard from "../components/store/ProductCard";
 import HeartButton from "../components/ui/HeartButton";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { Heart, Tag, MapPin, ArrowRight, Info, Package, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, Tag, MapPin, ArrowRight, Info, Package, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 
 const petStatusColors = {
   active: "bg-emerald-50 text-emerald-700 border-emerald-100",
@@ -16,15 +16,17 @@ const petStatusColors = {
 };
 
 export default function Favorites() {
-  const { isFavorited } = useFavorites();
+  const { isFavorited, error: favContextError, reload: reloadFavContext } = useFavorites();
   const [activeTab, setActiveTab] = useState("listing"); // "listing" (Pets) or "product" (Store)
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalItems: 0 });
 
   const fetchFavs = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const res = await getFavorites({ itemType: activeTab, page, limit: 12 });
       setFavorites(res.data.data || []);
@@ -32,6 +34,7 @@ export default function Favorites() {
     } catch (err) {
       console.error("Failed to fetch favorites:", err);
       setFavorites([]);
+      setFetchError("Couldn't load your favorites. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -103,6 +106,17 @@ export default function Favorites() {
             <div key={i} className="rounded-card bg-slate-50 animate-pulse aspect-4/5" />
           ))}
         </div>
+      ) : fetchError || favContextError ? (
+        <div className="text-center py-24 bg-slate-50 border border-dashed border-slate-200 rounded-3xl">
+          <AlertTriangle size={48} className="mx-auto mb-4 text-rose-300" />
+          <h3 className="text-2xl font-black text-slate-900 mb-2">{fetchError || favContextError}</h3>
+          <button
+            onClick={() => { fetchFavs(); reloadFavContext(); }}
+            className="btn btn-primary px-8 mt-2"
+          >
+            Try Again
+          </button>
+        </div>
       ) : visibleFavorites.length === 0 ? (
         <Motion.div
           initial={{ opacity: 0 }}
@@ -127,7 +141,7 @@ export default function Favorites() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
             <AnimatePresence mode="popLayout">
-              {visibleFavorites.map((fav, index) => {
+              {visibleFavorites.map((fav) => {
                 const item = fav.item;
 
                 if (!item) {

@@ -65,8 +65,9 @@ const Navbar = () => {
         </span>
       </Link>
       
-      {/* Desktop Navigation */}
-      <div className="hidden lg:flex items-center gap-10">
+      {/* Desktop Navigation — xl (1280px), not lg (1024px): at 1024-1279px
+          this row (logo + 7 links + action icons) doesn't fit and collides */}
+      <div className="hidden xl:flex items-center gap-10">
         {navLinks.map((link) => (
           <Link 
             key={link.name} 
@@ -88,7 +89,7 @@ const Navbar = () => {
       </div>
 
       {/* Action Buttons */}
-      <div className="hidden lg:flex items-center gap-6">
+      <div className="hidden xl:flex items-center gap-6">
         {user ? (
           <div className="flex items-center gap-6">
             <Link to="/create-listing" className="btn btn-primary px-5 py-2.5 text-xs font-black rounded-xl flex items-center gap-2">
@@ -165,8 +166,8 @@ const Navbar = () => {
       </div>
 
       {/* Mobile Menu Button */}
-      <button 
-        className={`lg:hidden p-3 rounded-xl transition-all ${
+      <button
+        className={`xl:hidden p-3 rounded-xl transition-all ${
           isHomeTransparent 
             ? "bg-white/10 text-white hover:bg-white/20" 
             : "bg-slate-50 text-slate-800 hover:bg-slate-100"

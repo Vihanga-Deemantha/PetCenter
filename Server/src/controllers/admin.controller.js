@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import escapeRegExp from "../utils/escapeRegExp.js";
 import PetListing from "../models/PetListing.js";
 import Product from "../models/Products.js";
 import Order from "../models/Order.js";
@@ -373,8 +374,8 @@ export const getUsers = async (req, res, next) => {
     const filter = { role: "user", isDeleted: { $ne: true } };
     if (search) {
       filter.$or = [
-        { name: new RegExp(search, "i") },
-        { email: new RegExp(search, "i") },
+        { name: new RegExp(escapeRegExp(search), "i") },
+        { email: new RegExp(escapeRegExp(search), "i") },
       ];
     }
 
@@ -457,8 +458,8 @@ export const getAllListings = async (req, res, next) => {
     if (status) filter.status = status;
     if (search) {
       filter.$or = [
-        { title: new RegExp(search, "i") },
-        { breed: new RegExp(search, "i") },
+        { title: new RegExp(escapeRegExp(search), "i") },
+        { breed: new RegExp(escapeRegExp(search), "i") },
       ];
     }
 

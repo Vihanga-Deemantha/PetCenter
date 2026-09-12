@@ -29,6 +29,13 @@ export const protect = async (req, res, next) => {
       return sendError(res, "Your account has been blocked. Contact support.", 403);
     }
 
+    // Tokens issued before a forced session invalidation (e.g. a password
+    // reset) carry a stale tokenVersion and must be rejected even though
+    // they haven't expired yet.
+    if ((decoded.tokenVersion || 0) !== (user.tokenVersion || 0)) {
+      return sendError(res, "Session expired — please log in again", 401);
+    }
+
     req.user = user;
     next();
   } catch (err) {
@@ -69,7 +76,7 @@ export const optionalProtect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     const user = await User.findById(decoded.id);
 
-    if (user && !user.isBlocked) {
+    if (user && !user.isBlocked && (decoded.tokenVersion || 0) === (user.tokenVersion || 0)) {
       req.user = user;
     }
     next();

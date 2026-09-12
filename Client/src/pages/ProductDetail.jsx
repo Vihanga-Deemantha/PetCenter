@@ -24,6 +24,7 @@ const ProductDetail = () => {
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const [error, setError] = useState(null);
+  const [addError, setAddError] = useState("");
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -45,11 +46,15 @@ const ProductDetail = () => {
     if (!user) { window.location.href = "/login"; return; }
     if (!product || product.stock === 0 || adding) return;
     setAdding(true);
+    setAddError("");
     const result = await addToCart(product._id, qty);
     setAdding(false);
     if (result.success) {
       setAdded(true);
       setTimeout(() => setAdded(false), 2500);
+    } else {
+      setAddError(result.error || "Couldn't add to cart");
+      setTimeout(() => setAddError(""), 4000);
     }
   };
 
@@ -217,6 +222,9 @@ const ProductDetail = () => {
                  <><ShoppingCart size={18} /> Add to Cart</>}
               </button>
             </div>
+          )}
+          {addError && (
+            <p className="text-sm font-bold text-rose-500 text-center mt-1">{addError}</p>
           )}
 
           <Link to="/cart" className="block text-center text-sm font-bold text-primary hover:underline underline-offset-2 mt-2">

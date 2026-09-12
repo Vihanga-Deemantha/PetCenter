@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { loginUser } from "../api/auth.api";
@@ -9,9 +9,19 @@ const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  
-  const { login } = useAuth();
+
+  const { user, login } = useAuth();
   const navigate = useNavigate();
+
+  // Already signed in — don't re-render the login form, just leave
+  useEffect(() => {
+    if (user) {
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect");
+      navigate(redirect ? decodeURIComponent(redirect) : "/", { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const onChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });

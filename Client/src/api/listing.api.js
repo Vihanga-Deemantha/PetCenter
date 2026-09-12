@@ -10,6 +10,11 @@ export const getListing = async (id) => {
   return data;
 };
 
+export const revealListingContact = async (id) => {
+  const { data } = await axiosInstance.post(`/listings/${id}/reveal-contact`);
+  return data;
+};
+
 export const createListing = async (formData) => {
   const { data } = await axiosInstance.post("/listings", formData, {
     headers: { "Content-Type": "multipart/form-data" },

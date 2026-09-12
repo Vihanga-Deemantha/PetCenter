@@ -11,13 +11,16 @@ import {
 import { protect } from "../middleware/auth.js";
 import { adminOnly } from "../middleware/admin.js";
 import { uploadShelterLogo } from "../utils/uploadImage.js";
+import { sensitiveActionLimiter } from "../middleware/rateLimit.js";
 
 const router = express.Router();
 
 // ─── Public Routes ────────────────────────────────────────────────────────────
 router.get("/", getShelters);
 router.get("/:id", getShelterDetail);
-router.post("/:id/reveal-contact", revealShelterContact);
+// Requires login + rate limited — otherwise "scrape-safe" contact reveal can be
+// trivially bulk-harvested by iterating shelter IDs
+router.post("/:id/reveal-contact", protect, sensitiveActionLimiter, revealShelterContact);
 
 // ─── Admin Routes (Protected) ─────────────────────────────────────────────────
 router.get("/admin/all", protect, adminOnly, getAdminShelters);

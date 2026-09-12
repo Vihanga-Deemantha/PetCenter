@@ -66,9 +66,11 @@ export const handleWebhookEvent = async (req, res, next) => {
 
     return sendSuccess(res, { received: true });
   } catch (error) {
+    // Stripe treats any non-2xx as "retry this event," which would retry-storm
+    // on a bug in our own handler rather than a real delivery problem. Log it
+    // for us to investigate, but always ack the event.
     console.error("🚨 Webhook Handler Error:", error);
-    // Return 500 only if signature succeeded but internal code crashed, Stripe will retry
-    next(error);
+    return sendSuccess(res, { received: true, processingError: true });
   }
 };
 
@@ -147,7 +149,7 @@ async function handleDonationSucceeded(paymentIntent) {
   const updatedCampaign = await Campaign.findOneAndUpdate(
     { _id: campaignId, deletedAt: null },
     { $inc: { raisedAmount: amount, donorCount: 1 } },
-    { new: true }
+    { returnDocument: "after" }
   );
 
   if (!updatedCampaign) {
@@ -198,7 +200,7 @@ async function handleChargeRefunded(charge) {
             soldCount: -item.quantity,
           },
         },
-        { new: true }
+        { returnDocument: "after" }
       );
     }
     console.log(`✅ Stock restored for refunded order: ${order._id}`);
@@ -219,7 +221,7 @@ async function handleChargeRefunded(charge) {
     const updated = await Campaign.findOneAndUpdate(
       { _id: donation.campaignId, deletedAt: null },
       { $inc: { raisedAmount: -donation.amount, donorCount: -1 } },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     if (updated) {

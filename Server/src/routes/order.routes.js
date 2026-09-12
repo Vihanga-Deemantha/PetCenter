@@ -10,6 +10,7 @@ import {
 } from "../controllers/order.controller.js";
 import { protect } from "../middleware/auth.js";
 import { adminOnly } from "../middleware/admin.js";
+import { sensitiveActionLimiter } from "../middleware/rateLimit.js";
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ const router = express.Router();
 router.use(protect);
 
 // User routes
-router.post("/create-payment-intent", createPaymentIntent);
+router.post("/create-payment-intent", sensitiveActionLimiter, createPaymentIntent);
 router.get("/", getUserOrders);
 
 // ── Admin routes — MUST be declared BEFORE /:orderId wildcard ─────────────────

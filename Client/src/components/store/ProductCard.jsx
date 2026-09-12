@@ -14,6 +14,7 @@ const ProductCard = ({ product }) => {
   const { user } = useAuth();
   const [adding, setAdding] = React.useState(false);
   const [added, setAdded] = React.useState(false);
+  const [addError, setAddError] = React.useState("");
 
   const isOutOfStock = product.stock === 0;
   const isLowStock = product.stock > 0 && product.stock <= 5;
@@ -23,11 +24,15 @@ const ProductCard = ({ product }) => {
     if (!user) { window.location.href = "/login"; return; }
     if (isOutOfStock || adding) return;
     setAdding(true);
+    setAddError("");
     const result = await addToCart(product._id, 1);
     setAdding(false);
     if (result.success) {
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
+    } else {
+      setAddError(result.error || "Couldn't add to cart");
+      setTimeout(() => setAddError(""), 4000);
     }
   };
 
@@ -141,6 +146,9 @@ const ProductCard = ({ product }) => {
             <><ShoppingCart size={15} /> Add to Cart</>
           )}
         </button>
+        {addError && (
+          <p className="mt-2 text-[11px] font-bold text-rose-500 text-center">{addError}</p>
+        )}
       </div>
     </Motion.div>
   );

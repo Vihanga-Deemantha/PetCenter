@@ -5,10 +5,12 @@ import { useAuth } from "../../context/AuthContext";
 
 const TYPE_ICONS = {
   listing_approved: "✅",
+  listing_rejected: "⚠️",
   listing_removed: "🗑️",
   order_status_changed: "📦",
   donation_campaign_closing: "⏰",
   review_received: "⭐",
+  system: "🔔",
 };
 
 function timeAgo(dateString) {
@@ -21,7 +23,7 @@ function timeAgo(dateString) {
 
 export default function NotificationBell() {
   const { user } = useAuth();
-  const { notifications, unreadCount, markRead, markAllAsRead, removeNotification } = useNotifications();
+  const { notifications, unreadCount, error, fetchNotifications, markRead, markAllAsRead, removeNotification } = useNotifications();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -142,7 +144,17 @@ export default function NotificationBell() {
 
           {/* List */}
           <div style={{ overflowY: "auto", flex: 1 }}>
-            {notifications.length === 0 ? (
+            {error ? (
+              <div style={{ padding: "40px 24px", textAlign: "center", color: "#94a3b8" }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#ef4444", marginBottom: 10 }}>{error}</div>
+                <button
+                  onClick={fetchNotifications}
+                  style={{ fontSize: 12, fontWeight: 700, color: "#6366f1", background: "none", border: "none", cursor: "pointer" }}
+                >
+                  Try again
+                </button>
+              </div>
+            ) : notifications.length === 0 ? (
               <div style={{
                 padding: "40px 24px",
                 textAlign: "center",

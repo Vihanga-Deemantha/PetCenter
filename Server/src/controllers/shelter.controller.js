@@ -1,6 +1,7 @@
 import Shelter from "../models/Shelter.js";
 import Campaign from "../models/Campaign.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
+import escapeRegExp from "../utils/escapeRegExp.js";
 
 // ─── Get Public Shelters (Filterable, Paginated, Searchable) ───────────────────
 // GET /api/v1/shelters — Public
@@ -15,7 +16,7 @@ export const getShelters = async (req, res, next) => {
     }
 
     if (city) {
-      filter["location.city"] = { $regex: new RegExp(city, "i") };
+      filter["location.city"] = { $regex: new RegExp(escapeRegExp(city), "i") };
     }
 
     if (search) {

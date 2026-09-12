@@ -8,6 +8,7 @@ import {
   generateRefreshToken,
   setRefreshTokenCookie,
   clearRefreshTokenCookie,
+  hashToken,
 } from "../utils/generateToken.js";
 
 // ─── Register ────────────────────────────────────────────────────────────────
@@ -23,11 +24,11 @@ export const register = async (req, res, next) => {
 
     const user = await User.create({ name, email, password, phone, location });
 
-    const accessToken = generateAccessToken(user._id);
-    const refreshToken = generateRefreshToken(user._id);
+    const accessToken = generateAccessToken(user._id, user.tokenVersion);
+    const refreshToken = generateRefreshToken(user._id, user.tokenVersion);
 
-    // Store hashed refresh token (store raw for now — can hash later)
-    user.refreshToken = refreshToken;
+    // Store only a hash of the refresh token — a DB read alone can't yield a usable session
+    user.refreshToken = hashToken(refreshToken);
     await user.save();
 
     setRefreshTokenCookie(res, refreshToken);
@@ -77,10 +78,10 @@ export const login = async (req, res, next) => {
       return sendError(res, "Your account has been blocked. Contact support.", 403);
     }
 
-    const accessToken = generateAccessToken(user._id);
-    const refreshToken = generateRefreshToken(user._id);
+    const accessToken = generateAccessToken(user._id, user.tokenVersion);
+    const refreshToken = generateRefreshToken(user._id, user.tokenVersion);
 
-    await User.updateOne({ _id: user._id }, { refreshToken: refreshToken });
+    await User.updateOne({ _id: user._id }, { refreshToken: hashToken(refreshToken) });
 
     setRefreshTokenCookie(res, refreshToken);
 
@@ -120,7 +121,7 @@ export const refreshToken = async (req, res, next) => {
 
     const user = await User.findById(decoded.id).select("+refreshToken");
 
-    if (!user || user.refreshToken !== token) {
+    if (!user || !user.refreshToken || user.refreshToken !== hashToken(token)) {
       return sendError(res, "Refresh token mismatch — please login again", 401);
     }
 
@@ -128,10 +129,15 @@ export const refreshToken = async (req, res, next) => {
       return sendError(res, "Your account has been blocked", 403);
     }
 
-    const newAccessToken = generateAccessToken(user._id);
-    const newRefreshToken = generateRefreshToken(user._id);
+    if ((decoded.tokenVersion || 0) !== (user.tokenVersion || 0)) {
+      return sendError(res, "Session expired — please log in again", 401);
+    }
 
-    await User.updateOne({ _id: user._id }, { refreshToken: newRefreshToken });
+    const newAccessToken = generateAccessToken(user._id, user.tokenVersion);
+    const newRefreshToken = generateRefreshToken(user._id, user.tokenVersion);
+
+    // Rotate: the old refresh token is invalidated the instant a new one is issued
+    await User.updateOne({ _id: user._id }, { refreshToken: hashToken(newRefreshToken) });
 
     setRefreshTokenCookie(res, newRefreshToken);
 
@@ -333,8 +339,11 @@ export const resetPassword = async (req, res, next) => {
     user.password = password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
-    // Invalidate existing sessions by clearing refresh token
+    // Invalidate every existing session: clearing refreshToken stops future
+    // refreshes, and bumping tokenVersion rejects any access token already
+    // issued (otherwise it would keep working for up to 15 more minutes)
     user.refreshToken = undefined;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
     await user.save();
 
     return sendSuccess(res, {

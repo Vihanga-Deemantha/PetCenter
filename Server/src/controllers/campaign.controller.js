@@ -238,7 +238,17 @@ export const updateCampaign = async (req, res, next) => {
     if (description) campaign.description = description;
     if (shortDescription) campaign.shortDescription = shortDescription;
     if (category) campaign.category = category;
-    if (deadline !== undefined) campaign.deadline = deadline || null;
+    if (deadline !== undefined) {
+      const newDeadline = deadline ? new Date(deadline) : null;
+      const oldTime = campaign.deadline ? campaign.deadline.getTime() : null;
+      const newTime = newDeadline ? newDeadline.getTime() : null;
+      // A changed deadline means the "closing soon" window has moved —
+      // allow the scheduled check to notify again for the new date.
+      if (oldTime !== newTime) {
+        campaign.closingSoonNotified = false;
+      }
+      campaign.deadline = newDeadline;
+    }
     if (beneficiary !== undefined) campaign.beneficiary = beneficiary || null;
 
     if (goalAmount) {

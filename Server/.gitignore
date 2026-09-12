@@ -4,3 +4,4 @@ node_modules
 *.txt
 dist
 build
+tests/.mongo-test-uri

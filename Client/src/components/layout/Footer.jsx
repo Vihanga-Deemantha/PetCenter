@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { PawPrint, Mail, Phone, ShoppingCart, Heart, Plus, Tag, Search } from "lucide-react";
+import { PawPrint, Mail, Phone } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -17,16 +17,9 @@ const Footer = () => {
             </span>
           </Link>
           <p className="text-slate-500 leading-relaxed font-medium">
-            Building a better world for every pet. The most trusted platform for pet lovers, 
+            Building a better world for every pet. The most trusted platform for pet lovers,
             breeders, and habitat designers.
           </p>
-          <div className="flex gap-4">
-            {[Search, Mail, Heart].map((Icon, i) => (
-              <a key={i} href="#" className="p-2 bg-slate-50 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/5 transition-all">
-                <Icon size={20} />
-              </a>
-            ))}
-          </div>
         </div>
 
         {/* Quick Links */}
@@ -53,10 +46,16 @@ const Footer = () => {
         <div>
           <h4 className="font-black text-slate-900 mb-8 uppercase tracking-widest text-xs">Support</h4>
           <ul className="flex flex-col gap-4">
-            {["Help Center", "Safety Guidelines", "Terms of Service", "Privacy Policy", "Contact Support"].map((link) => (
-              <li key={link}>
-                <Link to="#" className="text-slate-500 hover:text-primary font-bold transition-colors">
-                  {link}
+            {[
+              { name: "Help Center", path: "/help" },
+              { name: "Safety Guidelines", path: "/safety" },
+              { name: "Terms of Service", path: "/terms" },
+              { name: "Privacy Policy", path: "/privacy" },
+              { name: "Contact Support", path: "/contact" },
+            ].map((link) => (
+              <li key={link.name}>
+                <Link to={link.path} className="text-slate-500 hover:text-primary font-bold transition-colors">
+                  {link.name}
                 </Link>
               </li>
             ))}
@@ -73,7 +72,7 @@ const Footer = () => {
               </div>
               <div>
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Email</p>
-                <p className="font-bold text-slate-900">hello@petcenter.com</p>
+                <a href="mailto:hello@petcenter.com" className="font-bold text-slate-900 hover:text-primary transition-colors">hello@petcenter.com</a>
               </div>
             </li>
             <li className="flex items-start gap-4">
@@ -82,7 +81,7 @@ const Footer = () => {
               </div>
               <div>
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Phone</p>
-                <p className="font-bold text-slate-900">+1 (555) 000-0000</p>
+                <a href="tel:+15550000000" className="font-bold text-slate-900 hover:text-primary transition-colors">+1 (555) 000-0000</a>
               </div>
             </li>
           </ul>
@@ -95,9 +94,8 @@ const Footer = () => {
           © 2026 PetCenter. All rights reserved.
         </p>
         <div className="flex gap-8">
-          <Link to="#" className="text-slate-400 hover:text-slate-600 text-sm font-bold transition-colors">Privacy</Link>
-          <Link to="#" className="text-slate-400 hover:text-slate-600 text-sm font-bold transition-colors">Terms</Link>
-          <Link to="#" className="text-slate-400 hover:text-slate-600 text-sm font-bold transition-colors">Cookies</Link>
+          <Link to="/privacy" className="text-slate-400 hover:text-slate-600 text-sm font-bold transition-colors">Privacy</Link>
+          <Link to="/terms" className="text-slate-400 hover:text-slate-600 text-sm font-bold transition-colors">Terms</Link>
         </div>
       </div>
     </footer>

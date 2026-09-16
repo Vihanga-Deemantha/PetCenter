@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
 import { Landmark, MapPin, Phone, Mail, Link as LinkIcon, ShieldCheck, AlertCircle, Eye, ArrowLeft, Heart, CheckCircle2 } from "lucide-react";
 import { getShelterDetail, revealShelterContact } from "../api/shelter.api";
+import { formatPrice } from "../utils/priceFormatter";
 
 const ShelterDetail = () => {
   const { id } = useParams();
@@ -11,7 +12,6 @@ const ShelterDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Scrape-safe contact details reveal
   const [contact, setContact] = useState(null);
   const [revealing, setRevealing] = useState(false);
   const [needsAuth, setNeedsAuth] = useState(false);
@@ -37,9 +37,8 @@ const ShelterDetail = () => {
       const res = await revealShelterContact(id);
       setContact(res.data.data);
     } catch (err) {
-      if (err.response?.status === 401) {
-        setNeedsAuth(true);
-      } else {
+      if (err.response?.status === 401) setNeedsAuth(true);
+      else {
         console.error(err);
         setContact({ phone: "Failed to reveal", email: "Failed to reveal" });
       }
@@ -50,116 +49,92 @@ const ShelterDetail = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-4 border-slate-200 border-t-primary animate-spin" />
+        <div className="w-9 h-9 rounded-full border-2 border-border border-t-accent animate-spin" />
       </div>
     );
   }
 
   if (error || !shelter) {
     return (
-      <div className="min-h-screen py-16 text-center max-w-lg mx-auto">
-        <AlertCircle className="mx-auto mb-4 text-rose-500" size={48} />
-        <h2 className="text-2xl font-black text-slate-900 mb-2">Error Loading Shelter</h2>
-        <p className="text-slate-500 font-semibold mb-6">{error || "Shelter not found"}</p>
-        <Link to="/shelters" className="btn btn-primary bg-slate-900 text-white font-black text-xs uppercase tracking-widest px-6 py-3 rounded-xl">
-          Back to Directory
+      <div className="max-w-7xl mx-auto px-7 py-20 text-center max-w-lg">
+        <AlertCircle className="mx-auto mb-4 text-[#b4573a]" size={44} />
+        <h2 className="font-heading text-2xl mb-2">Error loading shelter</h2>
+        <p className="text-[#6e6e64] mb-6">{error || "Shelter not found"}</p>
+        <Link to="/shelters" className="btn btn-primary">
+          Back to directory
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen py-6">
-      <Link to="/shelters" className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-primary transition-colors mb-6">
-        <ArrowLeft size={16} /> Directory
+    <div className="max-w-7xl mx-auto px-7 pt-6 pb-24">
+      <Link to="/shelters" className="inline-flex items-center gap-2 text-[13.5px] font-medium text-[#6e6e64] hover:text-primary transition-colors mb-6">
+        <ArrowLeft size={16} /> All shelters
       </Link>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
-        {/* Left 2 Columns: Shelter Profile Info */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Profile Card */}
-          <div className="glass-card p-8 bg-white/95 border-slate-100 flex flex-col sm:flex-row gap-6 items-start">
-            <div className="w-24 h-24 rounded-card bg-primary/10 border border-primary/20/50 overflow-hidden flex items-center justify-center shrink-0">
-              {shelter.logo?.url ? (
-                <img src={shelter.logo.url} alt={shelter.name} className="w-full h-full object-cover" />
-              ) : (
-                <Landmark className="text-primary" size={36} />
-              )}
+      <div className="relative rounded-[26px] overflow-hidden bg-border border border-[#dcd4c6] aspect-32/11 min-h-40">
+        <div className="absolute inset-0 bg-secondary/25" />
+        <div className="absolute inset-0 bg-linear-to-t from-[#292925]/55 to-transparent" />
+        <div className="absolute left-6 sm:left-8 bottom-6 right-6 flex items-end gap-4">
+          <span className="w-14 h-14 sm:w-15.5 sm:h-15.5 rounded-full bg-accent text-light flex items-center justify-center font-heading text-2xl shrink-0 border-2 border-light/70">{shelter.name[0]}</span>
+          <div>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              {shelter.isVerified && <span className="bg-light/94 text-[#40543C] text-[11px] font-semibold uppercase tracking-wider px-3.5 py-1.75 rounded-full">Verified shelter</span>}
             </div>
+            <h1 className="mt-2.5 font-heading text-[28px] sm:text-[38px] font-medium text-white tracking-tight leading-[1.05] m-0">{shelter.name}</h1>
+          </div>
+        </div>
+      </div>
 
-            <div className="space-y-3 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900">
-                  {shelter.name}
-                </h1>
-                {shelter.isVerified && (
-                  <span className="text-emerald-500 shrink-0" title="Verified Shelter Network">
-                    <ShieldCheck size={20} className="fill-current text-emerald-100" />
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-3.5 text-xs text-slate-400 font-bold">
-                <span className="px-2.5 py-0.5 bg-slate-100 text-slate-500 rounded-full font-black uppercase tracking-wider">
-                  {shelter.type.replace("_", " ")}
-                </span>
-                <span className="flex items-center gap-1">
-                  <MapPin size={14} className="text-slate-300" />
-                  {shelter.location.city}, {shelter.location.country}
-                </span>
-              </div>
-
-              <p className="text-slate-600 font-medium text-sm leading-relaxed border-t border-slate-100 pt-3">
-                {shelter.description}
-              </p>
+      <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-9 items-start mt-8.5">
+        <div className="min-w-0">
+          <div className="bg-white border border-border rounded-[24px] p-8">
+            <h2 className="font-heading text-xl font-medium mb-4">About the shelter</h2>
+            <p className="m-0 text-[#5c5c54] text-[15.5px] leading-relaxed whitespace-pre-wrap">{shelter.description}</p>
+            <div className="flex flex-wrap gap-3 mt-6 pt-5 border-t border-border">
+              <span className="px-2.5 py-1 bg-border text-[#4F5B4B] rounded-full text-[11px] font-semibold uppercase tracking-wider">{shelter.type.replace("_", " ")}</span>
+              <span className="flex items-center gap-1.5 text-xs text-[#8a8a80] font-medium">
+                <MapPin size={13} />
+                {shelter.location.city}, {shelter.location.country}
+              </span>
             </div>
           </div>
 
-          {/* Active Campaigns by Shelter */}
-          <div className="space-y-6">
-            <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
-              <Heart className="text-secondary" size={20} /> Active Campaigns
+          <div className="mt-6">
+            <h3 className="font-heading text-xl font-medium mb-5 flex items-center gap-2.5">
+              <Heart className="text-primary" size={19} /> Active campaigns
             </h3>
-
             {shelter.campaigns?.length === 0 ? (
-              <div className="glass-card p-6 text-center text-slate-400 font-semibold bg-white/70">
-                This shelter does not have any active fundraising campaigns at the moment.
-              </div>
+              <div className="bg-white border border-dashed border-[#dcd4c6] rounded-card p-6 text-center text-[#8a8a80]">This shelter has no active campaigns right now.</div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {shelter.campaigns.map((camp) => {
                   const progress = Math.min(100, (camp.raisedAmount / camp.goalAmount) * 100);
                   return (
-                    <div key={camp._id} className="glass-card bg-white border border-slate-100 flex flex-col justify-between h-full overflow-hidden">
-                      <div className="h-32 bg-slate-100 relative">
+                    <div key={camp._id} className="bg-white border border-border rounded-card overflow-hidden flex flex-col">
+                      <div className="aspect-16/9 overflow-hidden bg-border">
                         <img src={camp.images[0]?.url} alt={camp.title} className="w-full h-full object-cover" />
                       </div>
-                      <div className="p-5 flex-1 flex flex-col justify-between">
-                        <div>
-                          <h4 className="font-black text-slate-900 text-base mb-1 line-clamp-1">
-                            <Link to={`/campaigns/${camp._id}`} className="hover:text-secondary transition-colors">{camp.title}</Link>
-                          </h4>
-                          <p className="text-slate-400 text-xs font-semibold line-clamp-2 mb-4">
-                            {camp.shortDescription}
-                          </p>
-                        </div>
-                        <div>
-                          <div className="space-y-1 mb-3">
-                            <div className="flex justify-between text-xs font-black">
-                              <span className="text-slate-700">${(camp.raisedAmount / 100).toLocaleString()}</span>
-                              <span className="text-secondary">{progress.toFixed(0)}%</span>
-                            </div>
-                            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-linear-to-r from-secondary to-accent" style={{ width: `${progress}%` }} />
-                            </div>
-                          </div>
-                          <Link
-                            to={`/campaigns/${camp._id}`}
-                            className="btn btn-primary bg-linear-to-r from-secondary to-accent py-2 w-full text-center text-xs font-black uppercase tracking-wider rounded-xl block"
-                          >
-                            Support Campaign
+                      <div className="p-5 flex-1 flex flex-col gap-3">
+                        <h4 className="font-heading text-lg font-medium m-0 line-clamp-1">
+                          <Link to={`/campaigns/${camp._id}`} className="hover:text-secondary transition-colors">
+                            {camp.title}
                           </Link>
+                        </h4>
+                        <p className="m-0 text-[13px] text-[#6e6e64] line-clamp-2 flex-1">{camp.shortDescription}</p>
+                        <div>
+                          <div className="h-1.5 rounded-full bg-border overflow-hidden">
+                            <div className="h-full bg-primary rounded-full" style={{ width: `${progress}%` }} />
+                          </div>
+                          <div className="flex justify-between mt-2 text-xs text-[#6e6e64]">
+                            <span>{formatPrice(camp.raisedAmount)}</span>
+                            <span>{progress.toFixed(0)}%</span>
+                          </div>
                         </div>
+                        <Link to={`/campaigns/${camp._id}`} className="text-center bg-accent text-white rounded-full py-2.5 text-[13px] font-medium hover:bg-secondary transition-colors">
+                          Support campaign
+                        </Link>
                       </div>
                     </div>
                   );
@@ -169,33 +144,25 @@ const ShelterDetail = () => {
           </div>
         </div>
 
-        {/* Right 1 Column: Contact & Needs List */}
-        <div className="space-y-8">
-          {/* Contact Details Card */}
-          <div className="glass-card p-6 bg-white border border-slate-100 shadow-sm space-y-4">
-            <h3 className="text-lg font-black text-slate-900 pb-3 border-b border-slate-100 flex items-center gap-1.5">
-              Contact Details
-            </h3>
-
+        <div className="flex flex-col gap-4">
+          <div className="bg-white border border-border rounded-[24px] p-6.5">
+            <h3 className="font-semibold text-[#292925] pb-3.5 mb-4 border-b border-border">Contact details</h3>
             {contact ? (
-              <div className="space-y-3.5 text-slate-600 font-semibold text-xs">
+              <div className="space-y-3 text-[#3f3f38] font-medium text-[13px]">
                 <div className="flex items-center gap-2.5">
-                  <Phone size={14} className="text-slate-400 shrink-0" />
+                  <Phone size={14} className="text-[#8a8a80] shrink-0" />
                   <span>{contact.phone}</span>
                 </div>
                 <div className="flex items-center gap-2.5">
-                  <Mail size={14} className="text-slate-400 shrink-0" />
-                  <a href={`mailto:${contact.email}`} className="text-primary hover:underline">{contact.email}</a>
+                  <Mail size={14} className="text-[#8a8a80] shrink-0" />
+                  <a href={`mailto:${contact.email}`} className="text-secondary hover:underline">
+                    {contact.email}
+                  </a>
                 </div>
                 {shelter.contact?.website && (
                   <div className="flex items-center gap-2.5">
-                    <LinkIcon size={14} className="text-slate-400 shrink-0" />
-                    <a
-                      href={shelter.contact.website.startsWith("http") ? shelter.contact.website : `https://${shelter.contact.website}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline line-clamp-1"
-                    >
+                    <LinkIcon size={14} className="text-[#8a8a80] shrink-0" />
+                    <a href={shelter.contact.website.startsWith("http") ? shelter.contact.website : `https://${shelter.contact.website}`} target="_blank" rel="noopener noreferrer" className="text-secondary hover:underline line-clamp-1">
                       {shelter.contact.website}
                     </a>
                   </div>
@@ -203,35 +170,22 @@ const ShelterDetail = () => {
               </div>
             ) : needsAuth ? (
               <div className="space-y-3">
-                <p className="text-xs text-slate-400 font-bold">
-                  Sign in to view this shelter's phone number and email.
-                </p>
-                <Link
-                  to={`/login?redirect=${encodeURIComponent(`/shelters/${id}`)}`}
-                  className="w-full py-3 rounded-xl bg-primary/10 border border-primary/20 text-primary font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all"
-                >
-                  Log In to Reveal Contact
+                <p className="text-xs text-[#8a8a80] font-medium">Sign in to view this shelter's phone number and email.</p>
+                <Link to={`/login?redirect=${encodeURIComponent(`/shelters/${id}`)}`} className="w-full py-3 rounded-full bg-accent/10 border border-accent/20 text-secondary font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5">
+                  Log in to reveal
                 </Link>
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="text-xs text-slate-400 font-bold">
-                  Contact details are locked to protect against spam scrapers. Click below to verify and unlock details.
-                </p>
-                <button
-                  onClick={handleRevealContact}
-                  disabled={revealing}
-                  className="w-full py-3 rounded-xl bg-primary/10 hover:bg-primary/10 border border-primary/20/30 text-primary font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all disabled:opacity-60 cursor-pointer"
-                >
+                <p className="text-xs text-[#8a8a80] font-medium">Contact details are hidden to protect against spam. Click to verify and reveal them.</p>
+                <button onClick={handleRevealContact} disabled={revealing} className="w-full py-3 rounded-full bg-light border border-border text-secondary font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 disabled:opacity-60">
                   {revealing ? (
                     <>
-                      <div className="w-3.5 h-3.5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                      Unlocking...
+                      <div className="w-3.5 h-3.5 rounded-full border-2 border-secondary border-t-transparent animate-spin" /> Unlocking...
                     </>
                   ) : (
                     <>
-                      <Eye size={14} />
-                      Reveal Phone & Email
+                      <Eye size={14} /> Reveal phone &amp; email
                     </>
                   )}
                 </button>
@@ -239,23 +193,20 @@ const ShelterDetail = () => {
             )}
           </div>
 
-          {/* Needs List Card */}
           {shelter.needsList?.length > 0 && (
-            <div className="glass-card p-6 bg-white border border-slate-100 shadow-sm space-y-4">
-              <h3 className="text-lg font-black text-slate-900 pb-3 border-b border-slate-100 flex items-center gap-1.5">
-                Current Needs
-              </h3>
+            <div className="bg-border border border-[#ded6c8] rounded-[24px] p-6.5">
+              <p className="m-0 mb-3.5 text-[11px] tracking-wider uppercase text-secondary font-semibold">Most needed right now</p>
               <div className="flex flex-wrap gap-2">
                 {shelter.needsList.map((need, idx) => (
-                  <span
-                    key={idx}
-                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold flex items-center gap-1.5"
-                  >
-                    <CheckCircle2 size={12} className="text-slate-400" />
+                  <span key={idx} className="px-3 py-1.5 bg-white border border-[#dcd4c6] text-[#3f3f38] rounded-xl text-xs font-medium flex items-center gap-1.5">
+                    <CheckCircle2 size={12} className="text-secondary" />
                     {need}
                   </span>
                 ))}
               </div>
+              <Link to="/products" className="inline-flex items-center gap-2 mt-4 text-[13px] font-medium text-secondary">
+                Buy from their wishlist →
+              </Link>
             </div>
           )}
         </div>

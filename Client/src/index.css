@@ -1,47 +1,51 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #6366f1;
-  --color-secondary: #f43f5e;
-  --color-accent: #8b5cf6;
-  --color-dark: #0f172a;
-  --color-light: #f8fafc;
-  
-  --font-heading: "Outfit", sans-serif;
-  --font-body: "Outfit", sans-serif;
-  
-  --radius-button: 14px;
-  --radius-card: 24px;
+  /* Warm editorial palette — cream, sage, terracotta (replaces the old
+     indigo/purple scheme). Existing bg-primary/text-accent/etc. usage across
+     not-yet-restyled pages picks up these values automatically. */
+  --color-primary: #c87550; /* terracotta — CTAs, prices, active accents */
+  --color-primary-dark: #b3653f; /* terracotta hover */
+  --color-secondary: #4f5b4b; /* sage-dark — deep green sections, dark UI */
+  --color-accent: #78866f; /* sage — lighter green accent */
+  --color-dark: #292925; /* ink — body text, dark sidebars */
+  --color-light: #f7f4ed; /* cream — page background */
+  --color-border: #e8e2d8; /* warm border/divider */
+  --color-border-strong: #dcd4c6;
+
+  --font-heading: "Playfair Display", serif;
+  --font-body: "Inter", sans-serif;
+
+  --radius-button: 999px;
+  --radius-card: 22px;
 }
 
 @layer base {
   body {
-    @apply bg-light text-slate-700 font-body antialiased;
-    background: radial-gradient(circle at top left, #e0e7ff, transparent 40%),
-                radial-gradient(circle at bottom right, #f5f3ff, transparent 40%),
-                var(--color-light);
+    @apply bg-light text-[#292925] font-body antialiased;
+    background: var(--color-light);
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-white/70 backdrop-blur-xl border border-white/30 shadow-lg rounded-card transition-all duration-300;
+    @apply bg-white border border-[#E8E2D8] rounded-card transition-all duration-300;
   }
-  
+
   .glass-card:hover {
-    @apply shadow-2xl shadow-primary/10;
+    @apply shadow-xl shadow-black/5;
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-button transition-all duration-300;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 font-medium rounded-button transition-all duration-300;
   }
 
   .btn-primary {
-    @apply bg-linear-to-br from-primary to-accent text-white shadow-lg shadow-primary/40 hover:scale-[1.02] hover:brightness-110 active:scale-[0.98];
+    @apply bg-primary text-white hover:bg-[#b3653f] active:scale-[0.98];
   }
 
   .nav-link {
-    @apply text-slate-600 font-medium px-4 py-2 rounded-xl transition-all hover:bg-primary/10 hover:text-primary;
+    @apply text-[#4F5B4B] font-medium px-4 py-2 rounded-xl transition-all hover:bg-accent/10;
   }
 
   .badge {
@@ -50,118 +54,53 @@
 }
 
 /* =====================================================
-   🐾 PET ANIMATION SYSTEM
-   Dog Mascot, Paw Particles, Page Transitions
+   🐾 Homepage dog mascot — idle/spin/jump/dead/dig/beg,
+   cursor eye-tracking, scroll-triggered reveal. Scoped to
+   the homepage only (see Home.jsx), not a global overlay.
    ===================================================== */
 
-/* Dog runs across viewport (X axis) */
-@keyframes dogRunAcross {
-  0%   { transform: translateX(-185px); }
-  100% { transform: translateX(calc(100vw + 210px)); }
+@keyframes dogSpin {
+  0% { transform: rotate(0); }
+  100% { transform: rotate(360deg); }
 }
-
-/* Dog body: small running bobs + one big flying jump at ~50% */
-@keyframes dogJumpCycle {
-  0%   { transform: translateY(0px)   rotate(0deg);  }
-  5%   { transform: translateY(-9px)  rotate(-2deg); }
-  10%  { transform: translateY(0px)   rotate(0deg);  }
-  16%  { transform: translateY(-9px)  rotate(-2deg); }
-  22%  { transform: translateY(0px)   rotate(0deg);  }
-  28%  { transform: translateY(-9px)  rotate(-2deg); }
-  34%  { transform: translateY(0px)   rotate(0deg);  }
-  /* --- BIG JUMP --- */
-  42%  { transform: translateY(-32px) rotate(-7deg); }
-  50%  { transform: translateY(-74px) rotate(-13deg);}
-  58%  { transform: translateY(-30px) rotate(-5deg); }
-  64%  { transform: translateY(0px)   rotate(3deg);  }
-  /* --- Resume running --- */
-  70%  { transform: translateY(-9px)  rotate(-1deg); }
-  76%  { transform: translateY(0px)   rotate(0deg);  }
-  82%  { transform: translateY(-8px)  rotate(-1deg); }
-  88%  { transform: translateY(0px)   rotate(0deg);  }
-  94%  { transform: translateY(-7px)  rotate(0deg);  }
-  100% { transform: translateY(0px)   rotate(0deg);  }
+@keyframes dogJump {
+  0% { transform: translateY(0) rotate(0); }
+  30% { transform: translateY(-70px) rotate(-18deg); }
+  55% { transform: translateY(-90px) rotate(-340deg); }
+  80% { transform: translateY(-14px) rotate(-358deg); }
+  100% { transform: translateY(0) rotate(-360deg); }
 }
-
-/* Tail wag (applied via transform-box: fill-box on the SVG tail) */
+@keyframes dogDead {
+  0% { transform: rotate(0); }
+  25% { transform: rotate(-12deg); }
+  100% { transform: rotate(-92deg) translateY(6px); }
+}
+@keyframes dogDig {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  25% { transform: translateY(3px) rotate(-4deg); }
+  60% { transform: translateY(0) rotate(3deg); }
+}
+@keyframes dogBeg {
+  0% { transform: rotate(0); }
+  40% { transform: rotate(-16deg) translateY(-6px); }
+  100% { transform: rotate(-14deg) translateY(-4px); }
+}
 @keyframes tailWag {
-  0%, 100% { transform: rotate(-22deg); }
-  50%       { transform: rotate(28deg);  }
+  0%, 100% { transform: rotate(-16deg); }
+  50% { transform: rotate(24deg); }
 }
-
-/* Paw prints appear as dog passes, then fade */
-@keyframes pawFadeTrail {
-  0%   { opacity: 0;    transform: scale(0.3) rotate(-15deg); }
-  10%  { opacity: 0.55; transform: scale(1)   rotate(6deg);  }
-  50%  { opacity: 0.38; }
-  85%  { opacity: 0.08; }
-  100% { opacity: 0;    transform: scale(0.85) rotate(6deg); }
+@keyframes breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2.5px); }
 }
-
-/* Floating paw particles – ambient background */
-@keyframes floatUpPaw {
-  0%   { transform: translateY(0px)     translateX(0px)                      rotate(0deg);  opacity: 0;    }
-  8%   { opacity: var(--paw-opacity, 0.22); }
-  90%  { opacity: calc(var(--paw-opacity, 0.22) * 0.5); }
-  100% { transform: translateY(-108vh)  translateX(var(--paw-drift, 20px))   rotate(28deg); opacity: 0;    }
-}
-
-/* Section heading pet icon gentle bounce */
-@keyframes petIconBounce {
-  0%, 100% { transform: translateY(0px);  }
-  40%       { transform: translateY(-7px); }
-  65%       { transform: translateY(-4px); }
-}
-
-/* Page transition dog wipe */
-@keyframes dogPageWipe {
-  0%   { transform: translateX(-185px); opacity: 1; }
-  88%  { opacity: 1; }
-  100% { transform: translateX(calc(100vw + 210px)); opacity: 0; }
-}
-
-/* Floating sleep bubble (Zzz) */
-@keyframes floatZzz {
-  0% {
-    transform: translate(0, 0) scale(0.6) rotate(-5deg);
-    opacity: 0;
-  }
-  15% {
-    opacity: 0.8;
-  }
-  50% {
-    transform: translate(15px, -30px) scale(1) rotate(5deg);
-    opacity: 0.7;
-  }
-  100% {
-    transform: translate(30px, -70px) scale(0.8) rotate(-10deg);
-    opacity: 0;
-  }
-}
-
-/* Floating heart (Petting feedback) */
-@keyframes floatHeart {
-  0% {
-    transform: translate(0, 0) scale(0.5);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.9;
-  }
-  100% {
-    transform: translate(var(--heart-x, -20px), -60px) scale(1.2) rotate(var(--heart-r, 15deg));
-    opacity: 0;
-  }
+@keyframes pulseRing {
+  0% { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(1.7); opacity: 0; }
 }
 
 /* Accessibility – respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-  .dog-mascot-wrap *,
-  .paw-particles-wrap *,
-  .page-transition-dog,
-  .pet-bounce-icon,
-  .floating-zzz,
-  .floating-heart {
+  .home-dog-mascot * {
     animation: none !important;
     transition: none !important;
   }

@@ -1,17 +1,41 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { getListings } from "../api/listing.api";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { Search, MapPin, Tag, Plus, ArrowRight, Info, SlidersHorizontal, X } from "lucide-react";
+import { Search, MapPin, Plus, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import HeartButton from "../components/ui/HeartButton";
 
-const statusColors = {
-  active: "bg-emerald-50 text-emerald-700",
-  pending: "bg-amber-50 text-amber-700",
-  sold: "bg-slate-50 text-slate-500",
-  adopted: "bg-blue-50 text-blue-700",
-};
+const SPECIES = [
+  { value: "", label: "All" },
+  { value: "dog", label: "Dogs" },
+  { value: "cat", label: "Cats" },
+  { value: "bird", label: "Birds" },
+  { value: "fish", label: "Fish" },
+  { value: "reptile", label: "Reptiles" },
+  { value: "other", label: "Other" },
+];
+const LISTING_TYPES = [
+  { value: "", label: "All" },
+  { value: "sale", label: "For sale" },
+  { value: "adoption", label: "For adoption" },
+];
+const GENDERS = [
+  { value: "", label: "Any" },
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+];
+const SORTS = [
+  { value: "-createdAt", label: "Recently added" },
+  { value: "price", label: "Fee: low to high" },
+  { value: "-price", label: "Fee: high to low" },
+];
+const MAX_FEE = 500;
+
+const chipCls = (active) =>
+  `inline-flex items-center justify-center whitespace-nowrap rounded-full px-4.5 py-2.5 text-[13px] font-medium border transition-colors ${
+    active ? "bg-accent text-white border-accent" : "bg-white text-secondary border-[#E8E2D8] hover:bg-border"
+  }`;
 
 const Marketplace = () => {
   const { user } = useAuth();
@@ -25,9 +49,13 @@ const Marketplace = () => {
     gender: searchParams.get("gender") || "",
     location: searchParams.get("location") || "",
     search: searchParams.get("search") || "",
+    maxPrice: searchParams.get("maxPrice") || "",
+    sort: searchParams.get("sort") || "-createdAt",
     page: Number(searchParams.get("page")) || 1,
   });
   const [searchInput, setSearchInput] = useState(filters.search);
+  const [slide, setSlide] = useState(0);
+  const slideTimer = useRef(null);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -37,7 +65,6 @@ const Marketplace = () => {
     setSearchParams(params, { replace: true });
   }, [filters, setSearchParams]);
 
-  // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       setFilters((f) => ({ ...f, search: searchInput, page: 1 }));
@@ -49,10 +76,13 @@ const Marketplace = () => {
     setLoading(true);
     try {
       const params = {};
-      Object.entries(filters).forEach(([k, v]) => { if (v) params[k] = v; });
+      Object.entries(filters).forEach(([k, v]) => {
+        if (v) params[k] = v;
+      });
       const data = await getListings(params);
       setPets(data.data);
       setPagination(data.pagination || { total: data.data.length, pages: 1, page: 1 });
+      setSlide(0);
     } catch (err) {
       console.error("Failed to fetch listings", err);
     } finally {
@@ -60,236 +90,310 @@ const Marketplace = () => {
     }
   }, [filters]);
 
-  useEffect(() => { fetchPets(); }, [fetchPets]);
+  useEffect(() => {
+    fetchPets();
+  }, [fetchPets]);
+
+  const heroSlides = pets.slice(0, 3);
+  useEffect(() => {
+    clearInterval(slideTimer.current);
+    if (heroSlides.length > 1) {
+      slideTimer.current = setInterval(() => setSlide((s) => (s + 1) % heroSlides.length), 5200);
+    }
+    return () => clearInterval(slideTimer.current);
+  }, [heroSlides.length]);
 
   const clearFilters = () => {
-    setFilters({ petType: "", listingType: "", gender: "", location: "", search: "", page: 1 });
+    setFilters({ petType: "", listingType: "", gender: "", location: "", search: "", maxPrice: "", sort: "-createdAt", page: 1 });
     setSearchInput("");
   };
 
-  const hasFilters = Object.entries(filters).some(([k, v]) => k !== "page" && Boolean(v));
+  const hasFilters = Object.entries(filters).some(([k, v]) => !["page", "sort"].includes(k) && Boolean(v));
 
   return (
-    <div className="marketplace-page pb-24">
+    <div className="pb-24">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 py-8 border-b border-slate-200 gap-6">
-        <div>
-          <h1 className="text-4xl md:text-6xl font-black tracking-tighter mb-2">
-            Find Your <span className="bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">Perfect Match.</span>
-          </h1>
-          <p className="text-slate-500 text-lg">
-            Browse <span className="font-black text-slate-700">{pagination.total}</span> verified pet listings from trusted owners.
-          </p>
-        </div>
-        {user && (
-          <Link to="/create-listing" className="btn btn-primary px-8">
-            <Plus size={20} />
-            Post a Listing
-          </Link>
-        )}
-      </div>
+      <section className="border-b border-border">
+        <div className="max-w-7xl mx-auto px-7 pt-13 pb-12 grid grid-cols-1 lg:grid-cols-2 gap-14 items-center">
+          <div>
+            <p className="text-xs tracking-[0.18em] uppercase text-accent font-semibold mb-3.5">Marketplace</p>
+            <h1 className="font-heading text-[38px] sm:text-[52px] font-medium mb-4 tracking-tight leading-[1.06]">
+              Pets looking for
+              <br />a <span className="italic text-accent">steady home</span>
+            </h1>
+            <p className="text-[15px] leading-relaxed text-[#5c5c54] max-w-130 mb-7">
+              Every listing is reviewed before it appears here. Health notes, temperament and fees are shown upfront —{" "}
+              <span className="font-semibold text-[#292925]">{pagination.total}</span> pets currently listed.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <a href="#list" className="btn bg-accent text-white hover:bg-secondary px-7 py-3.5">
+                Browse listings
+              </a>
+              {user && (
+                <Link to="/create-listing" className="btn border border-[#cfc8ba] text-secondary hover:bg-border px-7 py-3.5">
+                  <Plus size={17} /> List a pet
+                </Link>
+              )}
+            </div>
+          </div>
 
-      {/* Filter Bar */}
-      <Motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="glass-card p-5 mb-16 bg-white shadow-sm"
-      >
-        <div className="flex flex-wrap gap-4 items-center">
-          {/* Search */}
-          <div className="w-full sm:w-auto flex-1 sm:min-w-[280px] relative">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-primary" size={20} />
+          <div className="relative hidden sm:block">
+            <div className="relative rounded-[26px] overflow-hidden aspect-4/3 bg-border border border-[#dcd4c6]">
+              {heroSlides.length === 0 ? (
+                <div className="w-full h-full flex items-center justify-center text-[#8a8a80] text-sm">No pets to preview yet</div>
+              ) : (
+                heroSlides.map((pet, i) => (
+                  <div key={pet._id} className="absolute inset-0 transition-opacity duration-1000" style={{ opacity: i === slide ? 1 : 0 }}>
+                    <img
+                      src={pet.images?.[0] || "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=1000"}
+                      alt={pet.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-linear-to-t from-[#292925]/42 to-transparent pointer-events-none" />
+                    <div className="absolute left-6 bottom-5.5 right-6">
+                      <p className="m-0 text-[11px] tracking-wider uppercase text-border">{pet.petType}</p>
+                      <p className="mt-1 font-heading text-2xl text-white font-medium">{pet.title}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+              {heroSlides.length > 1 && (
+                <div className="absolute right-6 bottom-5.5 flex gap-1.75 z-10">
+                  {heroSlides.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSlide(i)}
+                      aria-label={`Show slide ${i + 1}`}
+                      className="h-1.75 rounded-full border-none cursor-pointer transition-all duration-300"
+                      style={{ width: i === slide ? 26 : 7, background: i === slide ? "#F7F4ED" : "rgba(247,244,237,.45)" }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="absolute -left-6 top-7 bg-light border border-border rounded-2xl px-4.5 py-3.5 shadow-xl shadow-black/10">
+              <p className="m-0 text-[11px] tracking-wider uppercase text-accent">Verified listing</p>
+              <p className="mt-0.75 text-sm font-semibold">Records checked by us</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Search + species chips */}
+      <section className="max-w-7xl mx-auto px-7 pt-6.5">
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex-1 min-w-70 flex items-center gap-2.5 bg-white border border-border rounded-full px-5 py-3.25">
+            <Search size={16} className="text-[#8a8a80] shrink-0" />
             <input
               type="text"
               placeholder="Search by breed, title or description..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-14 pr-6 py-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-slate-400 font-semibold"
+              className="w-full border-none outline-none bg-transparent text-sm text-[#292925] placeholder:text-[#a8a49a]"
             />
           </div>
+          <div className="flex flex-wrap gap-2">
+            {SPECIES.map((s) => (
+              <button key={s.value} onClick={() => setFilters((f) => ({ ...f, petType: s.value, page: 1 }))} className={chipCls(filters.petType === s.value)}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
 
-          <div className="flex flex-wrap gap-3">
-            {/* Pet Type */}
-            <select
-              value={filters.petType}
-              onChange={(e) => setFilters({ ...filters, petType: e.target.value })}
-              className="px-5 py-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer font-semibold text-slate-700 appearance-none"
-            >
-              <option value="">All Species</option>
-              <option value="dog">🐶 Dogs</option>
-              <option value="cat">🐱 Cats</option>
-              <option value="bird">🐦 Birds</option>
-              <option value="fish">🐟 Fish</option>
-              <option value="reptile">🦎 Reptiles</option>
-              <option value="other">Other</option>
-            </select>
-
-            {/* Listing Type */}
-            <select
-              value={filters.listingType}
-              onChange={(e) => setFilters({ ...filters, listingType: e.target.value })}
-              className="px-5 py-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer font-semibold text-slate-700 appearance-none"
-            >
-              <option value="">Sale & Adoption</option>
-              <option value="sale">For Sale</option>
-              <option value="adoption">For Adoption</option>
-            </select>
-
-            {/* Gender */}
-            <select
-              value={filters.gender}
-              onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
-              className="px-5 py-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer font-semibold text-slate-700 appearance-none"
-            >
-              <option value="">Any Gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-
-            {/* Location */}
+      {/* Listings */}
+      <section id="list" className="max-w-7xl mx-auto px-7 pt-8.5 grid grid-cols-1 lg:grid-cols-[248px_1fr] gap-10 items-start">
+        <aside className="lg:sticky lg:top-28 flex flex-col gap-7 pb-10">
+          <div>
+            <p className="m-0 mb-3.5 text-[11px] tracking-wider uppercase text-[#8a8a80] font-semibold">Listing type</p>
+            <div className="flex flex-wrap gap-2">
+              {LISTING_TYPES.map((t) => (
+                <button key={t.value} onClick={() => setFilters((f) => ({ ...f, listingType: t.value, page: 1 }))} className={chipCls(filters.listingType === t.value)}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="border-t border-border pt-6">
+            <p className="m-0 mb-3.5 text-[11px] tracking-wider uppercase text-[#8a8a80] font-semibold">Gender</p>
+            <div className="flex flex-wrap gap-2">
+              {GENDERS.map((g) => (
+                <button key={g.value} onClick={() => setFilters((f) => ({ ...f, gender: g.value, page: 1 }))} className={chipCls(filters.gender === g.value)}>
+                  {g.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="border-t border-border pt-6">
+            <p className="m-0 mb-3.5 text-[11px] tracking-wider uppercase text-[#8a8a80] font-semibold">Price / fee</p>
+            <input
+              type="range"
+              min="0"
+              max={MAX_FEE}
+              step="10"
+              value={filters.maxPrice || MAX_FEE}
+              onChange={(e) => setFilters((f) => ({ ...f, maxPrice: Number(e.target.value) >= MAX_FEE ? "" : e.target.value, page: 1 }))}
+              className="w-full accent-accent"
+            />
+            <div className="flex justify-between mt-2 text-[13px] text-[#6e6e64]">
+              <span>0</span>
+              <span>Up to {filters.maxPrice && Number(filters.maxPrice) < MAX_FEE ? filters.maxPrice : `${MAX_FEE}+`}</span>
+            </div>
+          </div>
+          <div className="border-t border-border pt-6">
+            <p className="m-0 mb-3.5 text-[11px] tracking-wider uppercase text-[#8a8a80] font-semibold">Location</p>
             <div className="relative">
-              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={18} />
+              <MapPin size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8a8a80]" />
               <input
                 type="text"
-                placeholder="Location"
+                placeholder="City"
                 value={filters.location}
-                onChange={(e) => setFilters({ ...filters, location: e.target.value })}
-                className="w-40 pl-10 pr-4 py-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-primary/20 outline-none font-semibold text-slate-700 placeholder:text-slate-400"
+                onChange={(e) => setFilters((f) => ({ ...f, location: e.target.value, page: 1 }))}
+                className="w-full pl-9 pr-3.5 py-2.75 rounded-xl border border-border text-sm text-[#292925] bg-white outline-none focus:border-accent"
               />
             </div>
+          </div>
+          {hasFilters && (
+            <button onClick={clearFilters} className="text-left text-[13px] font-medium text-primary hover:underline">
+              Clear all filters
+            </button>
+          )}
+        </aside>
 
-            {hasFilters && (
-              <button
-                onClick={clearFilters}
-                className="flex items-center gap-2 px-4 py-4 rounded-xl bg-rose-50 text-rose-600 font-bold text-sm hover:bg-rose-100 transition-colors"
+        <div>
+          <div className="flex items-center justify-between gap-5 pb-5 border-b border-border mb-7">
+            <p className="m-0 text-sm text-[#6e6e64]">
+              {pagination.total} {pagination.total === 1 ? "pet available" : "pets available"}
+            </p>
+            <div className="flex items-center gap-2.5">
+              <span className="text-[13px] text-[#8a8a80]">Sort</span>
+              <select
+                value={filters.sort}
+                onChange={(e) => setFilters((f) => ({ ...f, sort: e.target.value, page: 1 }))}
+                className="border border-border rounded-full px-4 py-2.5 text-[13px] text-[#3f3f38] bg-white outline-none cursor-pointer"
               >
-                <X size={16} /> Clear
-              </button>
-            )}
+                {SORTS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
 
-        {hasFilters && (
-          <div className="mt-3 flex items-center gap-2 text-sm text-slate-500 font-medium">
-            <SlidersHorizontal size={14} className="text-primary" />
-            Filters active
-            {filters.petType && <span className="badge bg-primary/10 text-primary">{filters.petType}</span>}
-            {filters.listingType && <span className="badge bg-emerald-50 text-emerald-600">{filters.listingType}</span>}
-            {filters.search && <span className="badge bg-purple-50 text-purple-600">"{filters.search}"</span>}
-          </div>
-        )}
-      </Motion.div>
-
-      {/* Grid */}
-      {loading ? (
-        <div className="text-center py-40">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl shadow-xl shadow-primary/30 mb-4">
-            <Motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="w-8 h-8 rounded-full border-4 border-white border-t-transparent"
-            />
-          </div>
-          <p className="mt-2 text-slate-500 font-bold text-lg">Finding the best pets for you...</p>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-            <AnimatePresence>
-              {pets.map((pet, index) => (
-                <Motion.div
-                  layout
-                  key={pet._id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.35, delay: index * 0.04 }}
-                  whileHover={{ y: -10 }}
-                  className="glass-card overflow-hidden flex flex-col group"
-                >
-                  {/* Image */}
-                  <div className="relative h-64 overflow-hidden">
-                    <img
-                      src={pet.images?.[0] || "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=1000"}
-                      alt={pet.title}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl font-black text-primary shadow-xl">
-                      {pet.listingType === "adoption" ? "FREE" : `LKR ${pet.price?.toLocaleString()}`}
-                    </div>
-                    <div className="absolute top-4 left-4">
-                      <span className={`badge text-[10px] font-black uppercase tracking-wider ${statusColors[pet.status] || "bg-slate-50 text-slate-600"}`}>
-                        {pet.status}
-                      </span>
-                    </div>
-                    <div className="absolute bottom-4 right-4 z-10">
-                      <HeartButton itemType="listing" itemId={pet._id} size={16} />
-                    </div>
-                  </div>
-
-                  {/* Details */}
-                  <div className="p-8 flex-1 flex flex-col">
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="badge bg-primary/10 text-primary">{pet.petType}</span>
-                        <span className={`badge ${pet.listingType === "sale" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>
-                          For {pet.listingType}
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="animate-pulse flex flex-col gap-3">
+                  <div className="aspect-square bg-border rounded-card" />
+                  <div className="h-5 bg-border w-2/3 rounded-full" />
+                  <div className="h-4 bg-border/70 w-full rounded-full" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <AnimatePresence>
+                  {pets.map((pet, index) => (
+                    <Motion.article
+                      layout
+                      key={pet._id}
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.96 }}
+                      transition={{ duration: 0.3, delay: index * 0.03 }}
+                      className="bg-white border border-[#E8E2D8] rounded-card overflow-hidden flex flex-col transition-all duration-400 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-black/10"
+                    >
+                      <div className="relative aspect-square overflow-hidden bg-border">
+                        <img
+                          src={pet.images?.[0] || "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=1000"}
+                          alt={pet.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute top-3 left-3 max-w-[calc(100%-56px)] bg-light/94 text-secondary text-[11px] tracking-wider uppercase px-2.5 py-1.5 rounded-full truncate">
+                          {pet.status === "active" ? pet.listingType : pet.status}
                         </span>
+                        <div className="absolute top-2.5 right-2.5 z-10">
+                          <HeartButton itemType="listing" itemId={pet._id} size={15} />
+                        </div>
                       </div>
-                      <h3 className="text-2xl font-black text-slate-900 group-hover:text-primary transition-colors leading-tight">{pet.title}</h3>
-                    </div>
 
-                    <div className="flex flex-wrap gap-4 text-slate-500 text-sm font-semibold mb-8">
-                      <span className="flex items-center gap-2"><Tag size={16} className="text-primary/60" /> {pet.breed}</span>
-                      <span className="flex items-center gap-2"><MapPin size={16} className="text-primary/60" /> {pet.location}</span>
-                    </div>
-
-                    <div className="mt-auto pt-6 border-t border-slate-100">
-                      <Link to={`/marketplace/${pet._id}`} className="btn w-full bg-slate-50 text-slate-700 hover:bg-primary hover:text-white transition-all duration-300 font-black">
-                        View Details <ArrowRight size={18} />
-                      </Link>
-                    </div>
-                  </div>
-                </Motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-
-          {pets.length === 0 && (
-            <div className="text-center py-24">
-              <div className="bg-slate-100 p-8 rounded-full inline-flex mb-8">
-                <Info size={48} className="text-slate-400" />
+                      <div className="px-5 pt-4.5 pb-5.5 flex-1 flex flex-col gap-3">
+                        <div className="flex items-baseline justify-between gap-2.5">
+                          <h3 className="font-heading text-[21px] font-medium text-[#292925] m-0">{pet.title}</h3>
+                          <span className="text-sm text-primary font-semibold shrink-0">
+                            {pet.listingType === "adoption" && !pet.price ? "Free" : `LKR ${pet.price?.toLocaleString()}`}
+                          </span>
+                        </div>
+                        <p className="m-0 text-[13px] text-[#7a7a70]">
+                          {pet.breed} · {pet.age} mo · {pet.location}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className="bg-[#F2EFE7] border border-border text-secondary text-[11px] px-2.5 py-1 rounded-full capitalize">{pet.gender}</span>
+                          <span className="bg-[#F2EFE7] border border-border text-secondary text-[11px] px-2.5 py-1 rounded-full capitalize">{pet.petType}</span>
+                        </div>
+                        <p className="m-0 text-xs text-[#6e6e64] flex items-center gap-1.5">
+                          <span className="w-1.25 h-1.25 rounded-full bg-accent shrink-0" />
+                          {pet.owner?.name}
+                        </p>
+                        <Link
+                          to={`/marketplace/${pet._id}`}
+                          className="mt-auto text-center border border-[#cfc8ba] rounded-full py-2.5 text-[13px] font-medium text-secondary transition-colors hover:bg-accent hover:text-white hover:border-accent"
+                        >
+                          View profile
+                        </Link>
+                      </div>
+                    </Motion.article>
+                  ))}
+                </AnimatePresence>
               </div>
-              <h2 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">No pets found</h2>
-              <p className="text-slate-500 font-medium mb-8">Try adjusting your search or filters.</p>
-              {hasFilters && (
-                <button onClick={clearFilters} className="btn btn-primary px-8">
-                  <X size={18} /> Clear all filters
-                </button>
-              )}
-            </div>
-          )}
 
-          {/* Pagination */}
-          {pagination.pages > 1 && (
-            <div className="flex justify-center gap-3 mt-16">
-              {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setFilters((f) => ({ ...f, page: p }))}
-                  className={`w-12 h-12 rounded-xl font-black transition-all ${
-                    p === pagination.page
-                      ? "bg-primary text-white shadow-lg shadow-primary/30"
-                      : "bg-slate-100 text-slate-600 hover:bg-primary/10 hover:text-primary"
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
+              {pets.length === 0 && (
+                <div className="text-center py-20">
+                  <h2 className="font-heading text-3xl text-[#292925] mb-2">No pets found</h2>
+                  <p className="text-[#6e6e64] mb-7">Try adjusting your search or filters.</p>
+                  {hasFilters && (
+                    <button onClick={clearFilters} className="btn btn-primary px-7">
+                      <X size={16} /> Clear all filters
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {pagination.pages > 1 && (
+                <div className="flex justify-center gap-2.5 mt-13">
+                  {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setFilters((f) => ({ ...f, page: p }))}
+                      className={`min-w-10 h-10 px-3 rounded-xl text-sm font-medium border transition-all ${
+                        p === pagination.page ? "bg-accent text-white border-accent" : "bg-white text-[#3f3f38] border-border hover:border-accent"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
-        </>
-      )}
+        </div>
+      </section>
+
+      {/* CTA banner */}
+      <section className="max-w-7xl mx-auto px-7 mt-20">
+        <div className="bg-secondary text-light rounded-[28px] p-11 sm:p-14 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-9 items-center">
+          <div>
+            <h2 className="font-heading text-[28px] sm:text-[36px] font-medium mb-2.5 tracking-tight">Can't find the right match yet?</h2>
+            <p className="m-0 text-base leading-relaxed text-[#DCE0D6] max-w-130">Every listing here is reviewed before it goes live. If none of these feel right, consider listing what you're looking for instead — or check back soon.</p>
+          </div>
+          <Link to="/create-listing" className="btn bg-primary text-white hover:bg-primary-dark px-7.5 py-4 whitespace-nowrap w-fit">
+            <Plus size={17} /> List a pet
+          </Link>
+        </div>
+      </section>
     </div>
   );
 };

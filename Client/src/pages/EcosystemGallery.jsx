@@ -1,19 +1,21 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { motion as Motion } from "framer-motion";
+import { Image as ImageIcon, Shuffle } from "lucide-react";
 import { getGallery } from "../api/ecosystem.api";
 import { PET_ICONS } from "./EcosystemPicker";
-
-const formatPrice = (cents) =>
-  cents === 0 ? "$0.00" : `$${(cents / 100).toFixed(2)}`;
-
-const formatDate = (iso) =>
-  new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+import EcosystemTabs from "../components/ecosystem/EcosystemTabs";
+import { formatPrice } from "../utils/priceFormatter";
 
 const ALL_PET_TYPES = ["fish", "snake", "bird", "spider", "turtle", "mouse", "reptile", "amphibian"];
-const PET_LABELS = {
-  fish: "Fish", snake: "Snake", bird: "Bird", spider: "Spider",
-  turtle: "Turtle", mouse: "Mouse", reptile: "Reptile", amphibian: "Amphibian",
-};
+const PET_LABELS = { fish: "Fish", snake: "Snake", bird: "Bird", spider: "Spider", turtle: "Turtle", mouse: "Mouse", reptile: "Reptile", amphibian: "Amphibian" };
+
+const formatDate = (iso) => new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+
+const chipCls = (active) =>
+  `inline-flex items-center justify-center whitespace-nowrap rounded-full px-4 py-2.25 text-[12.5px] font-medium border transition-colors ${
+    active ? "bg-secondary text-light border-secondary" : "bg-white text-secondary border-border hover:bg-light"
+  }`;
 
 export default function EcosystemGallery() {
   const navigate = useNavigate();
@@ -29,41 +31,39 @@ export default function EcosystemGallery() {
   const [hasMore, setHasMore] = useState(false);
   const LIMIT = 12;
 
-  const fetchGallery = useCallback(async (reset = false) => {
-    if (reset) setBuilds([]);
-    setLoading(true);
-    try {
-      const currentPage = reset ? 1 : page;
-      const params = {
-        page: currentPage,
-        limit: LIMIT,
-        sort: activeSort,
-      };
-      if (activePetType) params.petType = activePetType;
-      const res = await getGallery(params);
-      const { data, pagination } = res.data;
-      setBuilds((prev) => reset ? (data || []) : [...prev, ...(data || [])]);
-      setHasMore(pagination?.currentPage < pagination?.totalPages);
-      if (reset) setPage(2);
-      else setPage((p) => p + 1);
-    } catch {
-      setError("Failed to load gallery. Please refresh.");
-    } finally {
-      setLoading(false);
-    }
-  }, [activePetType, activeSort, page]);
+  const fetchGallery = useCallback(
+    async (reset = false) => {
+      if (reset) setBuilds([]);
+      setLoading(true);
+      try {
+        const currentPage = reset ? 1 : page;
+        const params = { page: currentPage, limit: LIMIT, sort: activeSort };
+        if (activePetType) params.petType = activePetType;
+        const res = await getGallery(params);
+        const { data, pagination } = res.data;
+        setBuilds((prev) => (reset ? data || [] : [...prev, ...(data || [])]));
+        setHasMore(pagination?.currentPage < pagination?.totalPages);
+        if (reset) setPage(2);
+        else setPage((p) => p + 1);
+      } catch {
+        setError("Failed to load gallery. Please refresh.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [activePetType, activeSort, page]
+  );
 
   useEffect(() => {
-    document.title = "Inspiration Gallery | PetCenter Ecosystem";
+    document.title = "Inspiration gallery | PetCenter Ecosystem";
     fetchGallery(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePetType, activeSort]);
 
   const setFilter = (petType) => {
     const next = new URLSearchParams(searchParams);
     if (petType) next.set("petType", petType);
     else next.delete("petType");
-    next.delete("sort");
     setSearchParams(next, { replace: true });
   };
 
@@ -74,270 +74,98 @@ export default function EcosystemGallery() {
   };
 
   return (
-    <div style={{ maxWidth: 1060, margin: "0 auto" }}>
-      {/* Header */}
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: "clamp(24px, 4vw, 36px)", fontWeight: 800, color: "#1a1a1a", marginBottom: 8 }}>
-          Inspiration Gallery
-        </h1>
-        <p style={{ fontSize: 15, color: "#666" }}>
-          Real setups built by the PetCenter community. Clone any build to start your own.
-        </p>
+    <div className="max-w-7xl mx-auto px-7 pt-8 pb-24">
+      <div className="mb-7">
+        <p className="text-xs tracking-[0.18em] uppercase text-accent font-semibold mb-3.5">Ecosystems</p>
+        <h1 className="font-heading text-[34px] sm:text-[44px] font-medium tracking-tight mb-2.5">Community builds</h1>
+        <p className="text-[15px] leading-relaxed text-[#5c5c54] max-w-160">Finished habitats with full parts lists. Clone any of them into your own build and change what you like.</p>
       </div>
 
-      {/* Filters */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20, alignItems: "center" }}>
-        {/* Pet type tabs */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", flex: 1 }}>
-          <FilterTab label="All" isActive={!activePetType} onClick={() => setFilter("")} />
+      <EcosystemTabs />
+
+      <div className="flex items-center justify-between gap-4 flex-wrap mb-6">
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => setFilter("")} className={chipCls(!activePetType)}>
+            All
+          </button>
           {ALL_PET_TYPES.map((pet) => (
-            <FilterTab
-              key={pet}
-              label={`${PET_ICONS[pet] || "🐾"} ${PET_LABELS[pet]}`}
-              isActive={activePetType === pet}
-              onClick={() => setFilter(pet)}
-            />
+            <button key={pet} onClick={() => setFilter(pet)} className={chipCls(activePetType === pet)}>
+              {PET_ICONS[pet] || "🐾"} {PET_LABELS[pet]}
+            </button>
           ))}
         </div>
-        {/* Sort */}
         <select
           value={activeSort}
           onChange={(e) => setSort(e.target.value)}
-          style={{
-            padding: "7px 12px",
-            border: "1.5px solid #e5e7eb",
-            borderRadius: 10,
-            fontSize: 13,
-            fontWeight: 600,
-            color: "#374151",
-            background: "#fff",
-            cursor: "pointer",
-          }}
+          className="border border-border rounded-full px-4 py-2.25 text-[13px] font-medium text-[#3f3f38] bg-white outline-none cursor-pointer"
         >
           <option value="newest">Newest first</option>
           <option value="mostCloned">Most cloned</option>
         </select>
       </div>
 
-      {/* Error */}
-      {error && (
-        <div style={{ textAlign: "center", padding: 32, color: "#c62828", background: "#fff0f0", borderRadius: 12 }}>
-          {error}
+      {error ? (
+        <div className="text-center py-12 bg-[#F7E9DF] rounded-2xl text-[#8f4a28]">{error}</div>
+      ) : loading && builds.length === 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-70 bg-border rounded-[22px] animate-pulse" />
+          ))}
         </div>
-      )}
-
-      {/* Grid */}
-      {!error && (
+      ) : builds.length === 0 ? (
+        <div className="bg-white border border-dashed border-[#dcd4c6] rounded-[22px] py-14 px-8 text-center">
+          <ImageIcon size={36} className="mx-auto mb-3.5 text-[#c9c2b3]" />
+          <h3 className="font-heading text-xl font-medium mb-1.5">No builds in the gallery yet</h3>
+          <p className="text-[#6e6e64] text-sm max-w-xs mx-auto">Be the first to share yours — build a setup and publish it from your Dashboard.</p>
+        </div>
+      ) : (
         <>
-          {loading && builds.length === 0 ? (
-            <GallerySkeleton />
-          ) : builds.length === 0 ? (
-            <EmptyGallery />
-          ) : (
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-              gap: 18,
-            }}>
-              {builds.map((build) => (
-                <GalleryCard
-                  key={build._id}
-                  build={build}
-                  onClick={() => navigate(`/ecosystem/gallery/${build._id}`)}
-                />
-              ))}
-              {/* Skeleton cards while loading more */}
-              {loading && builds.length > 0 && (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <div key={`sk-${i}`} style={{
-                    height: 240,
-                    background: "linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%)",
-                    backgroundSize: "200% 100%",
-                    animation: "shimmer 1.4s infinite",
-                    borderRadius: 16,
-                  }} />
-                ))
-              )}
-            </div>
-          )}
-
-          {/* Load more */}
-          {hasMore && !loading && (
-            <div style={{ textAlign: "center", marginTop: 32 }}>
-              <button
-                onClick={() => fetchGallery(false)}
-                style={{
-                  padding: "12px 32px",
-                  background: "#f5f3ff",
-                  color: "#7c3aed",
-                  border: "1.5px solid #ddd6fe",
-                  borderRadius: 12,
-                  fontWeight: 700,
-                  fontSize: 14,
-                  cursor: "pointer",
-                }}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {builds.map((build, i) => (
+              <Motion.button
+                key={build._id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i, 6) * 0.04 }}
+                onClick={() => navigate(`/ecosystem/gallery/${build._id}`)}
+                className="text-left bg-white border border-[#E8E2D8] rounded-[22px] p-5.5 flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5"
               >
-                Load more builds
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center text-xl shrink-0">{PET_ICONS[build.petType] || "🐾"}</div>
+                  <div className="min-w-0">
+                    <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-[#8a8a80] capitalize">{build.petType} setup</p>
+                    <p className="m-0 font-heading text-[17px] font-medium truncate">{build.name}</p>
+                  </div>
+                </div>
+
+                <p className="m-0 mb-4 text-[12.5px] text-[#6e6e64]">
+                  by <span className="font-semibold text-secondary">{build.userId?.name || "Anonymous"}</span> · {build.selections?.length || 0} items ·{" "}
+                  <strong className="text-[#292925]">{formatPrice(build.totalPrice)}</strong>
+                </p>
+
+                <div className="mt-auto flex items-center justify-between gap-3">
+                  {build.cloneCount > 0 ? (
+                    <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-secondary bg-accent/10 rounded-full px-2.75 py-1.25">
+                      <Shuffle size={11} /> {build.cloneCount} {build.cloneCount === 1 ? "person" : "people"} built this
+                    </span>
+                  ) : (
+                    <span className="text-[12px] text-[#a8a49a]">Be the first to clone!</span>
+                  )}
+                  <span className="text-[11px] text-[#8a8a80] whitespace-nowrap">{formatDate(build.publishedAt || build.createdAt)}</span>
+                </div>
+              </Motion.button>
+            ))}
+          </div>
+
+          {hasMore && (
+            <div className="text-center mt-9">
+              <button onClick={() => fetchGallery(false)} disabled={loading} className="btn border border-[#cfc8ba] text-secondary hover:bg-border px-7 py-3">
+                {loading ? "Loading…" : "Load more builds"}
               </button>
             </div>
           )}
         </>
       )}
-
-      <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
-    </div>
-  );
-}
-
-// ─── Filter Tab ───────────────────────────────────────────────────────────────
-function FilterTab({ label, isActive, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        padding: "6px 14px",
-        background: isActive ? "linear-gradient(135deg, #7c3aed, #4f46e5)" : "#f3f4f6",
-        color: isActive ? "#fff" : "#374151",
-        border: "none",
-        borderRadius: 20,
-        fontSize: 13,
-        fontWeight: 600,
-        cursor: "pointer",
-        transition: "all 0.15s",
-      }}
-    >
-      {label}
-    </button>
-  );
-}
-
-// ─── Gallery Card ─────────────────────────────────────────────────────────────
-function GalleryCard({ build, onClick }) {
-  const [hovered, setHovered] = useState(false);
-  const icon = PET_ICONS[build.petType] || "🐾";
-
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        background: "#fff",
-        border: "1.5px solid #e5e7eb",
-        borderRadius: 16,
-        padding: "20px",
-        cursor: "pointer",
-        transition: "all 0.18s ease",
-        transform: hovered ? "translateY(-3px)" : "none",
-        boxShadow: hovered ? "0 10px 32px rgba(0,0,0,0.1)" : "0 2px 8px rgba(0,0,0,0.05)",
-      }}
-    >
-      {/* Icon + Pet type */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <div style={{
-          width: 44,
-          height: 44,
-          borderRadius: 10,
-          background: "linear-gradient(135deg, #f5f3ff, #ede9fe)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 22,
-        }}>
-          {icon}
-        </div>
-        <div>
-          <div style={{ fontSize: 12, color: "#888", fontWeight: 600, textTransform: "capitalize" }}>
-            {build.petType} setup
-          </div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#1a1a1a", lineHeight: 1.2 }}>
-            {build.name}
-          </div>
-        </div>
-      </div>
-
-      {/* Meta */}
-      <div style={{ fontSize: 12, color: "#888", marginBottom: 12, lineHeight: 1.7 }}>
-        by <span style={{ fontWeight: 600, color: "#4c1d95" }}>{build.userId?.name || "Anonymous"}</span>
-        {" · "}{build.selections?.length || 0} items
-        {" · "}<strong style={{ color: "#1a1a1a" }}>{formatPrice(build.totalPrice)}</strong>
-      </div>
-
-      {/* Clone count + date */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        {build.cloneCount > 0 ? (
-          <span style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: "#7c3aed",
-            background: "#ede9fe",
-            padding: "3px 10px",
-            borderRadius: 20,
-          }}>
-            🔀 {build.cloneCount} {build.cloneCount === 1 ? "person" : "people"} built this
-          </span>
-        ) : (
-          <span style={{ fontSize: 12, color: "#d1d5db" }}>Be the first to clone!</span>
-        )}
-        <span style={{ fontSize: 11, color: "#9ca3af" }}>{formatDate(build.publishedAt || build.createdAt)}</span>
-      </div>
-
-      {/* View Build CTA */}
-      <div style={{
-        marginTop: 14,
-        padding: "9px 0",
-        background: hovered ? "linear-gradient(135deg, #7c3aed, #4f46e5)" : "#f5f3ff",
-        color: hovered ? "#fff" : "#7c3aed",
-        borderRadius: 10,
-        textAlign: "center",
-        fontSize: 13,
-        fontWeight: 700,
-        transition: "all 0.18s",
-      }}>
-        View Build →
-      </div>
-    </div>
-  );
-}
-
-// ─── Empty Gallery ────────────────────────────────────────────────────────────
-function EmptyGallery() {
-  return (
-    <div style={{
-      textAlign: "center",
-      padding: "64px 24px",
-      background: "#fafafa",
-      borderRadius: 20,
-      border: "2px dashed #e5e7eb",
-    }}>
-      <div style={{ fontSize: 52, marginBottom: 16 }}>🖼️</div>
-      <h3 style={{ fontSize: 20, fontWeight: 700, color: "#1a1a1a", marginBottom: 8 }}>
-        No builds in the gallery yet
-      </h3>
-      <p style={{ fontSize: 14, color: "#888" }}>
-        Be the first to share yours! Build a setup and publish it from My Builds.
-      </p>
-    </div>
-  );
-}
-
-// ─── Gallery Skeleton ─────────────────────────────────────────────────────────
-function GallerySkeleton() {
-  return (
-    <div style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-      gap: 18,
-    }}>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} style={{
-          height: 240,
-          background: "linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%)",
-          backgroundSize: "200% 100%",
-          animation: "shimmer 1.4s infinite",
-          borderRadius: 16,
-        }} />
-      ))}
     </div>
   );
 }

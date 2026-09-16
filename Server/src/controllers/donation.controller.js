@@ -36,6 +36,10 @@ export const createDonationPaymentIntent = async (req, res, next) => {
       return sendError(res, "Cannot donate to a closed campaign", 400);
     }
 
+    if (campaign.status === "goal_reached") {
+      return sendError(res, "This campaign has already reached its goal", 400);
+    }
+
     const userIdStr = req.user ? req.user._id.toString() : "";
 
     // Create the Stripe PaymentIntent

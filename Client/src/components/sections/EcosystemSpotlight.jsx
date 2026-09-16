@@ -1,101 +1,65 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
-import { CheckCircle, ArrowRight, Star, Plus, Box } from "lucide-react";
+import { Box } from "lucide-react";
 import builderMockup from "../../assets/stunning_ecosystem_builder.png";
 
-const EcosystemSpotlight = () => {
-  return (
-    <section className="py-40 bg-slate-950 text-white relative overflow-hidden">
-      {/* Background visual effects */}
-      <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-teal-500/30 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] bg-primary/30 rounded-full blur-[100px]" />
-      </div>
+const STEPS = [
+  { title: "Pick a species", desc: "Fish, reptile, bird — each with its own guidance." },
+  { title: "Read the setup", desc: "Temperature, humidity and space, in plain language." },
+  { title: "Choose essentials", desc: "Stock-aware, so nothing arrives half-complete." },
+  { title: "Add the whole build", desc: "One cart, one delivery, ready on day one." },
+];
 
-      <div className="max-w-7xl mx-auto px-[5%] grid grid-cols-1 lg:grid-cols-2 gap-24 items-center relative z-10 text-center lg:text-left">
-        {/* Left Text Content */}
-        <Motion.div 
-          initial={{ opacity: 0, x: -30 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
-          className="order-2 lg:order-1"
-        >
-          <Motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-5 py-2 bg-white/5 border border-white/10 rounded-full text-xs font-black uppercase tracking-widest text-teal-400 mb-8"
-          >
-            <Star size={14} /> Only at PetCenter
-          </Motion.div>
-          
-          <h2 className="text-5xl md:text-6xl lg:text-7xl font-black mb-8 leading-[1.05] tracking-tighter">
-            Design the <span className="text-teal-400">perfect habitat</span> for your pet.
-          </h2>
-          
-          <p className="text-xl text-slate-400 mb-12 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
-            Our unique Ecosystem Builder helps you create, customize, and buy everything you need for the perfect terrarium, 
-            aquarium, or habitat in one seamless experience.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mb-12 max-w-lg mx-auto lg:mx-0">
-            {[
-              { title: "Choose Pet Type", desc: "Tailored to your species" },
-              { title: "Smart Essentials", desc: "Recommended by experts" },
-              { title: "Full Customization", desc: "Design within your budget" },
-              { title: "Seamless Buy", desc: "One-click habitat setup" }
-            ].map((point, i) => (
-              <div key={i} className="flex items-start gap-4 text-left">
-                <Star size={20} className="text-primary" />
-                <div>
-                  <p className="text-xl font-black text-white leading-tight">Elite Builder</p>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Verified Expert</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <Link to="/ecosystem" className="btn btn-primary px-12 py-5 text-xl rounded-2xl shadow-2xl shadow-primary/40 flex items-center gap-4 group mx-auto lg:mx-0 w-fit">
-            <Plus size={24} /> Get Started Now <ArrowRight size={20} className="transition-all group-hover:translate-x-1" />
-          </Link>
-
-        </Motion.div>
-
-        {/* Right Builder Visual */}
-        <Motion.div 
-          initial={{ opacity: 0, scale: 0.9, x: 30 }}
-          whileInView={{ opacity: 1, scale: 1, x: 0 }}
-          transition={{ duration: 1 }}
-          viewport={{ once: true }}
-          className="relative order-1 lg:order-2"
-        >
-          <div className="relative z-10 rounded-[50px] overflow-hidden border border-white/10 shadow-3xl shadow-teal-500/10">
-            <img 
-              src={builderMockup} 
-              alt="Ecosystem Builder Mockup" 
-              className="w-full h-auto block transform hover:scale-105 transition-transform duration-1000"
-            />
-          </div>
-
-          {/* Floating interactive-looking elements */}
-          <Motion.div 
-            animate={{ y: [0, -15, 0] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute -top-6 -right-6 z-20 glass-card p-6 bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl hidden md:flex items-center gap-4"
-          >
-            <div className="w-12 h-12 bg-teal-500 rounded-2xl flex items-center justify-center text-white shadow-lg">
-              <Box size={24} />
+const EcosystemSpotlight = () => (
+  <section className="mt-24 bg-secondary text-light">
+    <div className="max-w-7xl mx-auto px-7 py-22 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <Motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7 }}>
+        <p className="text-xs tracking-[0.18em] uppercase text-[#C8CFC1] font-semibold mb-5">Only at PetCenter</p>
+        <h2 className="font-heading text-[34px] sm:text-[54px] font-medium leading-[1.1] mb-5.5 tracking-tight">
+          Design the habitat
+          <br />
+          before you bring them home
+        </h2>
+        <p className="text-base leading-relaxed text-[#DCE0D6] max-w-115 mb-9">
+          Pick a species, follow the setup guidance, and the builder assembles every essential — tank, substrate, lighting, enrichment — into one
+          cart.
+        </p>
+        <div className="grid grid-cols-2 gap-5.5 mb-9.5">
+          {STEPS.map((step) => (
+            <div key={step.title} className="border-t border-light/22 pt-3.5">
+              <p className="m-0 text-[15px] font-semibold text-white">{step.title}</p>
+              <p className="mt-1.5 text-[13px] text-[#C8CFC1] leading-relaxed">{step.desc}</p>
             </div>
-            <div className="text-left">
-              <p className="text-[10px] font-black uppercase tracking-widest text-teal-400">Habitat Layer</p>
-              <p className="font-black text-white leading-tight">Bio-active Ready</p>
-            </div>
-          </Motion.div>
-        </Motion.div>
-      </div>
-    </section>
-  );
-};
+          ))}
+        </div>
+        <Link to="/ecosystem" className="btn bg-primary text-white hover:bg-primary-dark px-7.5 py-4">
+          Start a build
+        </Link>
+      </Motion.div>
+
+      <Motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8 }}
+        className="relative"
+      >
+        <div className="rounded-[26px] overflow-hidden border border-light/20">
+          <img src={builderMockup} alt="Ecosystem Builder" className="w-full h-auto block" />
+        </div>
+        <div className="absolute -right-5 -top-5 bg-light text-[#292925] rounded-2xl px-4.5 py-3.5 shadow-2xl shadow-black/40 flex items-center gap-3.5">
+          <span className="w-10 h-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+            <Box size={20} />
+          </span>
+          <div>
+            <p className="m-0 text-[11px] tracking-wider uppercase text-accent">Habitat layer</p>
+            <p className="mt-0.5 text-sm font-semibold">Bio-active ready</p>
+          </div>
+        </div>
+      </Motion.div>
+    </div>
+  </section>
+);
 
 export default EcosystemSpotlight;

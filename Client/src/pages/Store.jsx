@@ -1,15 +1,30 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Link } from "react-router-dom";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { Search, SlidersHorizontal, X, Package, Grid3X3, List, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, SlidersHorizontal, X, Package, ChevronLeft, ChevronRight, Utensils, Sofa, Gamepad2, Sparkles, HeartPulse, Home } from "lucide-react";
 import { getProducts, getCategories } from "../api/product.api";
 import ProductCard from "../components/store/ProductCard";
 import FilterSidebar from "../components/store/FilterSidebar";
 
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest" },
-  { value: "price-asc", label: "Price: Low → High" },
-  { value: "price-desc", label: "Price: High → Low" },
+  { value: "price-asc", label: "Price: low to high" },
+  { value: "price-desc", label: "Price: high to low" },
   { value: "bestseller", label: "Bestsellers" },
+];
+
+const CATEGORY_TILES = [
+  { key: "food", label: "Food & treats", icon: Utensils },
+  { key: "accessories", label: "Beds & furniture", icon: Sofa },
+  { key: "toys", label: "Toys & play", icon: Gamepad2 },
+  { key: "cleaning", label: "Grooming", icon: Sparkles },
+  { key: "healthcare", label: "Health", icon: HeartPulse },
+  { key: "habitat", label: "Habitat", icon: Home },
+];
+
+const PROMO_TILES = [
+  { key: "accessories", title: "Rest & relax", desc: "Comfort-first beds and furniture for better sleep.", icon: Sofa },
+  { key: "cleaning", title: "Clean & natural", desc: "Gentle grooming care for their daily routine.", icon: Sparkles },
 ];
 
 const Store = () => {
@@ -22,13 +37,24 @@ const Store = () => {
   const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    category: "", compatiblePets: [], minPrice: "", maxPrice: "", inStock: false,
-  });
+  const [filters, setFilters] = useState({ category: "", compatiblePets: [], minPrice: "", maxPrice: "", inStock: false });
+  const [featured, setFeatured] = useState(null);
+  const gridRef = useRef(null);
 
   useEffect(() => {
-    getCategories().then((res) => setCategories(res.data.data || [])).catch(() => {});
+    getCategories()
+      .then((res) => setCategories(res.data.data || []))
+      .catch(() => {});
+    getProducts({ sort: "bestseller", limit: 1 })
+      .then((res) => setFeatured(res.data.data?.[0] || null))
+      .catch(() => {});
   }, []);
+
+  const pickCategory = (key) => {
+    setFilters((f) => ({ ...f, category: f.category === key ? "" : key }));
+    setPage(1);
+    gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -44,150 +70,202 @@ const Store = () => {
       const res = await getProducts(params);
       setProducts(res.data.data || []);
       setPagination(res.data.pagination || {});
-    } catch { setProducts([]); }
+    } catch {
+      setProducts([]);
+    }
     setLoading(false);
   }, [page, sort, search, filters]);
 
-  useEffect(() => { fetchProducts(); }, [fetchProducts]);
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
-  const handleSearch = () => { setSearch(searchInput); setPage(1); };
+  const handleSearch = () => {
+    setSearch(searchInput);
+    setPage(1);
+  };
   const handleClearFilters = () => {
     setFilters({ category: "", compatiblePets: [], minPrice: "", maxPrice: "", inStock: false });
-    setSearch(""); setSearchInput(""); setPage(1);
+    setSearch("");
+    setSearchInput("");
+    setPage(1);
   };
 
   const categoryCountMap = categories.reduce((acc, cat) => {
-    acc[cat.name] = cat.count; return acc;
+    acc[cat.name] = cat.count;
+    return acc;
   }, {});
 
-  const activeFilterCount = [
-    filters.category, filters.inStock,
-    ...(filters.compatiblePets || []),
-    filters.minPrice, filters.maxPrice,
-  ].filter(Boolean).length + (search ? 1 : 0);
+  const activeFilterCount = [filters.category, filters.inStock, ...(filters.compatiblePets || []), filters.minPrice, filters.maxPrice].filter(Boolean).length + (search ? 1 : 0);
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <Motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
-        <div className="flex items-center gap-3 mb-3">
-          <span className="px-3 py-1.5 bg-primary/10 text-primary rounded-full text-[11px] font-black uppercase tracking-widest border border-primary/20">
-            Pet Supplies
-          </span>
+    <div className="max-w-7xl mx-auto px-7 pb-24">
+      <Motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="pt-13 pb-11 border-b border-border mb-9 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] gap-12 lg:gap-14 items-center">
+        <div>
+          <p className="text-xs tracking-[0.18em] uppercase text-accent font-semibold mb-3.5">The store</p>
+          <h1 className="font-heading text-[38px] sm:text-[52px] font-medium mb-3.5 tracking-tight leading-[1.06]">
+            Essentials,
+            <br />
+            <span className="italic text-accent">quietly made</span>
+          </h1>
+          <p className="text-[15px] leading-relaxed text-[#5c5c54] max-w-130 mb-7">
+            A small catalogue chosen for durability and comfort — <span className="font-semibold text-[#292925]">{pagination.totalItems || 0}</span> products across 6 categories.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <button onClick={() => gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })} className="btn bg-accent text-white hover:bg-secondary px-7 py-3.75">
+              Shop all products
+            </button>
+            <Link to="/ecosystem" className="btn border border-[#cfc8ba] text-secondary hover:bg-[#E8E2D8] px-7 py-3.75">
+              Build a habitat
+            </Link>
+          </div>
         </div>
-        <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-slate-900 mb-2">
-          The <span className="bg-linear-to-r from-primary to-accent bg-clip-text text-transparent">Store</span>
-        </h1>
-        <p className="text-slate-500 text-lg font-medium">
-          Everything your pet needs — {pagination.totalItems || 0} products across 6 categories.
-        </p>
+
+        <div className="relative hidden lg:block">
+          <div className="relative rounded-[26px] overflow-hidden bg-border border border-[#dcd4c6] aspect-4/3">
+            {featured?.images?.[0]?.url ? (
+              <img src={featured.images[0].url} alt={featured.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Package size={48} className="text-[#c9c2b3]" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-linear-to-t from-[#292925]/34 to-transparent pointer-events-none" />
+            {featured && (
+              <div className="absolute left-6 bottom-5.5 pointer-events-none">
+                <p className="m-0 text-[11px] tracking-[0.14em] uppercase text-[#E8E2D8]">Loved this month</p>
+                <p className="mt-1.25 mb-0 font-heading text-2xl font-medium text-white">{featured.name}</p>
+              </div>
+            )}
+          </div>
+          <div className="absolute -left-6 top-7 bg-light border border-border rounded-2xl px-4.5 py-3.5 shadow-xl shadow-black/10 max-w-56">
+            <p className="m-0 text-[11px] tracking-wider uppercase text-accent">Our promise</p>
+            <p className="mt-0.75 mb-0 text-sm font-semibold text-[#292925]">Every order supports a partner shelter</p>
+          </div>
+        </div>
       </Motion.div>
 
-      {/* Search & Sort Bar */}
-      <div className="flex flex-wrap gap-3 mb-8 items-center">
-        <div className="relative flex-1 min-w-64">
-          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 mb-11">
+        {CATEGORY_TILES.map((tile) => {
+          const Icon = tile.icon;
+          const active = filters.category === tile.key;
+          return (
+            <button
+              key={tile.key}
+              onClick={() => pickCategory(tile.key)}
+              className={`flex flex-col items-center gap-2.5 rounded-2xl border px-3.5 py-5 transition-colors ${
+                active ? "bg-accent border-accent text-white" : "bg-white border-border text-[#3f3f38] hover:border-[#cfc8ba]"
+              }`}
+            >
+              <Icon size={22} className={active ? "text-white" : "text-accent"} />
+              <span className="text-xs font-medium text-center leading-snug">{tile.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div ref={gridRef} className="flex flex-wrap gap-3 mb-7 items-center">
+        <div className="relative w-full sm:w-64">
+          <Search size={16} className="absolute left-4.5 top-1/2 -translate-y-1/2 text-[#8a8a80]" />
           <input
             type="text"
             placeholder="Search products..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-white font-semibold text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+            className="w-full pl-11 pr-4 py-3.25 rounded-full border border-border bg-white text-sm text-[#292925] outline-none focus:border-accent"
           />
           {searchInput && (
-            <button onClick={() => { setSearchInput(""); setSearch(""); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-              <X size={16} />
+            <button onClick={() => { setSearchInput(""); setSearch(""); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8a8a80] hover:text-[#292925]">
+              <X size={15} />
             </button>
           )}
         </div>
 
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold text-sm border transition-all md:hidden ${
-            showFilters || activeFilterCount > 0 ? "bg-primary text-white border-primary" : "bg-white text-slate-700 border-slate-200"
-          }`}
-        >
-          <SlidersHorizontal size={16} />
-          Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4.5 py-3.25 rounded-full font-medium text-sm border transition-colors ${
+              showFilters || activeFilterCount > 0 ? "bg-accent text-white border-accent" : "bg-white text-[#3f3f38] border-border"
+            }`}
+          >
+            <SlidersHorizontal size={15} />
+            Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+          </button>
+
+          <AnimatePresence>
+            {showFilters && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setShowFilters(false)} />
+                <Motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="absolute left-0 top-full mt-2 z-40 w-80 max-w-[90vw] max-h-[70vh] overflow-y-auto"
+                >
+                  <FilterSidebar filters={filters} onChange={(f) => { setFilters(f); setPage(1); }} onClear={handleClearFilters} productCounts={categoryCountMap} />
+                </Motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
 
         <select
           value={sort}
           onChange={(e) => { setSort(e.target.value); setPage(1); }}
-          className="px-4 py-3 rounded-xl border border-slate-200 bg-white font-bold text-sm text-slate-700 focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
+          className="px-4.5 py-3.25 rounded-full border border-border bg-white font-medium text-sm text-[#3f3f38] outline-none cursor-pointer"
         >
           {SORT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
           ))}
         </select>
       </div>
 
-      <div className="flex gap-8">
-        {/* Sidebar — desktop always visible, mobile toggle */}
-        <div className={`md:block ${showFilters ? "block" : "hidden"} md:w-64 shrink-0`}>
-          <FilterSidebar
-            filters={filters}
-            onChange={(f) => { setFilters(f); setPage(1); }}
-            onClear={handleClearFilters}
-            productCounts={categoryCountMap}
-          />
-        </div>
-
-        {/* Products Grid */}
-        <div className="flex-1 min-w-0">
+      <div>
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(9)].map((_, i) => (
-                <div key={i} className="rounded-card bg-slate-100 animate-pulse aspect-4/5" />
+                <div key={i} className="rounded-card bg-border animate-pulse aspect-4/5" />
               ))}
             </div>
           ) : products.length === 0 ? (
-            <Motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              className="text-center py-24"
-            >
-              <Package size={48} className="mx-auto mb-4 text-slate-300" />
-              <h3 className="text-xl font-black text-slate-900 mb-2">No products found</h3>
-              <p className="text-slate-500 font-medium mb-6">Try adjusting your filters or search terms.</p>
-              <button onClick={handleClearFilters} className="btn btn-primary">Clear Filters</button>
+            <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
+              <Package size={40} className="mx-auto mb-4 text-[#c9c2b3]" />
+              <h3 className="font-heading text-xl text-[#292925] mb-2">No products found</h3>
+              <p className="text-[#6e6e64] mb-6">Try adjusting your filters or search terms.</p>
+              <button onClick={handleClearFilters} className="btn btn-primary">
+                Clear filters
+              </button>
             </Motion.div>
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <AnimatePresence mode="popLayout">
                   {products.map((product, i) => (
-                    <Motion.div
-                      key={product._id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ delay: i * 0.04 }}
-                    >
+                    <Motion.div key={product._id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ delay: i * 0.04 }}>
                       <ProductCard product={product} />
                     </Motion.div>
                   ))}
                 </AnimatePresence>
               </div>
 
-              {/* Pagination */}
               {pagination.totalPages > 1 && (
-                <div className="flex flex-wrap items-center justify-center gap-3 mt-12">
+                <div className="flex flex-wrap items-center justify-center gap-2.5 mt-12">
                   <button
                     onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={page === 1}
-                    className="p-3 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-primary hover:text-primary transition-all disabled:opacity-40"
+                    className="p-2.75 rounded-full border border-border bg-white text-[#4F5B4B] hover:border-accent transition-colors disabled:opacity-40"
                   >
-                    <ChevronLeft size={18} />
+                    <ChevronLeft size={17} />
                   </button>
                   {[...Array(pagination.totalPages)].map((_, i) => (
                     <button
                       key={i + 1}
                       onClick={() => setPage(i + 1)}
-                      className={`w-10 h-10 rounded-xl font-black text-sm transition-all ${
-                        page === i + 1
-                          ? "bg-primary text-white shadow-lg shadow-primary/30"
-                          : "border border-slate-200 bg-white text-slate-600 hover:border-primary hover:text-primary"
+                      className={`w-10 h-10 rounded-full font-medium text-sm transition-colors ${
+                        page === i + 1 ? "bg-accent text-white" : "border border-border bg-white text-[#4F5B4B] hover:border-accent"
                       }`}
                     >
                       {i + 1}
@@ -196,15 +274,35 @@ const Store = () => {
                   <button
                     onClick={() => setPage(Math.min(pagination.totalPages, page + 1))}
                     disabled={page === pagination.totalPages}
-                    className="p-3 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-primary hover:text-primary transition-all disabled:opacity-40"
+                    className="p-2.75 rounded-full border border-border bg-white text-[#4F5B4B] hover:border-accent transition-colors disabled:opacity-40"
                   >
-                    <ChevronRight size={18} />
+                    <ChevronRight size={17} />
                   </button>
                 </div>
               )}
             </>
           )}
-        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-16">
+        {PROMO_TILES.map((tile) => {
+          const Icon = tile.icon;
+          return (
+            <button
+              key={tile.key}
+              onClick={() => pickCategory(tile.key)}
+              className="text-left bg-white border border-border rounded-card overflow-hidden flex flex-col hover:border-[#cfc8ba] transition-colors"
+            >
+              <div className="aspect-3/2 bg-light flex items-center justify-center">
+                <Icon size={36} className="text-accent" />
+              </div>
+              <div className="p-5.5">
+                <p className="m-0 font-heading text-xl font-medium text-[#292925]">{tile.title}</p>
+                <p className="mt-2 mb-0 text-sm text-[#6e6e64]">{tile.desc}</p>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

@@ -3,17 +3,19 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { loginUser } from "../api/auth.api";
 import { motion as Motion } from "framer-motion";
-import { Mail, Lock, LogIn, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
+import AuthSplitLayout from "../components/auth/AuthSplitLayout";
+import GoogleSignInButton from "../components/auth/GoogleSignInButton";
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const { user, login } = useAuth();
   const navigate = useNavigate();
 
-  // Already signed in — don't re-render the login form, just leave
   useEffect(() => {
     if (user) {
       const params = new URLSearchParams(window.location.search);
@@ -23,20 +25,22 @@ const Login = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const onChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const onChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+  const goPostLogin = () => {
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get("redirect");
+    navigate(redirect ? decodeURIComponent(redirect) : "/");
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       const data = await loginUser(formData);
       login(data.data.user, data.data.accessToken);
-      const params = new URLSearchParams(window.location.search);
-      const redirect = params.get("redirect");
-      navigate(redirect ? decodeURIComponent(redirect) : "/");
+      goPostLogin();
     } catch (err) {
       setError(err.response?.data?.message || err.response?.data?.error || "Login failed. Please try again.");
     } finally {
@@ -45,83 +49,91 @@ const Login = () => {
   };
 
   return (
-    <div className="auth-page flex justify-center items-center min-h-[80vh] px-5 py-20">
-      <Motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card p-10 md:p-14 w-full max-w-lg bg-white shadow-2xl shadow-primary/10 border-slate-100"
-      >
-        <div className="text-center mb-10">
-          <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">Welcome Back</h2>
-          <p className="text-slate-500 font-medium">Login to your <span className="text-primary font-black">PetCenter</span> account</p>
+    <AuthSplitLayout
+      panelBg="#4F5B4B"
+      panelVideo="/video/Login-Video.mp4"
+      heading={<>Good to see<br />you again</>}
+      description="Your saved pets, habitat builds and orders are waiting exactly as you left them."
+    >
+      <div className="flex items-center justify-between gap-4 mb-7.5">
+        <p className="m-0 text-[11px] tracking-[0.16em] uppercase text-accent font-semibold">Log in</p>
+        <Link to="/" className="text-[13px] text-[#6e6e64]">
+          Back to site
+        </Link>
+      </div>
+
+      <h1 className="font-heading text-[34px] font-medium tracking-tight mb-2.5">Welcome back</h1>
+      <p className="text-[15px] leading-relaxed text-[#5c5c54] mb-7.5">
+        Pick up where you left off — saved searches, builds and orders are all here.
+      </p>
+
+      {error && (
+        <Motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex items-center gap-2.5 p-3.5 bg-[#F7E9DF] text-[#8f4a28] rounded-xl mb-4 text-sm font-medium"
+        >
+          <AlertCircle size={16} className="shrink-0" />
+          {error}
+        </Motion.div>
+      )}
+
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <label className="flex flex-col gap-1.75 text-[13px] text-[#6e6e64]">
+          Email address
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={onChange}
+            placeholder="you@example.com"
+            required
+            className="border border-border rounded-2xl px-4 py-3.5 text-[15px] text-[#292925] bg-white focus:border-accent outline-none transition-colors"
+          />
+        </label>
+        <label className="flex flex-col gap-1.75 text-[13px] text-[#6e6e64]">
+          Password
+          <input
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={onChange}
+            placeholder="Your password"
+            required
+            className="border border-border rounded-2xl px-4 py-3.5 text-[15px] text-[#292925] bg-white focus:border-accent outline-none transition-colors"
+          />
+        </label>
+
+        <div className="flex items-center justify-between gap-3.5">
+          <label className="flex items-center gap-2.25 text-[13px] text-[#3f3f38] cursor-pointer">
+            <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="w-3.75 h-3.75 accent-accent" />
+            Keep me signed in
+          </label>
+          <Link to="/forgot-password" className="text-[13px] text-secondary">
+            Forgot password?
+          </Link>
         </div>
 
-        {error && (
-          <Motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-3 p-4 bg-rose-50 text-rose-600 rounded-xl mb-8 border border-rose-100 text-sm font-bold"
-          >
-            <AlertCircle size={18} />
-            {error}
-          </Motion.div>
-        )}
+        <button type="submit" disabled={loading} className="btn btn-primary py-4 mt-1">
+          {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Log in"}
+        </button>
+      </form>
 
-        <form onSubmit={onSubmit} className="space-y-6">
-          <div>
-            <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Email Address</label>
-            <div className="relative">
-              <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-primary" size={20} />
-              <input
-                type="email"
-                name="email"
-                placeholder="email@example.com"
-                value={formData.email}
-                onChange={onChange}
-                required
-                className="w-full pl-14 pr-6 py-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-primary/20 outline-none transition-all font-semibold placeholder:text-slate-300"
-              />
-            </div>
-          </div>
+      <div className="flex items-center gap-3.5 my-6.5">
+        <span className="h-px flex-1 bg-border" />
+        <span className="text-xs text-[#6e6e64]">or continue with</span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
 
-          <div>
-            <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-primary" size={20} />
-              <input
-                type="password"
-                name="password"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={onChange}
-                required
-                className="w-full pl-14 pr-6 py-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-primary/20 outline-none transition-all font-semibold placeholder:text-slate-300"
-              />
-            </div>
-          </div>
+      <GoogleSignInButton onSuccess={(u, token) => { login(u, token); goPostLogin(); }} onError={setError} />
 
-          <div className="flex justify-end">
-            <Link to="/forgot-password" className="text-sm font-bold text-primary hover:underline decoration-2 underline-offset-4">
-              Forgot Password?
-            </Link>
-          </div>
-
-          <button type="submit" className="btn btn-primary w-full py-5 text-lg group" disabled={loading}>
-            <span className="flex items-center justify-center gap-3">
-              {loading ? (
-                <div className="animate-spin rounded-full h-6 w-6 border-4 border-white border-t-transparent" />
-              ) : (
-                <><LogIn size={22} className="transition-transform group-hover:translate-x-1" /> Login</>
-              )}
-            </span>
-          </button>
-        </form>
-
-        <p className="text-center mt-10 text-slate-500 font-bold">
-          Don't have an account? <Link to="/register" className="text-primary hover:underline decoration-2 underline-offset-4 ml-1">Sign Up</Link>
-        </p>
-      </Motion.div>
-    </div>
+      <p className="text-center mt-7 text-sm text-[#5c5c54]">
+        New to PetCenter?{" "}
+        <Link to="/register" className="text-[#A8522C] font-medium">
+          Create an account
+        </Link>
+      </p>
+    </AuthSplitLayout>
   );
 };
 

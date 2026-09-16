@@ -43,3 +43,8 @@ export const updateListingStatus = async (id, status) => {
   const { data } = await axiosInstance.put(`/listings/${id}/status`, { status });
   return data;
 };
+
+export const toggleListingPause = async (id) => {
+  const { data } = await axiosInstance.put(`/listings/${id}/pause`);
+  return data;
+};

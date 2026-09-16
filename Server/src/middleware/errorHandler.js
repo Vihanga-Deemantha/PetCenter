@@ -50,6 +50,26 @@ const errorHandler = (err, req, res, _next) => {
     statusCode = 400;
   }
 
+  // Structured, greppable server-side log line — a real APM/error tracker
+  // (Sentry etc.) is the eventual upgrade, but until one is wired in this is
+  // the difference between "a bug surfaces only if someone happens to grep
+  // stdout" and having enough context (route, status, user, stack) to find
+  // it after the fact.
+  if (statusCode >= 500) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        timestamp: new Date().toISOString(),
+        method: req.method,
+        path: req.originalUrl,
+        statusCode,
+        message: err.message,
+        userId: req.user?._id || null,
+        stack: err.stack,
+      })
+    );
+  }
+
   res.status(statusCode).json({
     success: false,
     message,

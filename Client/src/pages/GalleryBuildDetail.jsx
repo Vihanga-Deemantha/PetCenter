@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { motion as Motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Package, Shuffle, Search } from "lucide-react";
 import { getGalleryBuild, cloneBuild } from "../api/ecosystem.api";
 import { useAuth } from "../context/AuthContext";
 import { useBuilder } from "../context/BuilderContext";
 import { PET_ICONS } from "./EcosystemPicker";
-
-const formatPrice = (cents) =>
-  cents === 0 ? "$0.00" : `$${(cents / 100).toFixed(2)}`;
+import { formatPrice } from "../utils/priceFormatter";
 
 export default function GalleryBuildDetail() {
   const { id } = useParams();
@@ -38,21 +38,19 @@ export default function GalleryBuildDetail() {
 
   const handleClone = async () => {
     if (!user) {
-      navigate(`/login?redirect=/ecosystem/gallery/${id}`);
+      navigate(`/login?redirect=${encodeURIComponent(`/ecosystem/gallery/${id}`)}`);
       return;
     }
     setCloning(true);
     try {
       const res = await cloneBuild(id);
       const cloned = res.data.data;
-      showToast("✅ Build cloned! Loading it in the builder...");
-      // Update local clone count optimistically
+      showToast("Build cloned — loading it in the builder...");
       setBuild((prev) => ({ ...prev, cloneCount: (prev.cloneCount || 0) + 1 }));
-      // Load cloned build in builder and navigate
       setTimeout(() => {
         loadBuild(cloned);
         navigate(`/ecosystem/build/${cloned.petType}?step=3`);
-      }, 1200);
+      }, 1100);
     } catch {
       showToast("Failed to clone this build. Please try again.", "error");
     } finally {
@@ -61,31 +59,22 @@ export default function GalleryBuildDetail() {
   };
 
   if (loading) return <DetailSkeleton />;
-  if (error) return (
-    <div style={{ textAlign: "center", padding: 64 }}>
-      <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
-      <h2 style={{ color: "#1a1a1a", marginBottom: 8 }}>Build not found</h2>
-      <p style={{ color: "#888", marginBottom: 24 }}>{error}</p>
-      <button
-        onClick={() => navigate("/ecosystem/gallery")}
-        style={{
-          padding: "11px 24px",
-          background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
-          color: "#fff",
-          border: "none",
-          borderRadius: 12,
-          fontWeight: 700,
-          cursor: "pointer",
-        }}
-      >
-        ← Back to Gallery
-      </button>
-    </div>
-  );
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-7 pt-8 pb-24 text-center">
+        <Search size={40} className="mx-auto mb-4 text-[#c9c2b3]" />
+        <h2 className="font-heading text-2xl mb-2">Build not found</h2>
+        <p className="text-[#6e6e64] mb-6">{error}</p>
+        <Link to="/ecosystem/gallery" className="btn btn-primary">
+          <ArrowLeft size={16} /> Back to gallery
+        </Link>
+      </div>
+    );
+  }
 
   const icon = PET_ICONS[build.petType] || "🐾";
 
-  // Group selections by categoryKey
   const grouped = {};
   for (const sel of build.selections || []) {
     if (!grouped[sel.categoryKey]) grouped[sel.categoryKey] = [];
@@ -93,102 +82,69 @@ export default function GalleryBuildDetail() {
   }
 
   return (
-    <div style={{ maxWidth: 780, margin: "0 auto" }}>
-      {/* Back */}
-      <button
-        onClick={() => navigate("/ecosystem/gallery")}
-        style={{
-          background: "none", border: "none", cursor: "pointer",
-          color: "#7c3aed", fontSize: 14, fontWeight: 600, padding: 0, marginBottom: 20,
-          display: "flex", alignItems: "center", gap: 6,
-        }}
-      >
-        ← Back to Gallery
+    <div className="max-w-4xl mx-auto px-7 pt-8 pb-24">
+      <button onClick={() => navigate("/ecosystem/gallery")} className="flex items-center gap-1.5 text-secondary text-sm font-medium mb-5">
+        <ArrowLeft size={15} /> Back to gallery
       </button>
 
-      {/* Header */}
-      <div style={{
-        background: "linear-gradient(135deg, #f5f3ff, #ede9fe)",
-        borderRadius: 20,
-        padding: "28px 32px",
-        marginBottom: 24,
-        display: "flex",
-        gap: 20,
-        alignItems: "flex-start",
-        flexWrap: "wrap",
-      }}>
-        <div style={{ fontSize: 52 }}>{icon}</div>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 12, color: "#7c3aed", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
-            {build.petType} ecosystem
-          </div>
-          <h1 style={{ fontSize: "clamp(20px, 4vw, 28px)", fontWeight: 800, color: "#1a1a1a", margin: "0 0 6px" }}>
-            {build.name}
-          </h1>
-          <div style={{ fontSize: 13, color: "#666", marginBottom: 12 }}>
-            by <strong style={{ color: "#4c1d95" }}>{build.userId?.name || "Anonymous"}</strong>
-            {" · "}{build.selections?.length || 0} items
-            {build.cloneCount > 0 && ` · 🔀 ${build.cloneCount} ${build.cloneCount === 1 ? "person" : "people"} built this`}
-          </div>
+      <div className="bg-secondary text-light rounded-[24px] px-7 sm:px-9 py-7 sm:py-8 mb-7 flex gap-5 items-start flex-wrap">
+        <div className="text-[44px] leading-none">{icon}</div>
+        <div className="flex-1 min-w-50">
+          <p className="m-0 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#C8CFC1]">{build.petType} ecosystem</p>
+          <h1 className="font-heading text-[26px] sm:text-[32px] font-medium m-0 mb-2 tracking-tight">{build.name}</h1>
+          <p className="m-0 mb-4 text-[13px] text-[#DCE0D6]">
+            by <strong className="text-white">{build.userId?.name || "Anonymous"}</strong> · {build.selections?.length || 0} items
+            {build.cloneCount > 0 && (
+              <>
+                {" "}
+                · {build.cloneCount} {build.cloneCount === 1 ? "person" : "people"} built this
+              </>
+            )}
+          </p>
 
-          {/* Total */}
-          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <div className="flex items-center gap-5 flex-wrap">
             <div>
-              <div style={{ fontSize: 11, color: "#888", fontWeight: 600 }}>Total cost</div>
-              <div style={{ fontSize: 24, fontWeight: 800, color: "#4c1d95" }}>
-                {formatPrice(build.totalPrice)}
-              </div>
+              <p className="m-0 text-[11px] font-semibold text-[#C8CFC1] uppercase tracking-wider">Total cost</p>
+              <p className="m-0 mt-0.5 font-heading text-2xl font-medium">{formatPrice(build.totalPrice)}</p>
             </div>
-            {/* Clone CTA */}
-            <button
-              onClick={handleClone}
-              disabled={cloning}
-              style={{
-                padding: "12px 24px",
-                background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
-                color: "#fff",
-                border: "none",
-                borderRadius: 12,
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: cloning ? "not-allowed" : "pointer",
-                opacity: cloning ? 0.75 : 1,
-                boxShadow: "0 4px 16px rgba(124,58,237,0.35)",
-              }}
-            >
-              {cloning ? "Cloning..." : !user ? "Login to Clone" : "🔀 Clone this build"}
+            <button onClick={handleClone} disabled={cloning} className="btn btn-primary px-6.5 py-3.25">
+              {cloning ? "Cloning..." : !user ? "Log in to clone" : (
+                <>
+                  <Shuffle size={15} /> Clone this build
+                </>
+              )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Selections grouped by category */}
       {Object.entries(grouped).map(([categoryKey, selections]) => (
         <CategoryGroup key={categoryKey} categoryKey={categoryKey} selections={selections} />
       ))}
 
-      {/* Toast */}
-      {toast && <Toast msg={toast.msg} type={toast.type} />}
+      <AnimatePresence>
+        {toast && (
+          <Motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="fixed left-1/2 bottom-7 -translate-x-1/2 z-120 rounded-full px-5.5 py-3.25 text-sm font-medium shadow-xl"
+            style={toast.type === "error" ? { background: "#F7E9DF", color: "#8f4a28" } : { background: "#292925", color: "#F7F4ED" }}
+          >
+            {toast.msg}
+          </Motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-// ─── Category Group ───────────────────────────────────────────────────────────
 function CategoryGroup({ categoryKey, selections }) {
   const label = categoryKey.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   return (
-    <div style={{ marginBottom: 20 }}>
-      <h3 style={{
-        fontSize: 13,
-        fontWeight: 700,
-        color: "#888",
-        textTransform: "uppercase",
-        letterSpacing: "0.06em",
-        marginBottom: 10,
-      }}>
-        {label}
-      </h3>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    <div className="mb-6">
+      <p className="m-0 mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#8a8a80]">{label}</p>
+      <div className="flex flex-col gap-2.5">
         {selections.map((sel, i) => (
           <SelectionRow key={i} sel={sel} />
         ))}
@@ -197,94 +153,33 @@ function CategoryGroup({ categoryKey, selections }) {
   );
 }
 
-// ─── Selection Row ────────────────────────────────────────────────────────────
 function SelectionRow({ sel }) {
   const { productSnapshot } = sel;
   return (
-    <div style={{
-      display: "flex",
-      gap: 14,
-      alignItems: "center",
-      background: "#fff",
-      border: "1.5px solid #e5e7eb",
-      borderRadius: 12,
-      padding: "12px 16px",
-    }}>
-      {/* Image */}
-      <div style={{
-        width: 52,
-        height: 52,
-        borderRadius: 8,
-        overflow: "hidden",
-        background: "#f3f4f6",
-        flexShrink: 0,
-      }}>
+    <div className="flex items-center gap-3.5 bg-white border border-[#E8E2D8] rounded-2xl px-4 py-3">
+      <div className="w-13 h-13 rounded-xl overflow-hidden bg-light shrink-0">
         {productSnapshot?.image ? (
-          <img
-            src={productSnapshot.image}
-            alt={productSnapshot.name}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
+          <img src={productSnapshot.image} alt={productSnapshot.name} className="w-full h-full object-cover" />
         ) : (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 22 }}>📦</div>
+          <div className="w-full h-full flex items-center justify-center">
+            <Package size={18} className="text-[#c9c2b3]" />
+          </div>
         )}
       </div>
-
-      {/* Name + price */}
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: "#1a1a1a", marginBottom: 2 }}>
-          {productSnapshot?.name || "Unknown product"}
-        </div>
-        <div style={{ fontSize: 13, color: "#7c3aed", fontWeight: 700 }}>
-          {formatPrice(productSnapshot?.price || 0)}
-        </div>
+      <div className="flex-1 min-w-0">
+        <p className="m-0 text-sm font-semibold text-[#292925] truncate">{productSnapshot?.name || "Unknown product"}</p>
+        <p className="m-0 mt-0.5 text-[13px] font-semibold text-primary">{formatPrice(productSnapshot?.price || 0)}</p>
       </div>
     </div>
   );
 }
 
-// ─── Skeleton ────────────────────────────────────────────────────────────────
 function DetailSkeleton() {
   return (
-    <div style={{ maxWidth: 780, margin: "0 auto" }}>
+    <div className="max-w-4xl mx-auto px-7 pt-8 pb-24">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} style={{
-          height: i === 1 ? 140 : 70,
-          background: "linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%)",
-          backgroundSize: "200% 100%",
-          animation: "shimmer 1.4s infinite",
-          borderRadius: 16,
-          marginBottom: 16,
-        }} />
+        <div key={i} className={`bg-border rounded-2xl animate-pulse mb-4 ${i === 1 ? "h-36" : "h-16"}`} />
       ))}
-      <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
-    </div>
-  );
-}
-
-// ─── Toast ────────────────────────────────────────────────────────────────────
-function Toast({ msg, type }) {
-  const bg = type === "error" ? "#fef2f2" : "#f0fdf4";
-  const border = type === "error" ? "#fca5a5" : "#86efac";
-  const color = type === "error" ? "#b91c1c" : "#166534";
-  return (
-    <div style={{
-      position: "fixed",
-      bottom: 24,
-      left: "50%",
-      transform: "translateX(-50%)",
-      background: bg,
-      border: `1px solid ${border}`,
-      borderRadius: 12,
-      padding: "12px 20px",
-      fontSize: 14,
-      color,
-      fontWeight: 600,
-      zIndex: 2000,
-      maxWidth: "90vw",
-      boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-    }}>
-      {msg}
     </div>
   );
 }

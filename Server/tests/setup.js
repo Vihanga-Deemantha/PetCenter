@@ -17,6 +17,7 @@ process.env.STRIPE_SECRET_KEY ||= "sk_test_placeholder";
 process.env.CLOUDINARY_CLOUD_NAME ||= "test";
 process.env.CLOUDINARY_API_KEY ||= "test";
 process.env.CLOUDINARY_API_SECRET ||= "test";
+process.env.GOOGLE_CLIENT_ID ||= "test-google-client-id";
 process.env.NODE_ENV = "test";
 
 // Connects to the single MongoMemoryServer instance globalSetup.js started

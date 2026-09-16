@@ -1,17 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { getPetConfig } from "../api/ecosystem.api";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
+import { motion as Motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Check, ChevronDown, ChevronUp, AlertTriangle, Package, Save, ShoppingCart, X } from "lucide-react";
+import { getPetConfig, createBuild, bulkAddToCart } from "../api/ecosystem.api";
 import { getProducts } from "../api/product.api";
-import { createBuild } from "../api/ecosystem.api";
-import { bulkAddToCart } from "../api/ecosystem.api";
 import { useBuilder } from "../context/BuilderContext";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-import { StepIndicator, PET_ICONS } from "./EcosystemPicker";
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-const formatPrice = (cents) =>
-  cents === 0 ? "$0.00" : `$${(cents / 100).toFixed(2)}`;
+import { PET_ICONS } from "./EcosystemPicker";
+import StepIndicator from "../components/ecosystem/StepIndicator";
+import { formatPrice } from "../utils/priceFormatter";
 
 export default function EcosystemBuilder() {
   const { petType } = useParams();
@@ -19,26 +17,15 @@ export default function EcosystemBuilder() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { fetchCart } = useCart();
-  const {
-    selections,
-    toggleSelection,
-    getTotalPrice,
-    getMissingRequired,
-    isReadyToAddCart,
-    getSelectedItems,
-    totalItemCount,
-    clearSelections,
-    setPet,
-  } = useBuilder();
+  const { selections, toggleSelection, getTotalPrice, getMissingRequired, isReadyToAddCart, getSelectedItems, totalItemCount, clearSelections, setPet } = useBuilder();
 
   const step = parseInt(searchParams.get("step") || "2");
 
   const [petConfig, setPetConfig] = useState(null);
-  const [allProducts, setAllProducts] = useState([]);   // all products for this petType
+  const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // UI state
   const [openCategories, setOpenCategories] = useState({});
   const [toast, setToast] = useState(null);
   const [buildName, setBuildName] = useState("");
@@ -46,26 +33,18 @@ export default function EcosystemBuilder() {
   const [cartLoading, setCartLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
 
-  // Fetch config + products once
   useEffect(() => {
     if (!petType) return;
-    document.title = `Build a ${petType} Setup | PetCenter`;
+    document.title = `Build a ${petType} setup | PetCenter`;
     setLoading(true);
     setError(null);
-
-    // Sync context pet type
     setPet(petType);
 
-    Promise.all([
-      getPetConfig(petType),
-      getProducts({ compatiblePets: petType, limit: 200, inStock: "false" }),
-    ])
+    Promise.all([getPetConfig(petType), getProducts({ compatiblePets: petType, limit: 200, inStock: "false" })])
       .then(([configRes, productsRes]) => {
         const config = configRes.data.data;
         setPetConfig(config);
         setAllProducts(productsRes.data.data || []);
-
-        // Expand required categories by default
         const expanded = {};
         config.categories.forEach((cat) => {
           if (cat.required) expanded[cat.key] = true;
@@ -74,28 +53,21 @@ export default function EcosystemBuilder() {
       })
       .catch(() => setError("Failed to load builder data. Please refresh."))
       .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [petType]);
 
-  // Redirect if no step
   useEffect(() => {
-    if (!searchParams.get("step")) {
-      setSearchParams({ step: "2" }, { replace: true });
-    }
+    if (!searchParams.get("step")) setSearchParams({ step: "2" }, { replace: true });
   }, [searchParams, setSearchParams]);
 
-  // Build a product lookup map for price calculations
   const productMap = useMemo(() => {
     const map = {};
     allProducts.forEach((p) => { map[p._id] = p; });
     return map;
   }, [allProducts]);
 
-  // Get products for a specific category key
-  const getProductsForCategory = (categoryKey) =>
-    allProducts.filter((p) => p.tags?.includes(categoryKey));
+  const getProductsForCategory = (categoryKey) => allProducts.filter((p) => p.tags?.includes(categoryKey));
 
-  // Live total price
   const liveTotal = getTotalPrice(productMap);
   const missingRequired = petConfig ? getMissingRequired(petConfig) : [];
   const canAddToCart = isReadyToAddCart(petConfig);
@@ -105,7 +77,6 @@ export default function EcosystemBuilder() {
     setTimeout(() => setToast(null), 4500);
   };
 
-  // ── Add all to cart ────────────────────────────────────────────────────────
   const handleAddToCart = async () => {
     if (!user) {
       navigate(`/login?redirect=${encodeURIComponent(`/ecosystem/build/${petType}?step=3`)}`);
@@ -118,14 +89,8 @@ export default function EcosystemBuilder() {
       const { added, failed } = res.data.data;
       await fetchCart();
       clearSelections();
-      if (failed.length === 0) {
-        showToast(`🎉 ${added.length} items added to your cart!`);
-      } else {
-        showToast(
-          `✅ ${added.length} items added. ⚠️ ${failed.length} out of stock: ${failed.map((f) => f.name || f.productId).join(", ")}`,
-          "warning"
-        );
-      }
+      if (failed.length === 0) showToast(`${added.length} items added to your cart.`);
+      else showToast(`${added.length} added. ${failed.length} out of stock: ${failed.map((f) => f.name || f.productId).join(", ")}`, "warning");
     } catch {
       showToast("Failed to add items to cart. Please try again.", "error");
     } finally {
@@ -133,7 +98,6 @@ export default function EcosystemBuilder() {
     }
   };
 
-  // ── Save build ─────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!user) {
       navigate(`/login?redirect=${encodeURIComponent(`/ecosystem/build/${petType}?step=3`)}`);
@@ -145,14 +109,12 @@ export default function EcosystemBuilder() {
       const items = getSelectedItems();
       const selPayload = items.map((item) => ({
         productId: item.productId,
-        categoryKey: Object.entries(selections).find(([, ids]) =>
-          ids.includes(item.productId)
-        )?.[0],
+        categoryKey: Object.entries(selections).find(([, ids]) => ids.includes(item.productId))?.[0],
       }));
       await createBuild({ name: buildName.trim(), petType, selections: selPayload });
       setShowSaveModal(false);
       setBuildName("");
-      showToast("✅ Build saved! View it in My Builds.");
+      showToast("Build saved — view it in My Builds.");
     } catch (err) {
       showToast(err.response?.data?.message || "Failed to save build.", "error");
     } finally {
@@ -161,100 +123,57 @@ export default function EcosystemBuilder() {
   };
 
   if (loading) return <BuilderSkeleton />;
-  if (error) return (
-    <div style={{ textAlign: "center", padding: 48, color: "#c62828" }}>{error}</div>
-  );
+  if (error)
+    return (
+      <div className="max-w-7xl mx-auto px-7 py-16 text-center text-[#8f4a28]">{error}</div>
+    );
   if (!petConfig) return null;
 
   const icon = PET_ICONS[petType] || "🐾";
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-      {/* ── Header ────────────────────────────────────────────────────────── */}
-      <div style={{ marginBottom: 24 }}>
-        <button
-          onClick={() => navigate("/ecosystem")}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "#7c3aed",
-            fontSize: 14,
-            fontWeight: 600,
-            padding: 0,
-            marginBottom: 12,
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          ← Back to pet picker
-        </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-          <span style={{ fontSize: 36 }}>{icon}</span>
-          <h1 style={{ fontSize: "clamp(22px, 4vw, 32px)", fontWeight: 800, color: "#1a1a1a", margin: 0 }}>
-            {petConfig.displayName} Setup Builder
-          </h1>
-        </div>
-        <StepIndicator currentStep={step} />
+    <div className="max-w-7xl mx-auto px-7 pt-8 pb-24">
+      <button onClick={() => navigate("/ecosystem")} className="flex items-center gap-1.5 text-secondary text-sm font-medium mb-3.5">
+        <ArrowLeft size={15} /> Back to pet picker
+      </button>
+      <div className="flex items-center gap-3 mb-5">
+        <span className="text-3xl leading-none">{icon}</span>
+        <h1 className="font-heading text-[26px] sm:text-[32px] font-medium m-0 tracking-tight">{petConfig.displayName} setup builder</h1>
       </div>
+      <StepIndicator currentStep={step} />
 
-      {/* ── STEP 2: Requirements Overview ─────────────────────────────────── */}
-      {step === 2 && (
-        <Step2Requirements
-          petConfig={petConfig}
-          onStart={() => setSearchParams({ step: "3" })}
-          onChangePet={() => navigate("/ecosystem")}
-        />
-      )}
+      {step === 2 && <Step2Requirements petConfig={petConfig} onStart={() => setSearchParams({ step: "3" })} onChangePet={() => navigate("/ecosystem")} />}
 
-      {/* ── STEP 3: Product Selection ──────────────────────────────────────── */}
       {step === 3 && (
-        <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-          {/* Left: Accordion */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-7 items-start">
+          <div className="min-w-0">
             {petConfig.categories.map((cat) => {
               const products = getProductsForCategory(cat.key);
               const selected = selections[cat.key] || [];
               const isOpen = openCategories[cat.key];
               const isMissing = cat.required && selected.length === 0;
-
               return (
-                <CategoryAccordion
+                <CategoryCard
                   key={cat.key}
                   category={cat}
                   products={products}
                   selected={selected}
                   isOpen={isOpen}
                   isMissing={isMissing}
-                  onToggleOpen={() =>
-                    setOpenCategories((prev) => ({ ...prev, [cat.key]: !prev[cat.key] }))
-                  }
-                  onToggleProduct={(productId) =>
-                    toggleSelection(cat.key, productId, cat.maxSelectable)
-                  }
+                  onToggleOpen={() => setOpenCategories((prev) => ({ ...prev, [cat.key]: !prev[cat.key] }))}
+                  onToggleProduct={(productId) => toggleSelection(cat.key, productId, cat.maxSelectable)}
                 />
               );
             })}
           </div>
 
-          {/* Right: Summary Panel (desktop) */}
-          <div style={{
-            width: 300,
-            flexShrink: 0,
-            position: "sticky",
-            top: 100,
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-          }}>
+          <div className="lg:sticky lg:top-28">
             <SummaryPanel
               liveTotal={liveTotal}
               totalItemCount={totalItemCount}
               missingRequired={missingRequired}
               canAddToCart={canAddToCart}
               cartLoading={cartLoading}
-              saveLoading={saveLoading}
               onAddToCart={handleAddToCart}
               onSave={() => { setShowSaveModal(true); setBuildName(`My ${petConfig.displayName} Setup`); }}
               petConfig={petConfig}
@@ -264,79 +183,40 @@ export default function EcosystemBuilder() {
         </div>
       )}
 
-      {/* ── Save Modal ─────────────────────────────────────────────────────── */}
-      {showSaveModal && (
-        <SaveModal
-          value={buildName}
-          onChange={setBuildName}
-          onSave={handleSave}
-          onClose={() => setShowSaveModal(false)}
-          loading={saveLoading}
-        />
-      )}
+      {showSaveModal && <SaveModal value={buildName} onChange={setBuildName} onSave={handleSave} onClose={() => setShowSaveModal(false)} loading={saveLoading} />}
 
-      {/* ── Toast ──────────────────────────────────────────────────────────── */}
-      {toast && <Toast msg={toast.msg} type={toast.type} />}
+      <AnimatePresence>{toast && <Toast msg={toast.msg} type={toast.type} />}</AnimatePresence>
     </div>
   );
 }
 
-// ─── Step 2: Requirements Overview ───────────────────────────────────────────
+// ─── Step 2: Requirements overview ───────────────────────────────────────────
 function Step2Requirements({ petConfig, onStart, onChangePet }) {
   const { habitat, categories, tips, description } = petConfig;
   const required = categories.filter((c) => c.required);
   const optional = categories.filter((c) => !c.required);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr minmax(0,340px)", gap: 24 }}>
-      {/* Left */}
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-7">
       <div>
-        {/* Description */}
-        <div style={{
-          background: "linear-gradient(135deg, #f5f3ff, #ede9fe)",
-          borderRadius: 16,
-          padding: "20px 24px",
-          marginBottom: 20,
-          borderLeft: "4px solid #7c3aed",
-        }}>
-          <p style={{ fontSize: 15, color: "#4a148c", lineHeight: 1.7, margin: 0 }}>
-            {description}
-          </p>
+        <div className="bg-secondary text-light rounded-2xl px-7 py-6 mb-6">
+          <p className="m-0 text-[15px] leading-relaxed text-[#EDEFE8]">{description}</p>
         </div>
 
-        {/* Habitat stats */}
         {habitat && (
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
-            gap: 10,
-            marginBottom: 20,
-          }}>
-            {habitat.tankSizeMin && (
-              <StatCard icon="🏠" label="Min size" value={`${habitat.tankSizeMin}L`} />
-            )}
-            {habitat.temperatureRange && (
-              <StatCard icon="🌡️" label="Temperature" value={`${habitat.temperatureRange.min}–${habitat.temperatureRange.max}°C`} />
-            )}
-            {habitat.humidityRange && (
-              <StatCard icon="💧" label="Humidity" value={`${habitat.humidityRange.min}–${habitat.humidityRange.max}%`} />
-            )}
-            {habitat.lightingHours > 0 && (
-              <StatCard icon="☀️" label="Light/day" value={`${habitat.lightingHours}h`} />
-            )}
-            {habitat.uvRequired && (
-              <StatCard icon="⚡" label="UV-B" value="Required" highlight />
-            )}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            {habitat.tankSizeMin && <StatCard label="Min size" value={`${habitat.tankSizeMin}L`} />}
+            {habitat.temperatureRange && <StatCard label="Temperature" value={`${habitat.temperatureRange.min}–${habitat.temperatureRange.max}°C`} />}
+            {habitat.humidityRange && <StatCard label="Humidity" value={`${habitat.humidityRange.min}–${habitat.humidityRange.max}%`} />}
+            {habitat.lightingHours > 0 && <StatCard label="Light/day" value={`${habitat.lightingHours}h`} />}
+            {habitat.uvRequired && <StatCard label="UV-B" value="Required" highlight />}
           </div>
         )}
 
-        {/* Category checklist */}
-        <h3 style={{ fontSize: 15, fontWeight: 700, color: "#1a1a1a", marginBottom: 12 }}>
-          What you'll build
-        </h3>
+        <h3 className="font-heading text-xl font-medium mb-3.5">What you'll build</h3>
         {required.length > 0 && (
           <>
-            <p style={{ fontSize: 12, fontWeight: 700, color: "#7c3aed", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>Required</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-accent mb-2">Required</p>
             {required.map((cat) => (
               <ChecklistItem key={cat.key} label={cat.label} description={cat.description} required />
             ))}
@@ -344,69 +224,28 @@ function Step2Requirements({ petConfig, onStart, onChangePet }) {
         )}
         {optional.length > 0 && (
           <>
-            <p style={{ fontSize: 12, fontWeight: 700, color: "#888", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 14, marginBottom: 6 }}>Optional</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#8a8a80] mt-4.5 mb-2">Optional</p>
             {optional.map((cat) => (
               <ChecklistItem key={cat.key} label={cat.label} description={cat.description} />
             ))}
           </>
         )}
 
-        {/* CTAs */}
-        <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
-          <button
-            onClick={onStart}
-            style={{
-              padding: "12px 28px",
-              background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
-              color: "#fff",
-              border: "none",
-              borderRadius: 12,
-              fontWeight: 700,
-              fontSize: 15,
-              cursor: "pointer",
-              boxShadow: "0 4px 16px rgba(124,58,237,0.35)",
-            }}
-          >
-            Start Building →
+        <div className="flex gap-3 mt-6.5">
+          <button onClick={onStart} className="btn btn-primary px-7 py-3.25">
+            Start building →
           </button>
-          <button
-            onClick={onChangePet}
-            style={{
-              padding: "12px 20px",
-              background: "#f3f4f6",
-              color: "#374151",
-              border: "none",
-              borderRadius: 12,
-              fontWeight: 600,
-              fontSize: 14,
-              cursor: "pointer",
-            }}
-          >
-            Change Pet
+          <button onClick={onChangePet} className="btn bg-light text-[#4F5B4B] hover:bg-border px-5 py-3.25">
+            Change pet
           </button>
         </div>
       </div>
 
-      {/* Right: Tips sidebar */}
-      <div style={{
-        background: "#f8f8f8",
-        borderRadius: 16,
-        padding: "20px 20px",
-        border: "1px solid #eee",
-      }}>
-        <h3 style={{ fontSize: 14, fontWeight: 700, color: "#1a1a1a", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
-          💡 Care tips
-        </h3>
+      <div className="bg-white border border-border rounded-2xl p-6">
+        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">💡 Care tips</h3>
         {tips?.map((tip, i) => (
-          <div key={i} style={{
-            display: "flex",
-            gap: 10,
-            marginBottom: 14,
-            fontSize: 13,
-            color: "#555",
-            lineHeight: 1.6,
-          }}>
-            <span style={{ color: "#7c3aed", fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>
+          <div key={i} className="flex gap-2.5 mb-3.5 text-[13px] text-[#5c5c54] leading-relaxed">
+            <span className="text-primary font-semibold shrink-0">{i + 1}.</span>
             <span>{tip}</span>
           </div>
         ))}
@@ -415,152 +254,58 @@ function Step2Requirements({ petConfig, onStart, onChangePet }) {
   );
 }
 
-// ─── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({ icon, label, value, highlight }) {
+function StatCard({ label, value, highlight }) {
   return (
-    <div style={{
-      background: highlight ? "#fef3c7" : "#fff",
-      border: `1px solid ${highlight ? "#fbbf24" : "#e5e7eb"}`,
-      borderRadius: 10,
-      padding: "10px 12px",
-      textAlign: "center",
-    }}>
-      <div style={{ fontSize: 20, marginBottom: 4 }}>{icon}</div>
-      <div style={{ fontSize: 11, color: "#888", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</div>
-      <div style={{ fontSize: 14, fontWeight: 700, color: highlight ? "#92400e" : "#1a1a1a", marginTop: 2 }}>{value}</div>
+    <div className={`rounded-xl p-3.5 text-center border ${highlight ? "bg-[#F7E9DF] border-[#f0d9c8]" : "bg-white border-border"}`}>
+      <p className={`m-0 text-[11px] font-semibold uppercase tracking-wider ${highlight ? "text-[#8f4a28]" : "text-[#8a8a80]"}`}>{label}</p>
+      <p className={`m-0 mt-1 text-sm font-semibold ${highlight ? "text-[#8f4a28]" : "text-[#292925]"}`}>{value}</p>
     </div>
   );
 }
 
-// ─── Checklist Item ───────────────────────────────────────────────────────────
 function ChecklistItem({ label, description, required }) {
   return (
-    <div style={{
-      display: "flex",
-      gap: 10,
-      padding: "8px 0",
-      borderBottom: "1px solid #f3f4f6",
-      alignItems: "flex-start",
-    }}>
-      <span style={{
-        fontSize: 13,
-        color: required ? "#7c3aed" : "#9ca3af",
-        flexShrink: 0,
-        marginTop: 1,
-      }}>
-        {required ? "🔒" : "○"}
-      </span>
+    <div className="flex gap-2.5 py-2.5 border-b border-border items-start">
+      <span className={`text-sm mt-0.5 shrink-0 ${required ? "text-primary" : "text-[#a8a49a]"}`}>{required ? "●" : "○"}</span>
       <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a" }}>{label}</div>
-        <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{description}</div>
+        <div className="text-[13.5px] font-semibold text-[#292925]">{label}</div>
+        <div className="text-xs text-[#8a8a80] mt-0.5">{description}</div>
       </div>
     </div>
   );
 }
 
-// ─── Category Accordion ───────────────────────────────────────────────────────
-function CategoryAccordion({ category, products, selected, isOpen, isMissing, onToggleOpen, onToggleProduct }) {
+// ─── Category card (layer) ────────────────────────────────────────────────────
+function CategoryCard({ category, products, selected, isOpen, isMissing, onToggleOpen, onToggleProduct }) {
   const selectedProducts = products.filter((p) => selected.includes(p._id));
   const hasOutOfStockSelection = selectedProducts.some((p) => p.stock === 0);
 
   return (
-    <div style={{
-      background: "#fff",
-      border: isMissing ? "1.5px solid #fca5a5" : "1.5px solid #e5e7eb",
-      borderRadius: 14,
-      marginBottom: 12,
-      overflow: "hidden",
-      boxShadow: isMissing ? "0 2px 8px rgba(239,68,68,0.08)" : "none",
-    }}>
-      {/* Header */}
-      <button
-        onClick={onToggleOpen}
-        style={{
-          width: "100%",
-          padding: "14px 18px",
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          textAlign: "left",
-        }}
-      >
-        <span style={{ fontSize: 18 }}>{isOpen ? "▾" : "▸"}</span>
-        <span style={{ fontWeight: 700, fontSize: 14, color: "#1a1a1a", flex: 1 }}>
-          {category.label}
-        </span>
-        <span style={{
-          fontSize: 11,
-          fontWeight: 700,
-          padding: "3px 10px",
-          borderRadius: 20,
-          background: category.required ? "#ede9fe" : "#f3f4f6",
-          color: category.required ? "#7c3aed" : "#6b7280",
-        }}>
-          {category.required ? "Required" : "Optional"}
-        </span>
-        <span style={{
-          fontSize: 12,
-          color: selected.length > 0 ? "#16a34a" : "#9ca3af",
-          fontWeight: 600,
-          marginLeft: 4,
-        }}>
+    <div className={`bg-white rounded-2xl mb-3.5 overflow-hidden border transition-colors ${isMissing ? "border-[#e3b09a]" : "border-border"}`}>
+      <button onClick={onToggleOpen} className="w-full px-5 py-4 flex items-center gap-2.5 text-left">
+        {isOpen ? <ChevronUp size={17} className="text-[#8a8a80]" /> : <ChevronDown size={17} className="text-[#8a8a80]" />}
+        <span className="font-semibold text-[#292925] text-[14.5px] flex-1">{category.label}</span>
+        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${category.required ? "bg-accent/10 text-secondary" : "bg-border text-[#6e6e64]"}`}>{category.required ? "Required" : "Optional"}</span>
+        <span className={`text-xs font-semibold ${selected.length > 0 ? "text-[#40543C]" : "text-[#a8a49a]"}`}>
           {selected.length}/{category.maxSelectable}
         </span>
         {hasOutOfStockSelection && (
-          <span style={{
-            fontSize: 10,
-            fontWeight: 800,
-            background: "#fee2e2",
-            color: "#ef4444",
-            padding: "2px 8px",
-            borderRadius: 6,
-            marginLeft: 8,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-          }} title="One of your saved items is out of stock">
-            ⚠️ Out of Stock
+          <span className="text-[10px] font-semibold bg-[#F7E9DF] text-[#8f4a28] px-2 py-0.5 rounded-md flex items-center gap-1" title="One of your saved items is out of stock">
+            <AlertTriangle size={10} /> Out of stock
           </span>
         )}
-        {isMissing && (
-          <span style={{ fontSize: 16 }}>⚠️</span>
-        )}
+        {isMissing && <AlertTriangle size={15} className="text-[#b4573a]" />}
       </button>
 
-      {/* Body */}
       {isOpen && (
-        <div style={{ padding: "0 18px 18px" }}>
-          <p style={{ fontSize: 12, color: "#888", marginBottom: 12, lineHeight: 1.5 }}>
-            {category.description}
-          </p>
-
+        <div className="px-5 pb-5">
+          <p className="text-xs text-[#8a8a80] mb-3">{category.description}</p>
           {products.length === 0 ? (
-            <div style={{
-              textAlign: "center",
-              padding: "24px 16px",
-              background: "#f9fafb",
-              borderRadius: 10,
-              color: "#9ca3af",
-              fontSize: 13,
-            }}>
-              No {category.label.toLowerCase()} products available yet
-            </div>
+            <div className="text-center py-6 bg-light rounded-xl text-[#a8a49a] text-[13px]">No {category.label.toLowerCase()} products available yet</div>
           ) : (
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-              gap: 10,
-            }}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
               {products.map((product) => (
-                <ProductCard
-                  key={product._id}
-                  product={product}
-                  isSelected={selected.includes(product._id)}
-                  onToggle={() => onToggleProduct(product._id)}
-                />
+                <BuilderProductCard key={product._id} product={product} isSelected={selected.includes(product._id)} onToggle={() => onToggleProduct(product._id)} />
               ))}
             </div>
           )}
@@ -570,241 +315,89 @@ function CategoryAccordion({ category, products, selected, isOpen, isMissing, on
   );
 }
 
-// ─── Product Card (compact, builder-specific) ────────────────────────────────
-function ProductCard({ product, isSelected, onToggle }) {
+function BuilderProductCard({ product, isSelected, onToggle }) {
   const outOfStock = product.stock === 0;
-  const [hovered, setHovered] = useState(false);
-
   return (
     <button
       onClick={outOfStock && !isSelected ? undefined : onToggle}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       disabled={outOfStock && !isSelected}
       title={outOfStock ? "Out of stock" : product.name}
-      style={{
-        background: isSelected
-          ? "linear-gradient(135deg, #ede9fe, #ddd6fe)"
-          : outOfStock ? "#f9fafb" : hovered ? "#fafafa" : "#fff",
-        border: isSelected
-          ? "2px solid #7c3aed"
-          : outOfStock ? "1.5px solid #f3f4f6" : hovered ? "1.5px solid #d1d5db" : "1.5px solid #e5e7eb",
-        borderRadius: 12,
-        padding: "10px",
-        cursor: outOfStock && !isSelected ? "not-allowed" : "pointer",
-        textAlign: "left",
-        opacity: outOfStock ? 0.55 : 1,
-        transition: "all 0.15s ease",
-        position: "relative",
-        width: "100%",
-      }}
+      className={`text-left rounded-xl p-2.5 border transition-colors ${isSelected ? "bg-accent/10 border-accent" : outOfStock ? "bg-light border-border opacity-55 cursor-not-allowed" : "bg-white border-border hover:border-[#cfc8ba]"}`}
     >
-      {/* Image */}
-      <div style={{
-        width: "100%",
-        aspectRatio: "1",
-        borderRadius: 8,
-        overflow: "hidden",
-        background: "#f3f4f6",
-        marginBottom: 8,
-        position: "relative",
-      }}>
+      <div className="relative aspect-square rounded-lg overflow-hidden bg-light mb-2">
         {product.images?.[0]?.url ? (
-          <img
-            src={product.images[0].url}
-            alt={product.name}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
+          <img src={product.images[0].url} alt={product.name} className="w-full h-full object-cover" />
         ) : (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", fontSize: 28 }}>📦</div>
+          <div className="w-full h-full flex items-center justify-center">
+            <Package size={22} className="text-[#c9c2b3]" />
+          </div>
         )}
         {isSelected && (
-          <div style={{
-            position: "absolute",
-            top: 6,
-            right: 6,
-            width: 22,
-            height: 22,
-            borderRadius: "50%",
-            background: "#7c3aed",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 12,
-            color: "#fff",
-            fontWeight: 700,
-          }}>✓</div>
+          <div className="absolute top-1.5 right-1.5 w-5.5 h-5.5 rounded-full bg-accent flex items-center justify-center">
+            <Check size={12} className="text-white" strokeWidth={3} />
+          </div>
         )}
-        {outOfStock && (
-          <div style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            background: "rgba(0,0,0,0.55)",
-            color: "#fff",
-            fontSize: 10,
-            fontWeight: 700,
-            padding: "3px 0",
-            textAlign: "center",
-          }}>OUT OF STOCK</div>
-        )}
+        {outOfStock && <div className="absolute bottom-0 inset-x-0 bg-[#292925]/70 text-white text-[9px] font-semibold py-0.75 text-center">OUT OF STOCK</div>}
       </div>
-
-      {/* Name */}
-      <div style={{
-        fontSize: 12,
-        fontWeight: 600,
-        color: isSelected ? "#4c1d95" : "#1a1a1a",
-        lineHeight: 1.4,
-        overflow: "hidden",
-        display: "-webkit-box",
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: "vertical",
-        marginBottom: 4,
-      }}>{product.name}</div>
-
-      {product.brand && (
-        <div style={{ fontSize: 10, color: "#9ca3af", marginBottom: 4 }}>{product.brand}</div>
-      )}
-
-      <div style={{ fontSize: 13, fontWeight: 700, color: isSelected ? "#7c3aed" : "#1a1a1a" }}>
-        {formatPrice(product.price)}
-      </div>
+      <div className={`text-[12px] font-medium leading-tight line-clamp-2 mb-1 ${isSelected ? "text-secondary" : "text-[#292925]"}`}>{product.name}</div>
+      <div className={`text-[13px] font-semibold ${isSelected ? "text-secondary" : "text-primary"}`}>{formatPrice(product.price)}</div>
     </button>
   );
 }
 
-// ─── Summary Panel ────────────────────────────────────────────────────────────
+// ─── Summary panel ────────────────────────────────────────────────────────────
 function SummaryPanel({ liveTotal, totalItemCount, missingRequired, canAddToCart, cartLoading, onAddToCart, onSave, petConfig, user }) {
   return (
-    <div style={{
-      background: "#fff",
-      border: "1.5px solid #e5e7eb",
-      borderRadius: 16,
-      padding: "20px",
-      boxShadow: "0 4px 20px rgba(0,0,0,0.07)",
-    }}>
-      <h3 style={{ fontSize: 15, fontWeight: 700, color: "#1a1a1a", marginBottom: 16 }}>
-        Your Build Summary
-      </h3>
+    <div className="bg-white border border-border rounded-2xl p-6">
+      <h3 className="text-[15px] font-semibold mb-4">Your build summary</h3>
 
-      {/* Total */}
-      <div style={{
-        background: "linear-gradient(135deg, #f5f3ff, #ede9fe)",
-        borderRadius: 12,
-        padding: "14px 16px",
-        marginBottom: 14,
-        textAlign: "center",
-      }}>
-        <div style={{ fontSize: 12, color: "#7c3aed", fontWeight: 600, marginBottom: 4 }}>
-          Live Total
-        </div>
-        <div style={{ fontSize: 28, fontWeight: 800, color: "#4c1d95" }}>
-          {formatPrice(liveTotal)}
-        </div>
-        <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
+      <div className="bg-light rounded-xl p-4 mb-4 text-center">
+        <p className="m-0 text-xs font-semibold text-accent">Live total</p>
+        <p className="m-0 mt-1 font-heading text-[28px]">{formatPrice(liveTotal)}</p>
+        <p className="m-0 mt-0.5 text-xs text-[#8a8a80]">
           {totalItemCount} item{totalItemCount !== 1 ? "s" : ""} selected
-        </div>
+        </p>
       </div>
 
-      {/* Missing required warnings */}
       {missingRequired.length > 0 && (
-        <div style={{
-          background: "#fff7ed",
-          border: "1px solid #fed7aa",
-          borderRadius: 10,
-          padding: "10px 12px",
-          marginBottom: 14,
-        }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 6 }}>
-            ⚠️ Still needed:
-          </div>
+        <div className="bg-[#F7E9DF] border border-[#f0d9c8] rounded-xl p-3.5 mb-4">
+          <p className="m-0 text-xs font-semibold text-[#8f4a28] mb-1.5">Still needed:</p>
           {missingRequired.map((key) => {
             const cat = petConfig?.categories.find((c) => c.key === key);
             return (
-              <div key={key} style={{ fontSize: 12, color: "#b45309", marginBottom: 2, display: "flex", alignItems: "center", gap: 6 }}>
-                <span>•</span> {cat?.label || key}
-              </div>
+              <p key={key} className="m-0 text-xs text-[#8f4a28] mb-0.5">
+                • {cat?.label || key}
+              </p>
             );
           })}
         </div>
       )}
 
-      {/* Add to cart */}
-      <button
-        onClick={onAddToCart}
-        disabled={!canAddToCart || cartLoading}
-        style={{
-          width: "100%",
-          padding: "13px 0",
-          background: canAddToCart
-            ? "linear-gradient(135deg, #7c3aed, #4f46e5)"
-            : "#e5e7eb",
-          color: canAddToCart ? "#fff" : "#9ca3af",
-          border: "none",
-          borderRadius: 12,
-          fontWeight: 700,
-          fontSize: 14,
-          cursor: canAddToCart ? "pointer" : "not-allowed",
-          marginBottom: 10,
-          transition: "opacity 0.15s",
-          opacity: cartLoading ? 0.7 : 1,
-        }}
-      >
-        {cartLoading ? "Adding..." : !user ? "Login to Add to Cart" : "Add All to Cart 🛒"}
+      <button onClick={onAddToCart} disabled={!canAddToCart || cartLoading} className={`btn w-full py-3.25 mb-2.5 ${canAddToCart ? "btn-primary" : "bg-border text-[#a8a49a] cursor-not-allowed"}`}>
+        {cartLoading ? "Adding..." : !user ? "Login to add to cart" : (
+          <>
+            <ShoppingCart size={16} /> Add all to cart
+          </>
+        )}
       </button>
 
-      {/* Save build */}
-      <button
-        onClick={onSave}
-        style={{
-          width: "100%",
-          padding: "11px 0",
-          background: "#f3f4f6",
-          color: "#374151",
-          border: "none",
-          borderRadius: 12,
-          fontWeight: 600,
-          fontSize: 13,
-          cursor: "pointer",
-        }}
-      >
-        💾 Save Build
+      <button onClick={onSave} className="btn w-full bg-light text-[#4F5B4B] hover:bg-border py-3">
+        <Save size={15} /> Save build
       </button>
     </div>
   );
 }
 
-// ─── Save Modal ───────────────────────────────────────────────────────────────
+// ─── Save modal ───────────────────────────────────────────────────────────────
 function SaveModal({ value, onChange, onSave, onClose, loading }) {
   const inputRef = useRef(null);
   useEffect(() => { inputRef.current?.focus(); }, []);
 
   return (
-    <div style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(0,0,0,0.45)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 1000,
-    }}>
-      <div style={{
-        background: "#fff",
-        borderRadius: 20,
-        padding: "32px 36px",
-        maxWidth: 380,
-        width: "90%",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-      }}>
-        <h3 style={{ fontSize: 18, fontWeight: 700, color: "#1a1a1a", marginBottom: 6 }}>
-          Name your build
-        </h3>
-        <p style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>
-          Give it a name so you can recognise it later.
-        </p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#292925]/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-[26px] p-8 max-w-95 w-full shadow-2xl border border-border">
+        <h3 className="font-heading text-xl mb-1.5">Name your build</h3>
+        <p className="text-sm text-[#8a8a80] mb-5">Give it a name so you can recognise it later.</p>
         <input
           ref={inputRef}
           value={value}
@@ -812,50 +405,14 @@ function SaveModal({ value, onChange, onSave, onClose, loading }) {
           maxLength={60}
           placeholder="e.g. My Ball Python Setup"
           onKeyDown={(e) => { if (e.key === "Enter") onSave(); }}
-          style={{
-            width: "100%",
-            padding: "11px 14px",
-            border: "1.5px solid #d1d5db",
-            borderRadius: 10,
-            fontSize: 14,
-            marginBottom: 20,
-            outline: "none",
-            boxSizing: "border-box",
-          }}
+          className="w-full border border-border rounded-2xl px-4 py-3 text-sm outline-none focus:border-accent mb-5"
         />
-        <div style={{ display: "flex", gap: 10 }}>
-          <button
-            onClick={onClose}
-            style={{
-              flex: 1,
-              padding: "11px 0",
-              background: "#f3f4f6",
-              border: "none",
-              borderRadius: 10,
-              cursor: "pointer",
-              fontWeight: 600,
-              fontSize: 14,
-              color: "#374151",
-            }}
-          >
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 py-3 bg-light text-[#4F5B4B] rounded-full font-medium hover:bg-border transition-colors">
             Cancel
           </button>
-          <button
-            onClick={onSave}
-            disabled={!value.trim() || loading}
-            style={{
-              flex: 1,
-              padding: "11px 0",
-              background: !value.trim() ? "#e5e7eb" : "linear-gradient(135deg, #7c3aed, #4f46e5)",
-              color: !value.trim() ? "#9ca3af" : "#fff",
-              border: "none",
-              borderRadius: 10,
-              cursor: !value.trim() ? "not-allowed" : "pointer",
-              fontWeight: 700,
-              fontSize: 14,
-            }}
-          >
-            {loading ? "Saving..." : "Save Build"}
+          <button onClick={onSave} disabled={!value.trim() || loading} className="flex-1 py-3 bg-primary text-white rounded-full font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            {loading ? "Saving..." : "Save build"}
           </button>
         </div>
       </div>
@@ -865,49 +422,26 @@ function SaveModal({ value, onChange, onSave, onClose, loading }) {
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function Toast({ msg, type }) {
-  const bg = type === "error" ? "#fef2f2" : type === "warning" ? "#fff7ed" : "#f0fdf4";
-  const border = type === "error" ? "#fca5a5" : type === "warning" ? "#fed7aa" : "#86efac";
-  const color = type === "error" ? "#b91c1c" : type === "warning" ? "#92400e" : "#166534";
-
+  const style = type === "error" ? { bg: "#F7E9DF", color: "#8f4a28" } : type === "warning" ? { bg: "#F7E9DF", color: "#8f4a28" } : { bg: "#E9EDE4", color: "#40543C" };
   return (
-    <div style={{
-      position: "fixed",
-      bottom: 24,
-      left: "50%",
-      transform: "translateX(-50%)",
-      background: bg,
-      border: `1px solid ${border}`,
-      borderRadius: 12,
-      padding: "12px 20px",
-      fontSize: 14,
-      color,
-      fontWeight: 600,
-      zIndex: 2000,
-      maxWidth: "90vw",
-      boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-      animation: "slideUp 0.25s ease",
-    }}>
+    <Motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 12 }}
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-120 rounded-full px-5 py-3.25 text-sm font-medium max-w-[90vw] shadow-xl"
+      style={{ background: style.bg, color: style.color }}
+    >
       {msg}
-      <style>{`@keyframes slideUp { from { transform: translateX(-50%) translateY(20px); opacity:0; } to { transform: translateX(-50%) translateY(0); opacity:1; } }`}</style>
-    </div>
+    </Motion.div>
   );
 }
 
-// ─── Builder Skeleton ────────────────────────────────────────────────────────
 function BuilderSkeleton() {
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+    <div className="max-w-7xl mx-auto px-7 pt-8 pb-24">
       {[1, 2, 3].map((i) => (
-        <div key={i} style={{
-          height: 80,
-          background: "linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%)",
-          backgroundSize: "200% 100%",
-          animation: "shimmer 1.4s infinite",
-          borderRadius: 14,
-          marginBottom: 12,
-        }} />
+        <div key={i} className="h-20 bg-border rounded-2xl mb-3 animate-pulse" />
       ))}
-      <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
     </div>
   );
 }

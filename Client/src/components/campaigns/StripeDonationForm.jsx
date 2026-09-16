@@ -24,9 +24,7 @@ const StripeDonationForm = ({ onSuccess, amountInCents }) => {
 
     const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
       elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/thank-you`,
-      },
+      confirmParams: { return_url: `${window.location.origin}/thank-you` },
       redirect: "if_required",
     });
 
@@ -48,41 +46,32 @@ const StripeDonationForm = ({ onSuccess, amountInCents }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-4">
-        <PaymentElement
-          options={{
-            layout: "tabs",
-            defaultValues: { billingDetails: { address: { country: "US" } } },
-          }}
-        />
+      <div className="bg-light rounded-2xl border border-border p-4">
+        <PaymentElement options={{ layout: "tabs", defaultValues: { billingDetails: { address: { country: "US" } } } }} />
       </div>
 
       {error && (
-        <div className="flex items-start gap-3 p-4 bg-rose-50 text-rose-700 rounded-xl border border-rose-100">
-          <AlertCircle size={18} className="shrink-0 mt-0.5" />
-          <p className="text-sm font-bold">{error}</p>
+        <div className="flex items-start gap-2.5 p-3.5 bg-[#F7E9DF] text-[#8f4a28] rounded-xl">
+          <AlertCircle size={16} className="shrink-0 mt-0.5" />
+          <p className="text-sm font-medium m-0">{error}</p>
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={!stripe || processing}
-        className="w-full py-4 rounded-xl font-black text-white bg-linear-to-br from-primary to-accent shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-base cursor-pointer"
-      >
+      <button type="submit" disabled={!stripe || processing} className="btn btn-primary w-full py-3.75 text-base disabled:opacity-60 disabled:cursor-not-allowed">
         {processing ? (
           <>
-            <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+            <div className="w-5 h-5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
             Completing donation...
           </>
         ) : (
           <>
-            <Heart size={18} className="fill-current text-rose-200 animate-pulse" />
-            Donate ${amountInDollars} Now
+            <Heart size={17} className="fill-current" />
+            Donate ${amountInDollars} now
           </>
         )}
       </button>
 
-      <p className="text-center text-[10px] text-slate-400 font-semibold flex items-center justify-center gap-1.5">
+      <p className="text-center text-[11px] text-[#8a8a80] font-medium flex items-center justify-center gap-1.5">
         <Lock size={10} /> Secured by Stripe. Thank you for your support!
       </p>
     </form>

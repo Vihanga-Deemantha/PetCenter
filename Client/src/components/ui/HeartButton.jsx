@@ -47,7 +47,7 @@ export default function HeartButton({
         height: size + 12,
         borderRadius: "50%",
         border: "none",
-        background: favorited ? "rgba(239,68,68,0.12)" : "rgba(255,255,255,0.85)",
+        background: favorited ? "rgba(200,117,80,0.14)" : "rgba(255,255,255,0.9)",
         backdropFilter: "blur(4px)",
         cursor: "pointer",
         transition: "all 0.18s ease",
@@ -60,8 +60,8 @@ export default function HeartButton({
         width={size}
         height={size}
         viewBox="0 0 24 24"
-        fill={favorited ? "#ef4444" : "none"}
-        stroke={favorited ? "#ef4444" : "#64748b"}
+        fill={favorited ? "#C87550" : "none"}
+        stroke={favorited ? "#C87550" : "#78866F"}
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"

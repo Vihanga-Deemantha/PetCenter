@@ -21,17 +21,33 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, "Please add a password"],
+      // Google-authenticated accounts never set a local password
+      required: [function () { return this.authProvider !== "google"; }, "Please add a password"],
       minlength: [6, "Password must be at least 6 characters"],
+      select: false,
+    },
+    authProvider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
       select: false,
     },
     phone: {
       type: String,
-      required: [true, "Please add a phone number"],
+      // Google's ID token carries no phone number — collected later from
+      // the account's own Dashboard instead of blocking sign-up on it.
+      required: [function () { return this.authProvider !== "google"; }, "Please add a phone number"],
+      default: "",
     },
     location: {
       type: String,
-      required: [true, "Please add a location"],
+      required: [function () { return this.authProvider !== "google"; }, "Please add a location"],
+      default: "",
     },
     role: {
       type: String,
@@ -49,6 +65,11 @@ const userSchema = new mongoose.Schema(
     isDeleted: {
       type: Boolean,
       default: false,
+    },
+    notificationPreferences: {
+      orderUpdates: { type: Boolean, default: true },
+      campaignUpdates: { type: Boolean, default: true },
+      productDrops: { type: Boolean, default: false },
     },
     isBlocked: {
       type: Boolean,

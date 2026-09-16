@@ -102,7 +102,11 @@ export const revealShelterContact = async (req, res, next) => {
 // GET /api/v1/admin/shelters — Admin Only
 export const getAdminShelters = async (req, res, next) => {
   try {
-    const shelters = await Shelter.find().sort({ createdAt: -1 }).lean();
+    // Shelters are a curated partner list (bounded, admin-managed), not
+    // user-generated content, so a full unpaginated list is the right shape
+    // for the admin UI — but a hard cap still guards against an unbounded
+    // query blowing up if that assumption ever stops holding.
+    const shelters = await Shelter.find().sort({ createdAt: -1 }).limit(500).lean();
     return sendSuccess(res, shelters);
   } catch (error) {
     next(error);
@@ -232,11 +236,14 @@ export const deleteShelter = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Check if shelter is linked to any campaigns
-    const campaignCount = await Campaign.countDocuments({ beneficiary: id, deletedAt: null });
+    // Check if shelter is linked to any campaign — including soft-deleted
+    // ones. A soft-deleted campaign still holds a real beneficiary reference;
+    // hard-deleting the shelter would leave that reference dangling with no
+    // way to clean it up later.
+    const campaignCount = await Campaign.countDocuments({ beneficiary: id });
 
     if (campaignCount > 0) {
-      return sendError(res, "Cannot delete shelter. It is currently the beneficiary of active or saved campaigns.", 400);
+      return sendError(res, "Cannot delete shelter. It is referenced by one or more campaigns (including deleted ones).", 400);
     }
 
     const shelter = await Shelter.findByIdAndDelete(id);

@@ -28,7 +28,7 @@ export const getPlatformStats = async (req, res, next) => {
       PetListing.countDocuments({ status: "active" }),
       Order.countDocuments({ paymentStatus: "paid" }),
       PetListing.countDocuments({ status: { $in: ["adopted", "sold"] } }),
-      Shelter.countDocuments({ status: "approved" }),
+      Shelter.countDocuments({ isActive: true }),
       PlatformFeedback.aggregate([
         { $match: { isVisible: true } },
         { $group: { _id: null, avg: { $avg: "$rating" }, count: { $sum: 1 } } },
@@ -437,6 +437,7 @@ export const deleteUser = async (req, res, next) => {
 
     user.isDeleted = true;
     user.refreshToken = undefined; // Invalidate sessions immediately
+    user.tokenVersion = (user.tokenVersion || 0) + 1; // Invalidate any still-valid access tokens
     await user.save();
 
     // Optionally set their listings to removed

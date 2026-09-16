@@ -22,152 +22,72 @@ const ResetPassword = () => {
       setError("Password must be at least 6 characters");
       return;
     }
-
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
 
     setLoading(true);
-
     try {
       await resetPassword(resetToken, password);
       setSuccess(true);
-      // Auto-redirect to login after 3 seconds
       setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Reset failed. The link may have expired."
-      );
+      setError(err.response?.data?.message || "Reset failed. The link may have expired.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-page flex justify-center items-center min-h-[80vh] px-5 py-20">
-      <Motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card p-10 md:p-14 w-full max-w-lg bg-white shadow-2xl shadow-primary/10 border-slate-100"
-      >
-        {/* Back link */}
-        <Link
-          to="/login"
-          className="inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-primary transition-colors mb-8"
-        >
-          <ArrowLeft size={16} /> Back to Login
+    <div className="flex justify-center items-center min-h-[80vh] px-5 py-20 bg-light">
+      <Motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="bg-white border border-[#E8E2D8] rounded-card p-9 md:p-13 w-full max-w-md shadow-xl shadow-black/5">
+        <Link to="/login" className="inline-flex items-center gap-2 text-sm font-medium text-[#8a8a80] hover:text-primary transition-colors mb-7">
+          <ArrowLeft size={16} /> Back to login
         </Link>
 
         {!success ? (
           <>
-            {/* Header */}
-            <div className="text-center mb-10">
-              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <ShieldCheck size={28} className="text-primary" />
+            <div className="text-center mb-9">
+              <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <ShieldCheck size={24} className="text-primary" />
               </div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tighter mb-2">
-                Reset Password
-              </h2>
-              <p className="text-slate-500 font-medium text-sm">
-                Enter your new password below.
-              </p>
+              <h2 className="font-heading text-[28px] font-medium text-[#292925] mb-2">Reset password</h2>
+              <p className="text-[#6e6e64] text-sm">Enter your new password below.</p>
             </div>
 
-            {/* Error */}
             {error && (
-              <Motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex items-center gap-3 p-4 bg-rose-50 text-rose-600 rounded-xl mb-6 border border-rose-100 text-sm font-bold"
-              >
-                <AlertCircle size={18} />
+              <Motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-2.5 p-3.5 bg-[#F7E9DF] text-[#8f4a28] rounded-xl mb-5 text-sm font-medium">
+                <AlertCircle size={16} className="shrink-0" />
                 {error}
               </Motion.div>
             )}
 
-            {/* Form */}
-            <form onSubmit={onSubmit} className="space-y-6">
-              <div>
-                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">
-                  New Password
-                </label>
-                <div className="relative">
-                  <Lock
-                    className="absolute left-5 top-1/2 -translate-y-1/2 text-primary"
-                    size={20}
-                  />
-                  <input
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="w-full pl-14 pr-6 py-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-primary/20 outline-none transition-all font-semibold placeholder:text-slate-300"
-                  />
-                </div>
-              </div>
+            <form onSubmit={onSubmit} className="space-y-5">
+              <label className="flex flex-col gap-1.75 text-[13px] text-[#6e6e64]">
+                New password
+                <input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="border border-border rounded-2xl px-4 py-3.5 text-[15px] text-[#292925] bg-light focus:border-accent outline-none transition-colors" />
+              </label>
+              <label className="flex flex-col gap-1.75 text-[13px] text-[#6e6e64]">
+                Confirm password
+                <input type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} className="border border-border rounded-2xl px-4 py-3.5 text-[15px] text-[#292925] bg-light focus:border-accent outline-none transition-colors" />
+              </label>
 
-              <div>
-                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <Lock
-                    className="absolute left-5 top-1/2 -translate-y-1/2 text-primary"
-                    size={20}
-                  />
-                  <input
-                    type="password"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="w-full pl-14 pr-6 py-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-primary/20 outline-none transition-all font-semibold placeholder:text-slate-300"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="btn btn-primary w-full py-5 text-lg group"
-                disabled={loading}
-              >
-                <span className="flex items-center justify-center gap-3">
-                  {loading ? (
-                    <div className="animate-spin rounded-full h-6 w-6 border-4 border-white border-t-transparent" />
-                  ) : (
-                    <>
-                      <ShieldCheck
-                        size={20}
-                        className="transition-transform group-hover:scale-110"
-                      />{" "}
-                      Reset Password
-                    </>
-                  )}
-                </span>
+              <button type="submit" disabled={loading} className="btn btn-primary w-full py-4">
+                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>
+                  <ShieldCheck size={17} /> Reset password
+                </>}
               </button>
             </form>
           </>
         ) : (
-          /* Success state */
-          <Motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center py-6"
-          >
-            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle size={40} className="text-emerald-500" />
+          <Motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-4">
+            <div className="w-16 h-16 bg-[#E9EDE4] rounded-full flex items-center justify-center mx-auto mb-5">
+              <CheckCircle size={30} className="text-[#40543C]" />
             </div>
-            <h3 className="text-2xl font-black text-slate-900 mb-3">
-              Password Reset!
-            </h3>
-            <p className="text-slate-500 font-medium text-sm mb-6">
-              Your password has been successfully reset. Redirecting you to login...
-            </p>
-            <div className="w-8 h-8 mx-auto animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <h3 className="font-heading text-2xl text-[#292925] mb-2.5">Password reset!</h3>
+            <p className="text-[#6e6e64] text-sm mb-5">Your password has been successfully reset. Redirecting you to login...</p>
+            <div className="w-7 h-7 mx-auto animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </Motion.div>
         )}
       </Motion.div>

@@ -21,6 +21,60 @@ const getMissingRequired = (petType, selections) => {
   return requiredKeys.filter((k) => !filledKeys.includes(k));
 };
 
+// ─── Helper: resolve + validate a submitted selections array ─────────────────
+// The picker UI only ever offers products whose compatiblePets/tags/category
+// limits already line up, but that's client-side convenience, not
+// enforcement — a request built by hand could submit any productId under any
+// categoryKey. This re-derives the same rules server-side so a saved (and
+// possibly published) build can never disagree with what the picker allows.
+const resolveAndValidateSelections = async (petType, selections) => {
+  const config = PET_CONFIGS[petType];
+  const categoryByKey = {};
+  config.categories.forEach((c) => { categoryByKey[c.key] = c; });
+
+  const countByCategory = {};
+  const resolvedSelections = [];
+
+  for (const sel of selections) {
+    if (!sel.productId || !sel.categoryKey) {
+      return { error: "Each selection must include productId and categoryKey" };
+    }
+
+    const category = categoryByKey[sel.categoryKey];
+    if (!category) {
+      return { error: `"${sel.categoryKey}" is not a valid category for ${petType} builds` };
+    }
+
+    const product = await Product.findById(sel.productId).lean();
+    if (!product || !product.isActive) {
+      return { error: `Product "${sel.productId}" not found or is no longer available` };
+    }
+    if (!product.compatiblePets?.includes(petType)) {
+      return { error: `"${product.name}" is not compatible with ${petType} habitats` };
+    }
+    if (!product.tags?.includes(sel.categoryKey)) {
+      return { error: `"${product.name}" does not belong in the "${category.label}" category` };
+    }
+
+    countByCategory[sel.categoryKey] = (countByCategory[sel.categoryKey] || 0) + 1;
+    if (countByCategory[sel.categoryKey] > category.maxSelectable) {
+      return { error: `"${category.label}" allows at most ${category.maxSelectable} selection(s)` };
+    }
+
+    resolvedSelections.push({
+      categoryKey: sel.categoryKey,
+      productId: product._id,
+      productSnapshot: {
+        name: product.name,
+        price: product.price,
+        image: product.images?.[0]?.url || "",
+      },
+    });
+  }
+
+  return { resolvedSelections };
+};
+
 // ─── GET /ecosystem/pets  — Public ───────────────────────────────────────────
 // Returns the list of supported pet types for the picker step.
 export const getPetList = async (_req, res, next) => {
@@ -79,26 +133,10 @@ export const createBuild = async (req, res, next) => {
       return sendError(res, `Unsupported pet type: "${petType}"`, 400);
     }
 
-    // Validate all productIds exist and build snapshots
-    const resolvedSelections = [];
-    for (const sel of selections) {
-      if (!sel.productId || !sel.categoryKey) {
-        return sendError(res, "Each selection must include productId and categoryKey", 400);
-      }
-      const product = await Product.findById(sel.productId).lean();
-      if (!product) {
-        return sendError(res, `Product "${sel.productId}" not found`, 404);
-      }
-      resolvedSelections.push({
-        categoryKey: sel.categoryKey,
-        productId: product._id,
-        productSnapshot: {
-          name: product.name,
-          price: product.price,
-          image: product.images?.[0]?.url || "",
-        },
-      });
-    }
+    // Validate all productIds exist, are compatible/active, and respect
+    // each category's selection cap — then build snapshots.
+    const { error, resolvedSelections } = await resolveAndValidateSelections(petType, selections);
+    if (error) return sendError(res, error, 400);
 
     const build = await EcosystemBuild.create({
       userId: req.user._id,
@@ -128,25 +166,9 @@ export const updateBuild = async (req, res, next) => {
     if (name !== undefined) build.name = name;
 
     if (selections !== undefined) {
-      const resolvedSelections = [];
-      for (const sel of selections) {
-        if (!sel.productId || !sel.categoryKey) {
-          return sendError(res, "Each selection must include productId and categoryKey", 400);
-        }
-        const product = await Product.findById(sel.productId).lean();
-        if (!product) {
-          return sendError(res, `Product "${sel.productId}" not found`, 404);
-        }
-        resolvedSelections.push({
-          categoryKey: sel.categoryKey,
-          productId: product._id,
-          productSnapshot: {
-            name: product.name,
-            price: product.price,
-            image: product.images?.[0]?.url || "",
-          },
-        });
-      }
+      const { error, resolvedSelections } = await resolveAndValidateSelections(build.petType, selections);
+      if (error) return sendError(res, error, 400);
+
       build.selections = resolvedSelections;
       build.totalPrice = calcTotal(resolvedSelections);
     }

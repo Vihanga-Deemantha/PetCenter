@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import { OAuth2Client } from "google-auth-library";
 import User from "../models/User.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import sendEmail from "../utils/sendEmail.js";
@@ -102,6 +103,87 @@ export const login = async (req, res, next) => {
   }
 };
 
+// ─── Google Sign-In ───────────────────────────────────────────────────────────
+// POST /api/v1/auth/google  — Public
+// Verifies a Google Identity Services ID token client-side already produced —
+// no redirect dance, and the client secret never needs to leave the server
+// it's configured on since verifyIdToken only checks the token's signature
+// and audience against the public Client ID.
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+export const googleAuth = async (req, res, next) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return sendError(res, "Missing Google credential", 400);
+    }
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      return sendError(res, "Google sign-in is not configured on this server", 501);
+    }
+
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch {
+      return sendError(res, "Invalid Google credential", 401);
+    }
+
+    const { sub: googleId, email, name, picture } = payload;
+
+    let user = await User.findOne({ googleId }).select("+refreshToken");
+
+    if (!user) {
+      // Link to an existing local account with the same email, otherwise
+      // create a fresh Google-authenticated account.
+      user = await User.findOne({ email }).select("+refreshToken");
+      if (user) {
+        user.googleId = googleId;
+        await user.save();
+      } else {
+        user = await User.create({
+          name,
+          email,
+          googleId,
+          authProvider: "google",
+          profileImage: picture || "",
+        });
+      }
+    }
+
+    if (user.isDeleted) {
+      return sendError(res, "This account has been deleted.", 403);
+    }
+    if (user.isBlocked) {
+      return sendError(res, "Your account has been blocked. Contact support.", 403);
+    }
+
+    const accessToken = generateAccessToken(user._id, user.tokenVersion);
+    const newRefreshToken = generateRefreshToken(user._id, user.tokenVersion);
+
+    await User.updateOne({ _id: user._id }, { refreshToken: hashToken(newRefreshToken) });
+    setRefreshTokenCookie(res, newRefreshToken);
+
+    return sendSuccess(res, {
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profileImage: user.profileImage,
+        phone: user.phone,
+        location: user.location,
+      },
+      accessToken,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ─── Refresh Token ────────────────────────────────────────────────────────────
 // POST /api/v1/auth/refresh-token  — Public (uses HttpOnly cookie)
 export const refreshToken = async (req, res, next) => {
@@ -184,6 +266,15 @@ export const updateProfile = async (req, res, next) => {
       if (req.body[f] !== undefined) updates[f] = req.body[f];
     });
 
+    const prefs = req.body.notificationPreferences;
+    if (prefs && typeof prefs === "object") {
+      ["orderUpdates", "campaignUpdates", "productDrops"].forEach((key) => {
+        if (typeof prefs[key] === "boolean") {
+          updates[`notificationPreferences.${key}`] = prefs[key];
+        }
+      });
+    }
+
     const user = await User.findByIdAndUpdate(req.user._id, updates, {
       returnDocument: "after",
       runValidators: true,
@@ -213,6 +304,35 @@ export const uploadProfilePhotoHandler = async (req, res, next) => {
     );
 
     return sendSuccess(res, user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── Change Password ──────────────────────────────────────────────────────────
+// PUT /api/v1/auth/change-password  — Private
+export const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      return sendError(res, "New password must be at least 6 characters", 400);
+    }
+
+    const user = await User.findById(req.user._id).select("+password +refreshToken");
+
+    if (user.authProvider === "google" && !user.password) {
+      return sendError(res, "This account signs in with Google and has no password to change", 400);
+    }
+
+    if (!currentPassword || !(await user.matchPassword(currentPassword))) {
+      return sendError(res, "Current password is incorrect", 401);
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    return sendSuccess(res, { message: "Password changed successfully" });
   } catch (error) {
     next(error);
   }

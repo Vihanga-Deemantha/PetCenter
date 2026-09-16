@@ -21,7 +21,7 @@ export const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     const user = await User.findById(decoded.id);
 
-    if (!user) {
+    if (!user || user.isDeleted) {
       return sendError(res, "User not found", 401);
     }
 
@@ -76,7 +76,7 @@ export const optionalProtect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     const user = await User.findById(decoded.id);
 
-    if (user && !user.isBlocked && (decoded.tokenVersion || 0) === (user.tokenVersion || 0)) {
+    if (user && !user.isDeleted && !user.isBlocked && (decoded.tokenVersion || 0) === (user.tokenVersion || 0)) {
       req.user = user;
     }
     next();

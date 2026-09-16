@@ -1,4 +1,5 @@
 import PetListing from "../models/PetListing.js";
+import Favorite from "../models/Favorite.js";
 import cloudinary from "../config/cloudinary.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import escapeRegExp from "../utils/escapeRegExp.js";
@@ -100,11 +101,18 @@ export const getListing = async (req, res, next) => {
 export const revealListingContact = async (req, res, next) => {
   try {
     const listing = await PetListing.findById(req.params.id)
-      .select("contactDetails status")
+      .select("contactDetails status owner")
       .populate("owner", "phone");
 
     if (!listing || listing.status === "removed") {
       return sendError(res, "Listing not found", 404);
+    }
+
+    // Only a genuine buyer inquiry counts as an enquiry — the owner revealing
+    // their own listing's contact (e.g. the ListingDetails auto-reveal) isn't
+    // interest from someone else.
+    if (listing.owner?._id.toString() !== req.user._id.toString()) {
+      await PetListing.updateOne({ _id: listing._id }, { $inc: { enquiriesCount: 1 } });
     }
 
     return sendSuccess(res, {
@@ -129,12 +137,21 @@ export const createListing = async (req, res, next) => {
     const images = req.files?.map((f) => f.path) || [];
     const imagePublicIds = req.files?.map((f) => f.filename) || [];
 
+    // FormData sends repeated keys as an array already, but a single
+    // selection arrives as a bare string — normalize both to an array. The
+    // client always sends at least an empty-string sentinel so an empty
+    // selection still arrives as a real (if empty, after filtering) value.
+    const verifiedFlags = req.body.verifiedFlags
+      ? (Array.isArray(req.body.verifiedFlags) ? req.body.verifiedFlags : [req.body.verifiedFlags]).filter(Boolean)
+      : [];
+
     const listing = await PetListing.create({
       title, petType, breed,
       age: Number(age),
       gender,
       price: Number(price) || 0,
       location, description, healthInfo, contactDetails, listingType,
+      verifiedFlags,
       images,
       imagePublicIds,
       owner: req.user._id,
@@ -168,13 +185,18 @@ export const updateListing = async (req, res, next) => {
     }
 
     const allowedUpdates = [
-      "title", "breed", "age", "gender", "price",
+      "title", "petType", "breed", "age", "gender", "price",
       "location", "description", "healthInfo", "contactDetails", "listingType",
     ];
     const updates = {};
     allowedUpdates.forEach((f) => {
       if (req.body[f] !== undefined) updates[f] = req.body[f];
     });
+
+    if (req.body.verifiedFlags !== undefined) {
+      const raw = Array.isArray(req.body.verifiedFlags) ? req.body.verifiedFlags : [req.body.verifiedFlags];
+      updates.verifiedFlags = raw.filter(Boolean);
+    }
 
     // Start from the current image arrays; apply removals, then appends
     let images = [...listing.images];
@@ -263,9 +285,45 @@ export const getMyListings = async (req, res, next) => {
     const listings = await PetListing.find({
       owner: req.user._id,
       status: { $ne: "removed" },
-    }).sort("-createdAt");
+    })
+      .sort("-createdAt")
+      .lean();
 
-    return sendSuccess(res, listings, 200, { count: listings.length, pagination: { total: listings.length, page: 1, pages: 1 } });
+    // Saves are computed live from Favorite rather than a duplicated counter
+    // on the listing, so the number never drifts from the real favorite set.
+    const saveCounts = await Favorite.aggregate([
+      { $match: { itemType: "listing", itemId: { $in: listings.map((l) => l._id) } } },
+      { $group: { _id: "$itemId", count: { $sum: 1 } } },
+    ]);
+    const savesById = new Map(saveCounts.map((s) => [String(s._id), s.count]));
+    const withSaves = listings.map((l) => ({ ...l, savesCount: savesById.get(String(l._id)) || 0 }));
+
+    return sendSuccess(res, withSaves, 200, { count: withSaves.length, pagination: { total: withSaves.length, page: 1, pages: 1 } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── Pause / Resume Listing ───────────────────────────────────────────────────
+// PUT /api/v1/listings/:id/pause  — Private (owner only)
+// Toggles between "active" and "paused" — a paused listing is hidden from
+// the public marketplace (getListings only ever returns status:"active")
+// without losing its place in the moderation queue or needing re-approval.
+export const toggleListingPause = async (req, res, next) => {
+  try {
+    const listing = await PetListing.findById(req.params.id);
+    if (!listing) return sendError(res, "Listing not found", 404);
+
+    if (listing.owner.toString() !== req.user._id.toString()) {
+      return sendError(res, "Not authorized", 403);
+    }
+
+    if (listing.status === "active") listing.status = "paused";
+    else if (listing.status === "paused") listing.status = "active";
+    else return sendError(res, "Only active or paused listings can be toggled", 400);
+
+    await listing.save();
+    return sendSuccess(res, listing);
   } catch (error) {
     next(error);
   }

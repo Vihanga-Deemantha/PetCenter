@@ -68,11 +68,12 @@ export default function AdminEcosystemManagement() {
   return (
     <div className="pb-24">
       {/* Header */}
-      <div className="mb-8 border-b border-slate-200 pb-6">
-        <h1 className="text-4xl font-black tracking-tighter text-slate-900 mb-2">
-          🌿 Ecosystem Gallery Moderation
+      <div className="mb-7 border-b border-border pb-7">
+        <p className="text-xs tracking-[0.18em] uppercase text-accent font-semibold mb-2.5">Admin</p>
+        <h1 className="font-heading text-[32px] font-medium tracking-tight text-[#292925] mb-1.5">
+          Ecosystem gallery moderation
         </h1>
-        <p className="text-slate-500">
+        <p className="text-[#6e6e64]">
           {builds.length} published build{builds.length !== 1 ? "s" : ""} in the public gallery.
           Use this panel to remove builds that violate community guidelines.
         </p>
@@ -85,13 +86,13 @@ export default function AdminEcosystemManagement() {
           placeholder="Search by name, pet type, or user..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-200 transition"
+          className="w-full px-4 py-2.75 border border-border rounded-xl text-sm outline-none focus:border-accent transition-colors bg-white"
         />
       </div>
 
       {/* Error */}
       {error && (
-        <div className="p-4 bg-rose-50 text-rose-700 border border-rose-100 rounded-xl mb-6 font-semibold text-sm">
+        <div className="p-4 bg-rose-50 text-rose-700 rounded-xl mb-6 font-medium text-sm">
           {error}
         </div>
       )}
@@ -100,13 +101,13 @@ export default function AdminEcosystemManagement() {
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-slate-100 animate-pulse rounded-xl" />
+            <div key={i} className="h-20 bg-border animate-pulse rounded-xl" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+        <div className="text-center py-16 bg-white rounded-[22px] border border-dashed border-[#dcd4c6]">
           <div className="text-5xl mb-4">🖼️</div>
-          <p className="text-slate-500 font-semibold">
+          <p className="text-[#6e6e64] font-medium">
             {search ? "No builds match your search." : "No published builds in the gallery yet."}
           </p>
         </div>
@@ -125,10 +126,10 @@ export default function AdminEcosystemManagement() {
 
       {/* Toast */}
       {toast && (
-        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl font-semibold text-sm shadow-xl max-w-[90vw] border ${
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full font-medium text-sm shadow-xl max-w-[90vw] ${
           toast.type === "error"
-            ? "bg-red-50 text-red-700 border-red-200"
-            : "bg-green-50 text-green-700 border-green-200"
+            ? "bg-[#F7E9DF] text-[#8f4a28]"
+            : "bg-[#292925] text-light"
         }`}>
           {toast.msg}
         </div>
@@ -143,7 +144,7 @@ function BuildRow({ build, loading, onUnpublish }) {
   const [showConfirm, setShowConfirm] = useState(false);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl px-5 py-4 flex items-center gap-4 shadow-sm">
+    <div className="bg-white border border-border rounded-2xl px-5 py-4 flex items-center gap-4">
       {/* Icon */}
       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-xl shrink-0">
         {icon}
@@ -152,21 +153,21 @@ function BuildRow({ build, loading, onUnpublish }) {
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-2 mb-1">
-          <span className="font-black text-slate-900 text-sm">{build.name}</span>
-          <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700">
+          <span className="font-semibold text-[#292925] text-sm">{build.name}</span>
+          <span className="text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-lg bg-[#E9EDE4] text-[#40543C]">
             Published
           </span>
           {build.cloneCount > 0 && (
-            <span className="text-[10px] font-semibold text-primary">
+            <span className="text-[10px] font-medium text-primary">
               🔀 {build.cloneCount} clones
             </span>
           )}
         </div>
-        <div className="text-xs text-slate-400 font-medium">
+        <div className="text-xs text-[#8a8a80]">
           {build.petType} setup ·{" "}
           {build.selections?.length || 0} items ·{" "}
-          <strong className="text-slate-600">{formatPrice(build.totalPrice)}</strong> ·{" "}
-          by <span className="text-primary font-semibold">{build.userId?.name || "Unknown"}</span>{" "}
+          <strong className="text-[#5c5c54]">{formatPrice(build.totalPrice)}</strong> ·{" "}
+          by <span className="text-primary font-medium">{build.userId?.name || "Unknown"}</span>{" "}
           ({build.userId?.email || "—"}) ·{" "}
           Published {formatDate(build.publishedAt || build.createdAt)}
         </div>
@@ -175,17 +176,17 @@ function BuildRow({ build, loading, onUnpublish }) {
       {/* Unpublish Action */}
       {showConfirm ? (
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs font-semibold text-slate-500">Remove from gallery?</span>
+          <span className="text-xs font-medium text-[#6e6e64]">Remove from gallery?</span>
           <button
             onClick={() => { setShowConfirm(false); onUnpublish(); }}
             disabled={loading}
-            className="px-3 py-1.5 bg-rose-500 text-white text-xs font-black rounded-lg hover:bg-rose-600 transition disabled:opacity-60"
+            className="px-3 py-1.5 bg-rose-500 text-white text-xs font-semibold rounded-full hover:bg-rose-600 transition disabled:opacity-60"
           >
             {loading ? "..." : "Yes, remove"}
           </button>
           <button
             onClick={() => setShowConfirm(false)}
-            className="px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-200 transition"
+            className="px-3 py-1.5 bg-light text-[#6e6e64] text-xs font-medium rounded-full hover:bg-border transition"
           >
             Cancel
           </button>
@@ -193,7 +194,7 @@ function BuildRow({ build, loading, onUnpublish }) {
       ) : (
         <button
           onClick={() => setShowConfirm(true)}
-          className="px-4 py-2 bg-rose-50 text-rose-700 text-xs font-black rounded-lg hover:bg-rose-100 transition shrink-0"
+          className="px-4 py-2 bg-rose-50 text-rose-700 text-xs font-semibold rounded-full hover:bg-rose-100 transition shrink-0"
         >
           Unpublish
         </button>

@@ -145,10 +145,19 @@ export const getCampaignDonors = async (req, res, next) => {
 // GET /api/v1/admin/campaigns — Admin Only
 export const getAdminCampaigns = async (req, res, next) => {
   try {
-    const campaigns = await Campaign.find({ deletedAt: null })
+    const campaignsRaw = await Campaign.find({ deletedAt: null })
       .populate("beneficiary", "name")
       .sort({ createdAt: -1 })
       .lean();
+
+    // Same on-the-fly expiry evaluation as the public endpoints — without
+    // it, the admin dashboard shows a stale "active" status for campaigns
+    // that have actually passed their deadline.
+    const now = new Date();
+    const campaigns = campaignsRaw.map((camp) => {
+      const isExpired = camp.deadline && new Date(camp.deadline) < now && camp.status === "active";
+      return { ...camp, status: isExpired ? "expired" : camp.status };
+    });
 
     return sendSuccess(res, campaigns);
   } catch (error) {

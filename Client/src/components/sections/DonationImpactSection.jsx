@@ -1,113 +1,86 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
-import { Heart, Users, Globe, ArrowRight } from "lucide-react";
-import impactImage from "../../assets/donation_impact_pets_1775087943712.png";
-import { getPublicStats } from "../../api/admin.api";
+import { getCampaigns } from "../../api/campaign.api";
+import { formatPrice } from "../../utils/priceFormatter";
 
-const DonationImpactSection = () => {
-  const [stats, setStats] = useState(null);
+const CampaignsPreviewSection = () => {
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getPublicStats()
-      .then((res) => setStats(res.data.data))
-      .catch(() => {});
+    getCampaigns({ limit: 3, status: "active" })
+      .then((res) => setCampaigns(res.data.data || []))
+      .catch(() => setCampaigns([]))
+      .finally(() => setLoading(false));
   }, []);
 
-  const formatStat = (num) => {
-    if (num === undefined || num === null) return "-";
-    if (num >= 1000) return `${(num / 1000).toFixed(1).replace(/\.0$/, "")}k+`;
-    return `${num}+`;
-  };
-
-  const impactStats = [
-    { label: "Rescued Pets", value: formatStat(stats?.rescuedPets), icon: <Heart className="text-rose-500" /> },
-    { label: "Global Partners", value: formatStat(stats?.globalPartners), icon: <Globe className="text-emerald-500" /> },
-    { label: "Happy Families", value: formatStat(stats?.happyFamilies), icon: <Users className="text-amber-500" /> }
-  ];
+  if (!loading && campaigns.length === 0) return null;
 
   return (
-    <section className="py-40 bg-[#fdfcf9] relative overflow-hidden">
-      {/* Soft Blobs */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-amber-100/30 rounded-full blur-[140px] translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-100/20 rounded-full blur-[120px] -translate-x-1/4 translate-y-1/4" />
-      
-      <div className="max-w-7xl mx-auto px-[5%] grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
-        {/* Left Side: Emotional Story */}
-        <Motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
-          className="relative group"
-        >
-          <div className="relative z-10 rounded-[48px] overflow-hidden shadow-2xl shadow-amber-900/5 aspect-square lg:aspect-4/5">
-            <img 
-              src={impactImage} 
-              alt="Emotional Rescue Impact" 
-              className="w-full h-full object-cover grayscale-20 group-hover:grayscale-0 transition-all duration-1000" 
-            />
-            <div className="absolute inset-0 bg-linear-to-t from-black/40 to-transparent pointer-events-none" />
-          </div>
-
-          {/* Floating Fact Card */}
-          <Motion.div 
-            animate={{ y: [0, 15, 0] }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute -bottom-8 -right-8 z-20 glass-card p-10 bg-white shadow-2xl border border-slate-50 flex flex-col gap-6"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center shadow-inner">
-                <Heart size={28} fill="currentColor" />
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Impact Made</p>
-                <p className="text-2xl font-black text-slate-900 leading-tight">10% Donated</p>
-              </div>
-            </div>
-            <p className="text-slate-500 font-bold text-sm max-w-[200px]">Of every transaction helps our local rescue partners.</p>
-          </Motion.div>
-        </Motion.div>
-
-        {/* Right Side: Text & Counter Stats */}
-        <div className="text-center lg:text-left flex flex-col gap-10">
-          <div>
-            <span className="text-rose-500 font-black uppercase tracking-widest text-xs mb-4 block">Our Shared Mission</span>
-            <h2 className="text-5xl md:text-6xl font-black text-slate-950 tracking-tighter mb-8 leading-tight">
-              Support animals that <br className="hidden lg:block"/> need help most.
-            </h2>
-            <p className="text-xl text-slate-500 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
-              We believe every pet deserves a second chance. Through your purchases and direct 
-              campaigns, we've helped thousands of animals find safe, loving environments.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {impactStats.map((stat, i) => (
-              <Motion.div 
-                key={i}
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                viewport={{ once: true }}
-                className="flex flex-col items-center lg:items-start gap-3"
-              >
-                <div className="p-3 bg-white rounded-xl shadow-sm border border-slate-50 mb-2">
-                  {stat.icon}
-                </div>
-                <h4 className="text-4xl font-black text-slate-950 tracking-tighter">{stat.value}</h4>
-                <p className="text-xs font-black uppercase tracking-widest text-slate-400">{stat.label}</p>
-              </Motion.div>
-            ))}
-          </div>
-
-          <Link to="/campaigns" className="btn bg-white border border-slate-100 text-slate-900 px-10 py-5 text-lg rounded-2xl shadow-xl shadow-amber-900/5 hover:bg-slate-50 transition-all flex items-center gap-3 w-fit mx-auto lg:mx-0 font-black">
-            View Active Campaigns <ArrowRight size={20} />
-          </Link>
+    <section className="max-w-7xl mx-auto px-7 pt-24">
+      <div className="flex items-end justify-between gap-6 mb-10">
+        <div>
+          <p className="text-xs tracking-[0.18em] uppercase text-accent font-semibold mb-3">Active campaigns</p>
+          <h2 className="font-heading text-[32px] sm:text-[46px] font-medium text-[#292925] tracking-tight">Where your donation goes</h2>
         </div>
+        <Link to="/campaigns" className="hidden sm:inline text-sm font-medium text-secondary border-b border-[#cfc8ba] pb-0.75 shrink-0">
+          All campaigns
+        </Link>
       </div>
+
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse flex flex-col gap-3">
+              <div className="aspect-video bg-border rounded-card" />
+              <div className="h-5 bg-border w-2/3 rounded-full" />
+              <div className="h-4 bg-border/70 w-full rounded-full" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {campaigns.map((c, i) => {
+            const pct = c.goalAmount > 0 ? Math.min(100, Math.round((c.raisedAmount / c.goalAmount) * 100)) : 0;
+            return (
+              <Motion.article
+                key={c._id}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.08 }}
+                viewport={{ once: true }}
+                className="bg-white border border-[#E8E2D8] rounded-card overflow-hidden flex flex-col"
+              >
+                <div className="aspect-video overflow-hidden bg-border">
+                  {c.images?.[0]?.url && <img src={c.images[0].url} alt={c.title} className="w-full h-full object-cover" />}
+                </div>
+                <div className="p-5.5 flex flex-col gap-3.5 flex-1">
+                  <h3 className="font-heading text-[22px] font-medium text-[#292925] m-0">{c.title}</h3>
+                  <p className="m-0 text-sm leading-relaxed text-[#6e6e64] flex-1 line-clamp-3">{c.shortDescription}</p>
+                  <div>
+                    <div className="h-1.5 rounded-full bg-border overflow-hidden">
+                      <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="flex justify-between mt-2.5 text-[13px] text-[#6e6e64]">
+                      <span>{formatPrice(c.raisedAmount)} raised</span>
+                      <span>{formatPrice(c.goalAmount)} goal</span>
+                    </div>
+                  </div>
+                  <Link
+                    to={`/campaigns/${c._id}`}
+                    className="text-center bg-accent text-white rounded-full py-2.75 text-sm font-medium hover:bg-secondary transition-colors"
+                  >
+                    Donate
+                  </Link>
+                </div>
+              </Motion.article>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 };
 
-export default DonationImpactSection;
+export default CampaignsPreviewSection;

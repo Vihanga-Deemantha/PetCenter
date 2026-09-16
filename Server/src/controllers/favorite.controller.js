@@ -134,6 +134,22 @@ export const checkFavorites = async (req, res, next) => {
       return sendSuccess(res, {});
     }
 
+    // Items may come from a hand-parsed query-string JSON blob, which runs
+    // after the app-wide sanitizer already executed — validate each entry's
+    // shape here so a crafted itemType/itemId object can't smuggle Mongo
+    // query operators (e.g. { "$ne": null }) into the filter below.
+    items = items.filter(
+      ({ itemType, itemId } = {}) =>
+        typeof itemType === "string" &&
+        ["listing", "product"].includes(itemType) &&
+        typeof itemId === "string" &&
+        /^[a-f0-9]{24}$/i.test(itemId)
+    );
+
+    if (items.length === 0) {
+      return sendSuccess(res, {});
+    }
+
     // Fetch all matching favorites in one query
     const orConditions = items.map(({ itemType, itemId }) => ({
       userId,

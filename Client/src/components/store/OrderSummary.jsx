@@ -2,60 +2,54 @@ import React from "react";
 import { Package } from "lucide-react";
 import { formatPrice } from "../../utils/priceFormatter";
 
-const OrderSummary = ({ items = [], total = 0, title = "Order Summary", children }) => {
+const OrderSummary = ({ items = [], total = 0, title = "Order summary", children }) => {
   return (
-    <div className="glass-card bg-white border-slate-100 shadow-sm p-6 space-y-4">
-      <h3 className="font-black text-slate-900 text-lg">{title}</h3>
+    <div className="bg-white border border-[#E8E2D8] rounded-[22px] p-6.5">
+      <p className="m-0 mb-4.5 text-[11px] tracking-[0.14em] uppercase text-accent font-semibold">{title}</p>
 
-      {/* Items */}
-      <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+      <div className="flex flex-col gap-3.5 max-h-72 overflow-y-auto pr-1">
         {items.map((item, idx) => (
           <div key={item.productId || idx} className="flex gap-3 items-center">
-            <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 shrink-0">
+            <div className="w-12 h-12 rounded-xl overflow-hidden bg-light border border-border shrink-0">
               {item.product?.image?.url || item.image?.url ? (
-                <img
-                  src={item.product?.image?.url || item.image?.url}
-                  alt={item.product?.name || item.name}
-                  className="w-full h-full object-cover"
-                />
+                <img src={item.product?.image?.url || item.image?.url} alt={item.product?.name || item.name} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <Package size={18} className="text-slate-300" />
+                  <Package size={16} className="text-[#c9c2b3]" />
                 </div>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-black text-slate-900 line-clamp-1">
-                {item.product?.name || item.name}
-              </p>
-              <p className="text-xs text-slate-400 font-bold">
+              <p className="text-sm font-semibold text-[#292925] line-clamp-1 m-0">{item.product?.name || item.name}</p>
+              <p className="text-xs text-[#8a8a80] m-0 mt-0.5">
                 {formatPrice(item.priceAtAdd || item.priceAtPurchase)} × {item.quantity}
               </p>
             </div>
-            <p className="text-sm font-black text-slate-900 shrink-0">
-              {formatPrice((item.priceAtAdd || item.priceAtPurchase) * item.quantity)}
-            </p>
+            <p className="text-sm font-semibold text-[#292925] shrink-0">{formatPrice((item.priceAtAdd || item.priceAtPurchase) * item.quantity)}</p>
           </div>
         ))}
       </div>
 
-      {/* Divider */}
-      <div className="border-t border-slate-100 pt-4 space-y-2">
-        <div className="flex justify-between text-sm font-bold text-slate-600">
+      <div className="h-px bg-[#F0ECE3] my-4.5" />
+
+      <div className="flex flex-col gap-2.5">
+        <div className="flex justify-between text-sm text-[#3f3f38]">
           <span>Subtotal</span>
-          <span>{formatPrice(total)}</span>
+          <span className="font-medium">{formatPrice(total)}</span>
         </div>
-        <div className="flex justify-between text-sm font-bold text-emerald-600">
-          <span>Shipping</span>
-          <span>Free</span>
-        </div>
-        <div className="flex justify-between text-base font-black text-slate-900 pt-2 border-t border-slate-100">
-          <span>Total</span>
-          <span className="text-primary">{formatPrice(total)}</span>
+        <div className="flex justify-between text-sm text-[#40543C]">
+          <span>Delivery</span>
+          <span className="font-medium">Free</span>
         </div>
       </div>
 
-      {/* Slot for additional content (e.g., checkout button) */}
+      <div className="h-px bg-[#F0ECE3] my-4.5" />
+
+      <div className="flex justify-between items-baseline">
+        <span className="text-sm font-semibold text-[#292925]">Total</span>
+        <span className="font-heading text-[26px] font-medium text-[#292925]">{formatPrice(total)}</span>
+      </div>
+
       {children}
     </div>
   );

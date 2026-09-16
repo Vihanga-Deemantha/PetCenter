@@ -16,72 +16,53 @@ const CartItem = ({ item }) => {
     setUpdating(false);
   };
 
-
-
   const subtotal = item.priceAtAdd * item.quantity;
 
   return (
     <Motion.div
       layout
-      initial={{ opacity: 0, x: -20 }}
+      initial={{ opacity: 0, x: -16 }}
       animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
-      className={`flex gap-4 p-4 rounded-2xl border border-slate-100 bg-white transition-opacity ${updating ? "opacity-50" : ""}`}
+      exit={{ opacity: 0, x: 16 }}
+      className={`bg-white border border-[#E8E2D8] rounded-[20px] p-4.5 grid grid-cols-[88px_1fr_auto] gap-4.5 items-center transition-opacity ${updating ? "opacity-50" : ""}`}
     >
-      {/* Product Image */}
       <Link to={`/products/${item.productId}`} className="shrink-0">
-        <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-50 border border-slate-100">
+        <div className="w-22 h-22 rounded-2xl overflow-hidden bg-light border border-border">
           {item.product?.image?.url ? (
             <img src={item.product.image.url} alt={item.product.name} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <Package size={28} className="text-slate-300" />
+              <Package size={24} className="text-[#c9c2b3]" />
             </div>
           )}
         </div>
       </Link>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0">
         <Link to={`/products/${item.productId}`}>
-          <h4 className="font-black text-slate-900 text-sm leading-tight hover:text-primary transition-colors line-clamp-2">
-            {item.product?.name || "Product"}
-          </h4>
+          <p className="font-heading text-lg font-medium text-[#292925] leading-tight hover:text-primary transition-colors line-clamp-2 m-0">{item.product?.name || "Product"}</p>
         </Link>
-        <p className="text-sm font-bold text-primary mt-1">{formatPrice(item.priceAtAdd)}</p>
+        <p className="text-sm font-semibold text-primary mt-1.25">{formatPrice(item.priceAtAdd)}</p>
+        {item.product?.stock > 0 && item.product.stock <= 5 && <p className="text-[11px] text-[#8f4a28] font-medium mt-1">Only {item.product.stock} left!</p>}
 
-        {/* Low stock warning */}
-        {item.product?.stock > 0 && item.product.stock <= 5 && (
-          <p className="text-[11px] text-amber-600 font-bold mt-1">Only {item.product.stock} left!</p>
-        )}
-      </div>
-
-      {/* Qty + Remove */}
-      <div className="flex flex-col items-end justify-between shrink-0">
-        {/* Subtotal */}
-        <p className="font-black text-slate-900 text-base">{formatPrice(subtotal)}</p>
-
-        {/* Stepper */}
-        <div className="flex items-center gap-2 mt-2">
-          <button
-            onClick={() => handleQtyChange(item.quantity - 1)}
-            disabled={updating}
-            className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-all disabled:opacity-40"
-          >
+        <div className="flex items-center gap-1 mt-3.5 border border-[#E0D9CC] rounded-full p-0.75 w-fit">
+          <button onClick={() => handleQtyChange(item.quantity - 1)} disabled={updating} className="w-7.5 h-7.5 rounded-full text-secondary hover:bg-light flex items-center justify-center transition-colors disabled:opacity-40">
             {item.quantity === 1 ? <Trash2 size={13} /> : <Minus size={13} />}
           </button>
-          <span className="w-8 text-center font-black text-slate-900 text-sm">
-            {updating ? <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto" /> : item.quantity}
+          <span className="w-7 text-center font-semibold text-[#292925] text-sm">
+            {updating ? <div className="w-3.5 h-3.5 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto" /> : item.quantity}
           </span>
           <button
             onClick={() => handleQtyChange(item.quantity + 1)}
             disabled={updating || item.quantity >= (item.product?.stock || 99)}
-            className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-primary/10 hover:text-primary flex items-center justify-center transition-all disabled:opacity-40"
+            className="w-7.5 h-7.5 rounded-full text-secondary hover:bg-light flex items-center justify-center transition-colors disabled:opacity-40"
           >
             <Plus size={13} />
           </button>
         </div>
       </div>
+
+      <p className="font-semibold text-[#292925] text-[17px] whitespace-nowrap">{formatPrice(subtotal)}</p>
     </Motion.div>
   );
 };

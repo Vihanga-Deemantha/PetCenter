@@ -10,6 +10,11 @@ export const loginUser = async (credentials) => {
   return data;
 };
 
+export const googleLogin = async (credential) => {
+  const { data } = await axiosInstance.post("/auth/google", { credential });
+  return data;
+};
+
 export const logoutUser = async () => {
   const { data } = await axiosInstance.post("/auth/logout");
   return data;
@@ -29,6 +34,11 @@ export const uploadProfilePhoto = async (formData) => {
   const { data } = await axiosInstance.put("/auth/profile/photo", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+  return data;
+};
+
+export const changePassword = async (currentPassword, newPassword) => {
+  const { data } = await axiosInstance.put("/auth/change-password", { currentPassword, newPassword });
   return data;
 };
 

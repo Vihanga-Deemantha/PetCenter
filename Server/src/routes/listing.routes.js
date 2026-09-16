@@ -7,6 +7,7 @@ import {
   deleteListing,
   getMyListings,
   updateListingStatus,
+  toggleListingPause,
   revealListingContact,
 } from "../controllers/listing.controller.js";
 import { protect } from "../middleware/auth.js";
@@ -26,6 +27,7 @@ router.get("/:id", getListing);
 router.post("/:id/reveal-contact", protect, sensitiveActionLimiter, revealListingContact);
 router.post("/", protect, uploadPetImages, createListing);
 router.put("/:id/status", protect, updateListingStatus);
+router.put("/:id/pause", protect, toggleListingPause);
 router.put("/:id", protect, uploadPetImages, updateListing);
 router.delete("/:id", protect, deleteListing);
 

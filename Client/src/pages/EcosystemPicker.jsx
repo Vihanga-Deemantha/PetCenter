@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion as Motion, AnimatePresence } from "framer-motion";
+import { Check, AlertTriangle, ShieldCheck } from "lucide-react";
 import { getPetList, getMyBuilds } from "../api/ecosystem.api";
 import { useBuilder } from "../context/BuilderContext";
 import { useAuth } from "../context/AuthContext";
+import EcosystemTabs from "../components/ecosystem/EcosystemTabs";
+import StepIndicator from "../components/ecosystem/StepIndicator";
+import HabitatSlider from "../components/ecosystem/HabitatSlider";
 
-// ─── Pet icon map (emoji fallbacks) ──────────────────────────────────────────
 const PET_ICONS = {
-  fish:      "🐟",
-  snake:     "🐍",
-  bird:      "🦜",
-  spider:    "🕷️",
-  turtle:    "🐢",
-  mouse:     "🐭",
-  reptile:   "🦎",
+  fish: "🐟",
+  snake: "🐍",
+  bird: "🦜",
+  spider: "🕷️",
+  turtle: "🐢",
+  mouse: "🐭",
+  reptile: "🦎",
   amphibian: "🐸",
 };
 
@@ -24,11 +28,11 @@ export default function EcosystemPicker() {
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [confirmChange, setConfirmChange] = useState(null); // petType to switch to
+  const [confirmChange, setConfirmChange] = useState(null);
   const [mySavedBuilds, setMySavedBuilds] = useState([]);
 
   useEffect(() => {
-    document.title = "Build a Pet Setup | PetCenter";
+    document.title = "Build a pet setup | PetCenter";
     getPetList()
       .then((res) => setPets(res.data.data || []))
       .catch(() => setError("Failed to load pet types. Please try again."))
@@ -48,7 +52,6 @@ export default function EcosystemPicker() {
   };
 
   const handlePickPet = (petType) => {
-    // If user already has selections for a different pet, warn them
     if (hasSelections && currentPetType && currentPetType !== petType) {
       setConfirmChange(petType);
       return;
@@ -65,380 +68,108 @@ export default function EcosystemPicker() {
   };
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto" }}>
-      {/* Saved Builds Banner */}
-      {mySavedBuilds.length > 0 && (
-        <div style={{
-          background: "#f3e8ff",
-          border: "1px solid #d8b4fe",
-          borderRadius: 16,
-          padding: "16px 24px",
-          marginBottom: 24,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 16,
-          flexWrap: "wrap",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 24 }}>🌿</span>
+    <div className="max-w-7xl mx-auto px-7 pt-8 pb-24">
+      <div className="mb-7 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] gap-12 lg:gap-14 items-center">
+        <div>
+          <p className="text-xs tracking-[0.18em] uppercase text-accent font-semibold mb-3.5">Habitat builder</p>
+          <h1 className="font-heading text-[34px] sm:text-[44px] font-medium tracking-tight mb-2.5">Design the habitat before they arrive</h1>
+          <p className="text-[15px] leading-relaxed text-[#5c5c54] max-w-160">
+            Choose your pet and we'll guide you through everything it needs — from the enclosure to the final decoration. All products are pulled from our live store catalog.
+          </p>
+        </div>
+
+        <div className="relative hidden lg:block">
+          <HabitatSlider />
+          <div className="absolute -left-6 top-7 bg-light border border-border rounded-2xl px-4.5 py-3.5 shadow-xl shadow-black/10 flex items-center gap-2.5">
+            <ShieldCheck size={18} className="text-accent shrink-0" />
             <div>
-              <p style={{ margin: 0, fontWeight: 800, color: "#581c87", fontSize: 14 }}>
-                Saved Builds Available
-              </p>
-              <p style={{ margin: 0, fontSize: 13, color: "#6b21a8", fontWeight: 500 }}>
-                {mySavedBuilds.length === 1 
-                  ? `You have a saved ${mySavedBuilds[0].petType} build ("${mySavedBuilds[0].name || "My Setup"}").`
-                  : `You have ${mySavedBuilds.length} saved habitat builds in your account.`
-                }
-              </p>
+              <p className="m-0 text-[11px] tracking-wider uppercase text-accent">Checked as you build</p>
+              <p className="mt-0.5 mb-0 text-sm font-semibold text-[#292925]">Species compatibility</p>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 12 }}>
-            {mySavedBuilds.length === 1 ? (
-              <button
-                onClick={() => handleLoadSavedBuild(mySavedBuilds[0])}
-                style={{
-                  background: "#7c3aed",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 10,
-                  padding: "8px 16px",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  boxShadow: "0 4px 12px rgba(124, 58, 237, 0.2)",
-                  transition: "all 0.2s",
-                }}
-              >
-                Load Build
-              </button>
-            ) : (
-              <button
-                onClick={() => navigate("/ecosystem/my-builds")}
-                style={{
-                  background: "#7c3aed",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 10,
-                  padding: "8px 16px",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  boxShadow: "0 4px 12px rgba(124, 58, 237, 0.2)",
-                  transition: "all 0.2s",
-                }}
-              >
-                View Saved Builds
-              </button>
-            )}
-          </div>
         </div>
-      )}
-      {/* ── Meta ──────────────────────────────────────────────────────────── */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          background: "linear-gradient(135deg, #e8f5e9, #f3e5f5)",
-          borderRadius: 24,
-          padding: "6px 16px",
-          fontSize: 12,
-          fontWeight: 600,
-          color: "#4a148c",
-          marginBottom: 16,
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-        }}>
-          🌿 Ecosystem Builder
-        </div>
-        <h1 style={{
-          fontSize: "clamp(28px, 5vw, 42px)",
-          fontWeight: 800,
-          color: "#1a1a1a",
-          lineHeight: 1.15,
-          marginBottom: 12,
-        }}>
-          Build the perfect habitat
-        </h1>
-        <p style={{ fontSize: 17, color: "#666", maxWidth: 560, lineHeight: 1.6 }}>
-          Choose your pet and we'll guide you through everything it needs —
-          from the enclosure to the final decoration. All products are pulled
-          from our live store catalog.
-        </p>
       </div>
 
-      {/* ── Progress Indicator ─────────────────────────────────────────────── */}
+      <EcosystemTabs />
       <StepIndicator currentStep={1} />
 
-      {/* ── Pet Grid ──────────────────────────────────────────────────────── */}
+      {mySavedBuilds.length > 0 && (
+        <Motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white border border-accent/25 rounded-2xl px-6 py-4.5 mb-7 flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <p className="m-0 font-semibold text-[#292925] text-sm">Saved builds available</p>
+            <p className="m-0 mt-0.5 text-[13px] text-[#6e6e64]">
+              {mySavedBuilds.length === 1 ? `You have a saved ${mySavedBuilds[0].petType} build ("${mySavedBuilds[0].name || "My Setup"}").` : `You have ${mySavedBuilds.length} saved habitat builds.`}
+            </p>
+          </div>
+          {mySavedBuilds.length === 1 ? (
+            <button onClick={() => handleLoadSavedBuild(mySavedBuilds[0])} className="btn btn-primary px-5 py-2.5 text-sm shrink-0">
+              Load build
+            </button>
+          ) : (
+            <button onClick={() => navigate("/dashboard?tab=builds")} className="btn btn-primary px-5 py-2.5 text-sm shrink-0">
+              View saved builds
+            </button>
+          )}
+        </Motion.div>
+      )}
+
       {loading ? (
-        <PetGridSkeleton />
-      ) : error ? (
-        <div style={{
-          textAlign: "center",
-          padding: 48,
-          background: "#fff0f0",
-          borderRadius: 12,
-          color: "#c62828",
-          fontSize: 15,
-        }}>{error}</div>
-      ) : (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-          gap: 16,
-          marginTop: 32,
-        }}>
-          {pets.map((pet) => (
-            <PetCard
-              key={pet.key}
-              pet={pet}
-              isActive={currentPetType === pet.key}
-              onClick={() => handlePickPet(pet.key)}
-            />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-40 bg-border rounded-2xl animate-pulse" />
           ))}
         </div>
+      ) : error ? (
+        <div className="text-center py-12 bg-[#F7E9DF] rounded-2xl text-[#8f4a28]">{error}</div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {pets.map((pet) => {
+            const isActive = currentPetType === pet.key;
+            return (
+              <button
+                key={pet.key}
+                onClick={() => handlePickPet(pet.key)}
+                className={`text-center rounded-2xl border p-6 transition-all hover:-translate-y-0.5 ${isActive ? "bg-accent/10 border-accent" : "bg-white border-border hover:border-[#cfc8ba]"}`}
+              >
+                <div className="text-[40px] mb-2.5 leading-none">{PET_ICONS[pet.key] || "🐾"}</div>
+                <p className={`m-0 font-semibold text-[15px] mb-1.5 ${isActive ? "text-secondary" : "text-[#292925]"}`}>{pet.displayName}</p>
+                <p className="m-0 text-xs text-[#8a8a80] leading-relaxed line-clamp-2">{pet.description?.split(".")[0]}.</p>
+                {isActive && (
+                  <span className="inline-flex items-center gap-1 mt-2.5 text-[11px] font-semibold text-secondary bg-accent/10 rounded-full px-2.5 py-1">
+                    <Check size={11} strokeWidth={3} /> Selected
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       )}
 
-      {/* ── Confirm Change Dialog ──────────────────────────────────────────── */}
-      {confirmChange && (
-        <ConfirmDialog
-          from={currentPetType}
-          to={confirmChange}
-          onConfirm={handleConfirmChange}
-          onCancel={() => setConfirmChange(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-// ─── Step Indicator ──────────────────────────────────────────────────────────
-function StepIndicator({ currentStep }) {
-  const steps = ["Pick Pet", "Review Requirements", "Build Setup"];
-  return (
-    <div style={{
-      display: "flex",
-      alignItems: "center",
-      gap: 0,
-      marginBottom: 8,
-      background: "#f8f8f8",
-      borderRadius: 12,
-      padding: "10px 20px",
-      border: "1px solid #eee",
-    }}>
-      {steps.map((label, i) => {
-        const step = i + 1;
-        const isActive = step === currentStep;
-        const isDone = step < currentStep;
-        return (
-          <React.Fragment key={step}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{
-                width: 28,
-                height: 28,
-                borderRadius: "50%",
-                background: isActive
-                  ? "linear-gradient(135deg, #7c3aed, #4f46e5)"
-                  : isDone ? "#22c55e" : "#e5e7eb",
-                color: isActive || isDone ? "#fff" : "#9ca3af",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 12,
-                fontWeight: 700,
-                flexShrink: 0,
-              }}>
-                {isDone ? "✓" : step}
+      <AnimatePresence>
+        {confirmChange && (
+          <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-[#292925]/40 backdrop-blur-sm p-4">
+            <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-[26px] shadow-2xl max-w-sm w-full p-8 border border-border">
+              <div className="w-12 h-12 bg-[#F7E9DF] rounded-2xl flex items-center justify-center mb-4">
+                <AlertTriangle size={22} className="text-[#8f4a28]" />
               </div>
-              <span style={{
-                fontSize: 13,
-                fontWeight: isActive ? 700 : 500,
-                color: isActive ? "#4f46e5" : isDone ? "#16a34a" : "#9ca3af",
-                whiteSpace: "nowrap",
-              }}>{label}</span>
-            </div>
-            {i < steps.length - 1 && (
-              <div style={{
-                flex: 1,
-                height: 2,
-                background: isDone ? "#22c55e" : "#e5e7eb",
-                margin: "0 10px",
-                borderRadius: 2,
-              }} />
-            )}
-          </React.Fragment>
-        );
-      })}
+              <h3 className="font-heading text-xl mb-2">Change pet type?</h3>
+              <p className="text-[#6e6e64] text-sm mb-6 leading-relaxed">
+                You have an unsaved {currentPetType} build in progress. Switching to <strong className="text-[#292925]">{confirmChange}</strong> will clear all your current selections.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmChange(null)} className="flex-1 py-3 bg-light text-[#4F5B4B] rounded-full font-medium hover:bg-border transition-colors">
+                  Keep building
+                </button>
+                <button onClick={handleConfirmChange} className="flex-1 py-3 bg-primary text-white rounded-full font-medium hover:bg-primary-dark transition-colors">
+                  Switch &amp; clear
+                </button>
+              </div>
+            </Motion.div>
+          </Motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-// ─── Pet Card ─────────────────────────────────────────────────────────────────
-function PetCard({ pet, isActive, onClick }) {
-  const [hovered, setHovered] = useState(false);
-  const icon = PET_ICONS[pet.key] || "🐾";
-
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        background: isActive
-          ? "linear-gradient(135deg, #7c3aed11, #4f46e511)"
-          : hovered ? "#fafafa" : "#fff",
-        border: isActive
-          ? "2px solid #7c3aed"
-          : hovered ? "2px solid #d1d5db" : "2px solid #f3f4f6",
-        borderRadius: 16,
-        padding: "24px 16px",
-        cursor: "pointer",
-        textAlign: "center",
-        transition: "all 0.18s ease",
-        transform: hovered || isActive ? "translateY(-3px)" : "none",
-        boxShadow: hovered || isActive
-          ? "0 8px 24px rgba(0,0,0,0.10)"
-          : "0 1px 4px rgba(0,0,0,0.06)",
-        width: "100%",
-      }}
-    >
-      <div style={{ fontSize: 44, marginBottom: 10, lineHeight: 1 }}>{icon}</div>
-      <div style={{
-        fontSize: 15,
-        fontWeight: 700,
-        color: isActive ? "#7c3aed" : "#1a1a1a",
-        marginBottom: 6,
-      }}>
-        {pet.displayName}
-      </div>
-      <div style={{
-        fontSize: 12,
-        color: "#888",
-        lineHeight: 1.5,
-        overflow: "hidden",
-        display: "-webkit-box",
-        WebkitLineClamp: 2,
-        WebkitBoxOrient: "vertical",
-      }}>
-        {pet.description?.split(".")[0]}.
-      </div>
-      {isActive && (
-        <div style={{
-          marginTop: 10,
-          fontSize: 11,
-          fontWeight: 600,
-          color: "#7c3aed",
-          background: "#ede9fe",
-          borderRadius: 8,
-          padding: "2px 8px",
-          display: "inline-block",
-        }}>
-          ✓ Selected
-        </div>
-      )}
-    </button>
-  );
-}
-
-// ─── Skeleton ────────────────────────────────────────────────────────────────
-function PetGridSkeleton() {
-  return (
-    <div style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-      gap: 16,
-      marginTop: 32,
-    }}>
-      {Array.from({ length: 8 }).map((_, i) => (
-        <div
-          key={i}
-          style={{
-            background: "linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%)",
-            backgroundSize: "200% 100%",
-            animation: "shimmer 1.4s infinite",
-            borderRadius: 16,
-            height: 160,
-          }}
-        />
-      ))}
-      <style>{`
-        @keyframes shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-// ─── Confirm Dialog ───────────────────────────────────────────────────────────
-function ConfirmDialog({ from, to, onConfirm, onCancel }) {
-  return (
-    <div style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(0,0,0,0.45)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 1000,
-    }}>
-      <div style={{
-        background: "#fff",
-        borderRadius: 20,
-        padding: "32px 36px",
-        maxWidth: 400,
-        width: "90%",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-      }}>
-        <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
-        <h3 style={{ fontSize: 18, fontWeight: 700, color: "#1a1a1a", marginBottom: 8 }}>
-          Change pet type?
-        </h3>
-        <p style={{ fontSize: 14, color: "#666", marginBottom: 24, lineHeight: 1.6 }}>
-          You have an unsaved {from} build in progress. Switching to{" "}
-          <strong>{to}</strong> will clear all your current selections.
-        </p>
-        <div style={{ display: "flex", gap: 12 }}>
-          <button
-            onClick={onCancel}
-            style={{
-              flex: 1,
-              padding: "10px 0",
-              background: "#f3f4f6",
-              border: "none",
-              borderRadius: 10,
-              cursor: "pointer",
-              fontWeight: 600,
-              fontSize: 14,
-              color: "#374151",
-            }}
-          >
-            Keep building
-          </button>
-          <button
-            onClick={onConfirm}
-            style={{
-              flex: 1,
-              padding: "10px 0",
-              background: "linear-gradient(135deg, #ef4444, #dc2626)",
-              border: "none",
-              borderRadius: 10,
-              cursor: "pointer",
-              fontWeight: 600,
-              fontSize: 14,
-              color: "#fff",
-            }}
-          >
-            Switch & clear
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export { StepIndicator, PET_ICONS };
+export { PET_ICONS };

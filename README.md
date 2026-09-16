@@ -95,26 +95,31 @@ PetCenter/
 
 ### Environment Variables
 
+A copy-paste starting point for each lives in `Server/.env.example` and `Client/.env.example` — copy each to `.env` in the same folder and fill in real values. The tables below are the authoritative reference (matches the variable names actually read in code, not just illustrative examples).
+
 #### `Server/.env`
-```env
-PORT=5000
-NODE_ENV=development
-MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/petcenter
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRE=15m
-JWT_REFRESH_SECRET=your_refresh_secret
-JWT_REFRESH_EXPIRE=7d
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-STRIPE_SECRET_KEY=sk_test_...
-CLIENT_URL=http://localhost:5173
-```
+| Variable | Required | Notes |
+|---|---|---|
+| `PORT` | No | Defaults to `5011` if unset |
+| `NODE_ENV` | Yes | `development` or `production` |
+| `MONGODB_URI` | Yes | MongoDB connection string |
+| `CLIENT_URL` | Yes | Client origin(s) for CORS + email links. Comma-separated for multiple (e.g. staging + prod) |
+| `JWT_ACCESS_SECRET` | Yes | Signs short-lived access tokens |
+| `JWT_ACCESS_EXPIRE` | No | e.g. `15m` |
+| `JWT_REFRESH_SECRET` | Yes | Signs long-lived refresh tokens (must differ from the access secret) |
+| `JWT_REFRESH_EXPIRE` | No | e.g. `7d` |
+| `GOOGLE_CLIENT_ID` | No | Enables "Sign in with Google"; omitting it just disables that button |
+| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Yes | Image uploads (listings, products, campaigns, shelters, profile photos) |
+| `STRIPE_SECRET_KEY` | Yes | Server-side Stripe key |
+| `STRIPE_WEBHOOK_SECRET` | Yes | Verifies the `/api/v1/webhooks/stripe` signature |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Yes in production | Password-reset emails; the server logs a startup warning if missing in production |
 
 #### `Client/.env`
-```env
-VITE_API_URL=http://localhost:5000/api/v1
-```
+| Variable | Required | Notes |
+|---|---|---|
+| `VITE_API_URL` | Yes | e.g. `http://localhost:5011/api/v1` in dev |
+| `VITE_GOOGLE_CLIENT_ID` | No | Must match the server's `GOOGLE_CLIENT_ID` |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | Yes | Client-side Stripe key (checkout + donations) |
 
 ### Installation & Launch
 

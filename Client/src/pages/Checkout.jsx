@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate, Link } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
 import { Elements } from "@stripe/react-stripe-js";
 import { Lock, ArrowLeft, MapPin } from "lucide-react";
@@ -9,10 +9,12 @@ import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import StripeCheckoutForm from "../components/store/StripeCheckoutForm";
 import OrderSummary from "../components/store/OrderSummary";
+import CheckoutSteps from "../components/store/CheckoutSteps";
 import { formatPrice } from "../utils/priceFormatter";
-import { Link } from "react-router-dom";
 
 const COUNTRIES = ["United States", "United Kingdom", "Canada", "Australia", "Germany", "France", "Japan", "India", "Sri Lanka", "Other"];
+
+const fieldCls = (hasError) => `border rounded-2xl px-4 py-3.25 text-sm text-[#292925] bg-light outline-none transition-colors ${hasError ? "border-[#d79274]" : "border-border focus:border-accent"}`;
 
 const Checkout = () => {
   const { user } = useAuth();
@@ -68,173 +70,127 @@ const Checkout = () => {
     navigate(`/order-success?paymentIntent=${intentId}`);
   };
 
-  const stripeOptions = clientSecret ? {
-    clientSecret,
-    appearance: {
-      theme: "stripe",
-      variables: {
-        colorPrimary: "#6366f1",
-        borderRadius: "12px",
-        fontFamily: "Outfit, sans-serif",
-      },
-    },
-  } : null;
+  const stripeOptions = clientSecret
+    ? {
+        clientSecret,
+        appearance: {
+          theme: "stripe",
+          variables: {
+            colorPrimary: "#C87550",
+            colorBackground: "#ffffff",
+            colorText: "#292925",
+            borderRadius: "14px",
+            fontFamily: "Inter, sans-serif",
+          },
+        },
+      }
+    : null;
 
   return (
-    <div>
-      {/* Header */}
-      <Motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
-        <Link to="/cart" className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-primary transition-colors mb-4">
-          <ArrowLeft size={16} /> Back to Cart
-        </Link>
-        <h1 className="text-4xl font-black tracking-tighter text-slate-900">Checkout</h1>
+    <div className="max-w-7xl mx-auto px-7 pt-7 pb-24">
+      <CheckoutSteps current="shipping" itemLabel={`${cartItems.length} item${cartItems.length !== 1 ? "s" : ""}`} />
 
-        {/* Steps */}
-        <div className="flex items-center gap-3 mt-4">
-          {["address", "payment"].map((s, i) => (
-            <React.Fragment key={s}>
-              <div className={`flex items-center gap-2 text-sm font-bold ${step === s ? "text-primary" : "text-slate-400"}`}>
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black ${step === s ? "bg-primary text-white" : "bg-slate-100 text-slate-400"}`}>{i + 1}</div>
-                {s === "address" ? "Shipping" : "Payment"}
-              </div>
-              {i === 0 && <div className="flex-1 h-0.5 bg-slate-100 max-w-8" />}
-            </React.Fragment>
-          ))}
-        </div>
+      <Motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <h1 className="font-heading text-[36px] sm:text-[44px] font-medium tracking-tight mb-2">Shipping and payment</h1>
+        <p className="text-[15px] text-[#5c5c54]">Live animals are never shipped — this is for supplies and habitat kits only.</p>
       </Motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Left: Address / Payment Form */}
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.62fr_1fr] gap-9 items-start">
+        <div>
           {step === "address" && (
-            <Motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="glass-card bg-white border-slate-100 shadow-sm p-8 space-y-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <MapPin size={20} className="text-primary" />
+            <Motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} className="bg-white border border-[#E8E2D8] rounded-[22px] p-7 sm:p-8 space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
+                  <MapPin size={19} className="text-accent" />
                 </div>
-                <h2 className="text-xl font-black text-slate-900">Shipping Address</h2>
+                <h2 className="font-heading text-xl font-medium">Delivery address</h2>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Full Name */}
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Full Name *</label>
-                  <input
-                    value={address.fullName}
-                    onChange={(e) => setAddress({ ...address, fullName: e.target.value })}
-                    className={`w-full px-4 py-3 rounded-xl border font-semibold text-sm text-slate-800 focus:ring-2 focus:ring-primary/20 outline-none bg-white ${addressErrors.fullName ? "border-rose-400" : "border-slate-200"}`}
-                    placeholder="John Smith"
-                  />
-                  {addressErrors.fullName && <p className="text-xs text-rose-500 font-bold mt-1">{addressErrors.fullName}</p>}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4.5">
+                <div className="sm:col-span-2 flex flex-col gap-1.75">
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-[#8a8a7e]">Full name *</label>
+                  <input value={address.fullName} onChange={(e) => setAddress({ ...address, fullName: e.target.value })} className={fieldCls(addressErrors.fullName)} placeholder="John Smith" />
+                  {addressErrors.fullName && <p className="text-xs text-[#b4573a] font-medium m-0">{addressErrors.fullName}</p>}
                 </div>
 
-                {/* Address Line 1 */}
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Address *</label>
-                  <input
-                    value={address.addressLine1}
-                    onChange={(e) => setAddress({ ...address, addressLine1: e.target.value })}
-                    className={`w-full px-4 py-3 rounded-xl border font-semibold text-sm text-slate-800 focus:ring-2 focus:ring-primary/20 outline-none bg-white ${addressErrors.addressLine1 ? "border-rose-400" : "border-slate-200"}`}
-                    placeholder="123 Main Street"
-                  />
-                  {addressErrors.addressLine1 && <p className="text-xs text-rose-500 font-bold mt-1">{addressErrors.addressLine1}</p>}
+                <div className="sm:col-span-2 flex flex-col gap-1.75">
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-[#8a8a7e]">Address *</label>
+                  <input value={address.addressLine1} onChange={(e) => setAddress({ ...address, addressLine1: e.target.value })} className={fieldCls(addressErrors.addressLine1)} placeholder="123 Main Street" />
+                  {addressErrors.addressLine1 && <p className="text-xs text-[#b4573a] font-medium m-0">{addressErrors.addressLine1}</p>}
                 </div>
 
-                {/* Address Line 2 */}
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Apt, Suite, etc. (optional)</label>
-                  <input
-                    value={address.addressLine2}
-                    onChange={(e) => setAddress({ ...address, addressLine2: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-semibold text-sm text-slate-800 focus:ring-2 focus:ring-primary/20 outline-none bg-white"
-                    placeholder="Apt 4B"
-                  />
+                <div className="sm:col-span-2 flex flex-col gap-1.75">
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-[#8a8a7e]">Apt, suite, etc. (optional)</label>
+                  <input value={address.addressLine2} onChange={(e) => setAddress({ ...address, addressLine2: e.target.value })} className={fieldCls(false)} placeholder="Apt 4B" />
                 </div>
 
-                {/* City */}
-                <div>
-                  <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">City *</label>
-                  <input
-                    value={address.city}
-                    onChange={(e) => setAddress({ ...address, city: e.target.value })}
-                    className={`w-full px-4 py-3 rounded-xl border font-semibold text-sm text-slate-800 focus:ring-2 focus:ring-primary/20 outline-none bg-white ${addressErrors.city ? "border-rose-400" : "border-slate-200"}`}
-                    placeholder="New York"
-                  />
-                  {addressErrors.city && <p className="text-xs text-rose-500 font-bold mt-1">{addressErrors.city}</p>}
+                <div className="flex flex-col gap-1.75">
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-[#8a8a7e]">City *</label>
+                  <input value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })} className={fieldCls(addressErrors.city)} placeholder="New York" />
+                  {addressErrors.city && <p className="text-xs text-[#b4573a] font-medium m-0">{addressErrors.city}</p>}
                 </div>
 
-                {/* Postal Code */}
-                <div>
-                  <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Postal Code *</label>
-                  <input
-                    value={address.postalCode}
-                    onChange={(e) => setAddress({ ...address, postalCode: e.target.value })}
-                    className={`w-full px-4 py-3 rounded-xl border font-semibold text-sm text-slate-800 focus:ring-2 focus:ring-primary/20 outline-none bg-white ${addressErrors.postalCode ? "border-rose-400" : "border-slate-200"}`}
-                    placeholder="10001"
-                  />
-                  {addressErrors.postalCode && <p className="text-xs text-rose-500 font-bold mt-1">{addressErrors.postalCode}</p>}
+                <div className="flex flex-col gap-1.75">
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-[#8a8a7e]">Postal code *</label>
+                  <input value={address.postalCode} onChange={(e) => setAddress({ ...address, postalCode: e.target.value })} className={fieldCls(addressErrors.postalCode)} placeholder="10001" />
+                  {addressErrors.postalCode && <p className="text-xs text-[#b4573a] font-medium m-0">{addressErrors.postalCode}</p>}
                 </div>
 
-                {/* Country */}
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Country *</label>
-                  <select
-                    value={address.country}
-                    onChange={(e) => setAddress({ ...address, country: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 font-semibold text-sm text-slate-800 focus:ring-2 focus:ring-primary/20 outline-none bg-white cursor-pointer"
-                  >
-                    {COUNTRIES.map((c) => <option key={c}>{c}</option>)}
+                <div className="sm:col-span-2 flex flex-col gap-1.75">
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-[#8a8a7e]">Country *</label>
+                  <select value={address.country} onChange={(e) => setAddress({ ...address, country: e.target.value })} className={`${fieldCls(false)} cursor-pointer`}>
+                    {COUNTRIES.map((c) => (
+                      <option key={c}>{c}</option>
+                    ))}
                   </select>
                 </div>
               </div>
 
-              {intentError && (
-                <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl text-sm text-rose-700 font-bold">{intentError}</div>
-              )}
+              {intentError && <div className="p-3.5 bg-[#F7E9DF] border border-[#F0D9C8] rounded-xl text-sm text-[#8f4a28] font-medium">{intentError}</div>}
 
-              <button
-                onClick={handleContinueToPayment}
-                disabled={creatingIntent}
-                className="w-full py-4 rounded-xl font-black text-white bg-linear-to-br from-primary to-accent shadow-lg shadow-primary/30 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-60"
-              >
+              <button onClick={handleContinueToPayment} disabled={creatingIntent} className="btn btn-primary w-full py-3.75 disabled:opacity-60">
                 {creatingIntent ? (
-                  <><div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" /> Initializing...</>
+                  <>
+                    <div className="w-5 h-5 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Initializing...
+                  </>
                 ) : (
-                  <><Lock size={18} /> Continue to Payment</>
+                  <>
+                    <Lock size={17} /> Continue to payment
+                  </>
                 )}
               </button>
             </Motion.div>
           )}
 
           {step === "payment" && clientSecret && (
-            <Motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="glass-card bg-white border-slate-100 shadow-sm p-8">
+            <Motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} className="bg-white border border-[#E8E2D8] rounded-[22px] p-7 sm:p-8">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <Lock size={20} className="text-primary" />
+                <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
+                  <Lock size={19} className="text-accent" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black text-slate-900">Secure Payment</h2>
-                  <p className="text-xs text-slate-400 font-medium">256-bit SSL encryption</p>
+                  <h2 className="font-heading text-xl font-medium">Payment</h2>
+                  <p className="text-xs text-[#8a8a7e]">Card details are never stored. Payments settle through Stripe.</p>
                 </div>
               </div>
 
               <Elements stripe={stripePromise} options={stripeOptions}>
-                <StripeCheckoutForm
-                  onSuccess={handlePaymentSuccess}
-                  totalAmount={formatPrice(serverTotal)}
-                />
+                <StripeCheckoutForm onSuccess={handlePaymentSuccess} totalAmount={formatPrice(serverTotal)} />
               </Elements>
 
-              <button onClick={() => setStep("address")} className="mt-4 text-sm font-bold text-slate-400 hover:text-primary transition-colors flex items-center gap-1">
-                <ArrowLeft size={14} /> Edit shipping address
+              <button onClick={() => setStep("address")} className="mt-4 text-sm font-medium text-[#8a8a80] hover:text-primary transition-colors flex items-center gap-1.5">
+                <ArrowLeft size={14} /> Edit delivery address
               </button>
             </Motion.div>
           )}
+
+          <Link to="/cart" className="inline-block mt-5 text-[13.5px] text-[#6e6e64] hover:text-primary transition-colors">
+            Back to cart
+          </Link>
         </div>
 
-        {/* Right: Order Summary */}
-        <div>
-          <OrderSummary items={cartItems} total={serverTotal || cartTotal} title="Order Summary" />
+        <div className="lg:sticky lg:top-28">
+          <OrderSummary items={cartItems} total={serverTotal || cartTotal} title="Order summary" />
         </div>
       </div>
     </div>

@@ -63,11 +63,22 @@ const petListingSchema = new mongoose.Schema(
       required: [true, "Please specify listing type"],
       enum: ["sale", "adoption"],
     },
-    // Status flow: pending → active → sold/adopted/removed
+    // Status flow: pending → active → sold/adopted/removed. "paused" is an
+    // owner-toggled state that hides an active listing from the marketplace
+    // without going through re-moderation, exactly like pending/removed do.
     status: {
       type: String,
-      enum: ["pending", "active", "sold", "adopted", "removed"],
+      enum: ["pending", "active", "paused", "sold", "adopted", "removed"],
       default: "pending",
+    },
+    verifiedFlags: {
+      type: [String],
+      enum: ["Vaccinated", "Spayed / Neutered", "Microchipped", "Habitat Included", "House-trained"],
+      default: [],
+    },
+    enquiriesCount: {
+      type: Number,
+      default: 0,
     },
     viewCount: {
       type: Number,

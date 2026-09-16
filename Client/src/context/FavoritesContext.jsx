@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { getFavorites, addFavorite, removeFavorite } from "../api/favorite.api";
 import { useAuth } from "./AuthContext";
 
@@ -45,8 +45,16 @@ export function FavoritesProvider({ children }) {
     [favSet]
   );
 
+  // Per-item promise chain — a rapid double-click on the same heart must not
+  // fire an add and a remove as overlapping requests (whichever response
+  // lands last would silently win and could disagree with the optimistic
+  // UI). Chaining onto the previous in-flight request for that key forces
+  // the add/remove calls for one item to resolve on the server in the same
+  // order the user issued them.
+  const pendingRef = useRef(new Map());
+
   const toggleFavorite = useCallback(
-    async (itemType, itemId) => {
+    (itemType, itemId) => {
       const key = `${itemType}:${itemId}`;
       const alreadyFavorited = favSet.has(key);
 
@@ -58,27 +66,26 @@ export function FavoritesProvider({ children }) {
         return next;
       });
 
-      try {
-        if (alreadyFavorited) {
-          await removeFavorite(itemType, itemId);
-        } else {
-          await addFavorite(itemType, itemId);
-        }
-      } catch {
-        // Revert on failure
-        setFavSet((prev) => {
-          const next = new Set(prev);
-          if (alreadyFavorited) next.add(key);
-          else next.delete(key);
-          return next;
+      const prevRequest = pendingRef.current.get(key) || Promise.resolve();
+      const request = prevRequest
+        .then(() => (alreadyFavorited ? removeFavorite(itemType, itemId) : addFavorite(itemType, itemId)))
+        .catch(() => {
+          // Revert only this call's optimistic change on failure
+          setFavSet((prev) => {
+            const next = new Set(prev);
+            if (alreadyFavorited) next.add(key);
+            else next.delete(key);
+            return next;
+          });
         });
-      }
+
+      pendingRef.current.set(key, request);
     },
     [favSet]
   );
 
   return (
-    <FavoritesContext.Provider value={{ isFavorited, toggleFavorite, loading, error, reload: loadFavorites }}>
+    <FavoritesContext.Provider value={{ isFavorited, toggleFavorite, loading, error, reload: loadFavorites, count: favSet.size }}>
       {children}
     </FavoritesContext.Provider>
   );

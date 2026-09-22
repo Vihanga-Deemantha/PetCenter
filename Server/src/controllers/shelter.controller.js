@@ -2,12 +2,14 @@ import Shelter from "../models/Shelter.js";
 import Campaign from "../models/Campaign.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import escapeRegExp from "../utils/escapeRegExp.js";
+import { clampLimit } from "../utils/pagination.js";
 
 // ─── Get Public Shelters (Filterable, Paginated, Searchable) ───────────────────
 // GET /api/v1/shelters — Public
 export const getShelters = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, type, city, search } = req.query;
+    const { page = 1, type, city, search } = req.query;
+    const limit = clampLimit(req.query.limit, { max: 60, fallback: 10 });
 
     const filter = { isActive: true };
 
@@ -23,7 +25,7 @@ export const getShelters = async (req, res, next) => {
       filter.$text = { $search: search };
     }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(page) - 1) * limit;
 
     // Omit sensitive contact fields to prevent bulk scraping
     const [shelters, total] = await Promise.all([
@@ -31,19 +33,19 @@ export const getShelters = async (req, res, next) => {
         .select("-contact.phone -contact.email")
         .sort({ isVerified: -1, createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(limit)
         .lean(),
       Shelter.countDocuments(filter),
     ]);
 
-    const totalPages = Math.ceil(total / parseInt(limit));
+    const totalPages = Math.ceil(total / limit);
 
     return sendSuccess(res, shelters, 200, {
       pagination: {
         currentPage: parseInt(page),
         totalPages,
         totalItems: total,
-        itemsPerPage: parseInt(limit),
+        itemsPerPage: limit,
       },
     });
   } catch (error) {

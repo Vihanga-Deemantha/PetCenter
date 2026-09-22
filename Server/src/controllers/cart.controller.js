@@ -421,6 +421,16 @@ export const bulkAddToCart = async (req, res, next) => {
         continue;
       }
 
+      // A negative/zero/non-integer quantity here would otherwise reach
+      // cart.save() and fail the schema's own validators — but since every
+      // entry in this batch shares one Cart document, that single failed
+      // save throws and discards every other, legitimately-added item in
+      // the same request, not just this bad entry.
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        failed.push({ productId, reason: "Quantity must be a positive whole number" });
+        continue;
+      }
+
       const product = await Product.findById(productId);
 
       if (!product || !product.isActive) {

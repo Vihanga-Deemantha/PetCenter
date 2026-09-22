@@ -67,7 +67,11 @@ const Marketplace = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setFilters((f) => ({ ...f, search: searchInput, page: 1 }));
+      // Effects run after the initial mount too, not just on real changes —
+      // without the equality check, loading (or refreshing) a deep link like
+      // ?page=3 silently snapped back to page 1 ~400ms later even though the
+      // user never touched the search box.
+      setFilters((f) => (f.search === searchInput ? f : { ...f, search: searchInput, page: 1 }));
     }, 400);
     return () => clearTimeout(timer);
   }, [searchInput]);

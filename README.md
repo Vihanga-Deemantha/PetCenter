@@ -113,6 +113,7 @@ A copy-paste starting point for each lives in `Server/.env.example` and `Client/
 | `STRIPE_SECRET_KEY` | Yes | Server-side Stripe key |
 | `STRIPE_WEBHOOK_SECRET` | Yes | Verifies the `/api/v1/webhooks/stripe` signature |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Yes in production | Password-reset emails; the server logs a startup warning if missing in production |
+| `GEMINI_API_KEY` | No | Powers the Ecosystem Builder's "Explain this build" AI narration (Google Gemini); omitting it falls back to a plain, still-accurate sentence |
 
 #### `Client/.env`
 | Variable | Required | Notes |

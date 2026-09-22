@@ -44,6 +44,14 @@ const ListingDetails = () => {
 
   useEffect(() => {
     setLoading(true);
+    // Without this, navigating from one listing to another (e.g. via a
+    // "Similar pets" card, which doesn't unmount this component) kept the
+    // previous listing's revealed contact info, selected photo index, and
+    // similar-pets list on screen under the new listing's data.
+    setPet(null);
+    setActiveImg(0);
+    setContact(null);
+    setSimilar([]);
     getListing(id)
       .then((data) => setPet(data.data))
       .catch(() => setPet(null))

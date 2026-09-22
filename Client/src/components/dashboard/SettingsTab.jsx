@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Lock, Bell, Download, Trash2, CheckCircle, AlertCircle } from "lucide-react";
 import { changePassword, updateProfile } from "../../api/auth.api";
 import { useAuth } from "../../context/AuthContext";
+import { setAccessToken } from "../../api/tokenStore";
 
 export default function SettingsTab() {
   return (
@@ -38,7 +39,11 @@ function PasswordCard() {
     }
     setSubmitting(true);
     try {
-      await changePassword(form.currentPassword, form.newPassword);
+      const res = await changePassword(form.currentPassword, form.newPassword);
+      // The server invalidates every existing session (including this tab's)
+      // on a password change and issues a fresh access token in the response
+      // specifically so this tab can keep going without an extra login.
+      if (res.data?.accessToken) setAccessToken(res.data.accessToken);
       setSuccess("Password changed successfully.");
       setForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (err) {

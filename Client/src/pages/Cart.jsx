@@ -58,7 +58,13 @@ const Cart = () => {
       <CheckoutSteps current="cart" itemLabel={`${itemCount} item${itemCount !== 1 ? "s" : ""}`} />
 
       <h1 className="font-heading text-[36px] sm:text-[44px] font-medium tracking-tight mb-2">Your cart</h1>
-      <p className="text-[15px] text-[#5c5c54] mb-8">Delivery is free on every order — no separate shipping step to worry about.</p>
+      <p className="text-[15px] text-[#5c5c54] mb-8">Free delivery on orders over $75 — a flat $5.99 shipping fee applies below that.</p>
+
+      {error && cartItems.length > 0 && (
+        <div className="flex items-center gap-2.5 p-3.5 bg-[#F7E9E3] text-[#8a4a2f] rounded-xl mb-6 text-sm font-medium">
+          <AlertTriangle size={16} className="shrink-0" /> {error}
+        </div>
+      )}
 
       {cartItems.length === 0 ? (
         <Motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="bg-white border border-[#E8E2D8] rounded-[22px] py-16 px-8 text-center">
@@ -91,7 +97,7 @@ const Cart = () => {
           </div>
 
           <div className="lg:sticky lg:top-28">
-            <OrderSummary items={cartItems} total={cartTotal}>
+            <OrderSummary items={cartItems} subtotal={cartTotal}>
               <button onClick={() => navigate("/checkout")} className="btn btn-primary w-full py-3.75 mt-5">
                 Checkout <ArrowRight size={17} />
               </button>

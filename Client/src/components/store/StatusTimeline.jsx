@@ -7,21 +7,36 @@ const STEPS = [
   { key: "delivered", label: "Delivered", icon: Package, desc: "Order delivered successfully" },
 ];
 
-const StatusTimeline = ({ status }) => {
+// statusHistory entries only exist for orders placed (or transitioned)
+// after this was added — older orders simply have none, and every date
+// below falls back to the generic step description rather than guessing.
+const StatusTimeline = ({ status, statusHistory = [] }) => {
+  const dateFor = (stepKey) => {
+    const entry = statusHistory.find((h) => h.status === stepKey);
+    return entry ? new Date(entry.changedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : null;
+  };
+
   if (status === "cancelled") {
+    const cancelledDate = dateFor("cancelled");
     return (
       <div className="flex items-center gap-3 p-4 bg-rose-50 rounded-2xl border border-rose-100">
         <XCircle className="text-rose-500" size={24} />
         <div>
           <p className="font-semibold text-rose-700">Order cancelled</p>
-          <p className="text-xs text-rose-500 font-medium">This order has been cancelled</p>
+          <p className="text-xs text-rose-500 font-medium">{cancelledDate ? `Cancelled ${cancelledDate}` : "This order has been cancelled"}</p>
         </div>
       </div>
     );
   }
 
   const stepOrder = ["processing", "shipped", "delivered"];
-  const currentIndex = stepOrder.indexOf(status);
+  // "pending" (order accepted, not yet confirmed) has no step of its own in
+  // this 3-step timeline — indexOf would return -1, which matched none of
+  // the isCompleted/isCurrent checks below and rendered every circle as
+  // inactive with no indication of progress at all. Treat it as "Processing"
+  // hasn't started yet but is the active/current step, same as the customer
+  // would expect to see.
+  const currentIndex = status === "pending" ? 0 : stepOrder.indexOf(status);
 
   return (
     <div className="relative">
@@ -33,6 +48,7 @@ const StatusTimeline = ({ status }) => {
           const isCompleted = idx < currentIndex;
           const isCurrent = idx === currentIndex;
           const Icon = isCompleted ? CheckCircle : step.icon;
+          const date = (isCompleted || isCurrent) && dateFor(step.key);
 
           return (
             <div key={step.key} className="flex flex-col items-center gap-2 flex-1">
@@ -54,7 +70,7 @@ const StatusTimeline = ({ status }) => {
                 }`}>
                   {step.label}
                 </p>
-                <p className="text-[10px] text-[#8a8a80] font-medium hidden sm:block">{step.desc}</p>
+                <p className="text-[10px] text-[#8a8a80] font-medium hidden sm:block">{date || step.desc}</p>
               </div>
             </div>
           );

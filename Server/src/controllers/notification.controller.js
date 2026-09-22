@@ -1,5 +1,6 @@
 import Notification from "../models/Notification.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
+import { clampLimit } from "../utils/pagination.js";
 
 // ─── Helper: create a notification (used by other controllers) ────────────────
 export async function createNotification({ userId, type, title, message, link = "" }) {
@@ -15,15 +16,16 @@ export async function createNotification({ userId, type, title, message, link = 
 export const getNotifications = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    const { page = 1, limit = 20 } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = clampLimit(req.query.limit, { max: 100, fallback: 20 });
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (page - 1) * limit;
 
     const [notifications, total, unreadCount] = await Promise.all([
       Notification.find({ userId })
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(limit)
         .lean(),
       Notification.countDocuments({ userId }),
       Notification.countDocuments({ userId, isRead: false }),
@@ -32,10 +34,10 @@ export const getNotifications = async (req, res, next) => {
     return sendSuccess(res, notifications, 200, {
       unreadCount,
       pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(total / parseInt(limit)),
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
         totalItems: total,
-        itemsPerPage: parseInt(limit),
+        itemsPerPage: limit,
       },
     });
   } catch (error) {

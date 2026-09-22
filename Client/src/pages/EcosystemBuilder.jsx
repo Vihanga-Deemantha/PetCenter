@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation, Link } from "react-router-dom";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, ChevronDown, ChevronUp, AlertTriangle, Package, Save, ShoppingCart, X } from "lucide-react";
-import { getPetConfig, createBuild, bulkAddToCart } from "../api/ecosystem.api";
+import { ArrowLeft, Check, ChevronDown, ChevronUp, AlertTriangle, Package, Save, ShoppingCart, X, Sparkles } from "lucide-react";
+import { getPetConfig, createBuild, bulkAddToCart, narrateBuild } from "../api/ecosystem.api";
 import { getProducts } from "../api/product.api";
 import { useBuilder } from "../context/BuilderContext";
 import { useCart } from "../context/CartContext";
@@ -15,11 +15,22 @@ export default function EcosystemBuilder() {
   const { petType } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { fetchCart } = useCart();
-  const { selections, toggleSelection, getTotalPrice, getMissingRequired, isReadyToAddCart, getSelectedItems, totalItemCount, clearSelections, setPet } = useBuilder();
+  const { petType: contextPetType, selections, toggleSelection, getTotalPrice, getMissingRequired, isReadyToAddCart, getSelectedItems, totalItemCount, clearSelections, setPet } = useBuilder();
 
   const step = parseInt(searchParams.get("step") || "2");
+
+  // Only present right after "Suggest a build" on the picker page hands off
+  // here via navigation state — lost on a hard refresh, which is fine, it's
+  // purely an explanatory overlay on top of the real selection state below.
+  const suggestion = location.state?.suggestion;
+  const [showSuggestionBanner, setShowSuggestionBanner] = useState(!!suggestion);
+  const suggestedProductIds = useMemo(() => new Set(suggestion?.productIds?.map(String) || []), [suggestion]);
+  const [narration, setNarration] = useState(null); // { narration, source } | null
+  const [narrating, setNarrating] = useState(false);
+  const [narrateError, setNarrateError] = useState("");
 
   const [petConfig, setPetConfig] = useState(null);
   const [allProducts, setAllProducts] = useState([]);
@@ -38,7 +49,13 @@ export default function EcosystemBuilder() {
     document.title = `Build a ${petType} setup | PetCenter`;
     setLoading(true);
     setError(null);
-    setPet(petType);
+    // Skip the reset if the context is already on this pet type — arriving
+    // here via loadBuild() (a saved build, or a budget suggestion) already
+    // set the right petType + selections just before this mounted; calling
+    // setPet again would wipe them back to empty immediately after.
+    if (contextPetType !== petType) {
+      setPet(petType);
+    }
 
     Promise.all([getPetConfig(petType), getProducts({ compatiblePets: petType, limit: 200, inStock: "false" })])
       .then(([configRes, productsRes]) => {
@@ -77,6 +94,40 @@ export default function EcosystemBuilder() {
     setTimeout(() => setToast(null), 4500);
   };
 
+  // Narrates the LIVE current selection, not the original suggestion — if
+  // the user swapped an item out, the explanation should describe what's
+  // actually in the build now, not a stale pick.
+  const handleExplainBuild = async () => {
+    if (!petConfig) return;
+    const items = petConfig.categories.flatMap((cat) =>
+      (selections[cat.key] || [])
+        .map((productId) => productMap[productId])
+        .filter(Boolean)
+        .map((product) => ({ category: cat.label, name: product.name, price: product.price }))
+    );
+    if (items.length === 0) {
+      setNarrateError("Select at least one item first.");
+      return;
+    }
+    setNarrating(true);
+    setNarrateError("");
+    try {
+      const res = await narrateBuild({
+        petType,
+        budget: suggestion?.budget,
+        totalPrice: liveTotal,
+        overBudget: suggestion?.overBudget,
+        notes: suggestion?.notes,
+        items,
+      });
+      setNarration(res.data.data);
+    } catch {
+      setNarrateError("Couldn't generate an explanation right now. Please try again.");
+    } finally {
+      setNarrating(false);
+    }
+  };
+
   const handleAddToCart = async () => {
     if (!user) {
       navigate(`/login?redirect=${encodeURIComponent(`/ecosystem/build/${petType}?step=3`)}`);
@@ -88,7 +139,10 @@ export default function EcosystemBuilder() {
       const res = await bulkAddToCart(items);
       const { added, failed } = res.data.data;
       await fetchCart();
-      clearSelections();
+      // Only clear what actually made it into the cart — if everything failed
+      // (e.g. the whole build sold out), wiping selections here would lose
+      // the user's whole build with nothing to show for it.
+      if (added.length > 0) clearSelections();
       if (failed.length === 0) showToast(`${added.length} items added to your cart.`);
       else showToast(`${added.length} added. ${failed.length} out of stock: ${failed.map((f) => f.name || f.productId).join(", ")}`, "warning");
     } catch {
@@ -103,7 +157,7 @@ export default function EcosystemBuilder() {
       navigate(`/login?redirect=${encodeURIComponent(`/ecosystem/build/${petType}?step=3`)}`);
       return;
     }
-    if (!buildName.trim()) return;
+    if (!buildName.trim() || saveLoading) return;
     setSaveLoading(true);
     try {
       const items = getSelectedItems();
@@ -147,6 +201,16 @@ export default function EcosystemBuilder() {
       {step === 3 && (
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-7 items-start">
           <div className="min-w-0">
+            {showSuggestionBanner && suggestion && (
+              <SuggestionBanner
+                suggestion={suggestion}
+                onDismiss={() => setShowSuggestionBanner(false)}
+                narration={narration}
+                narrating={narrating}
+                narrateError={narrateError}
+                onExplain={handleExplainBuild}
+              />
+            )}
             {petConfig.categories.map((cat) => {
               const products = getProductsForCategory(cat.key);
               const selected = selections[cat.key] || [];
@@ -160,6 +224,7 @@ export default function EcosystemBuilder() {
                   selected={selected}
                   isOpen={isOpen}
                   isMissing={isMissing}
+                  suggestedProductIds={suggestedProductIds}
                   onToggleOpen={() => setOpenCategories((prev) => ({ ...prev, [cat.key]: !prev[cat.key] }))}
                   onToggleProduct={(productId) => toggleSelection(cat.key, productId, cat.maxSelectable)}
                 />
@@ -275,8 +340,55 @@ function ChecklistItem({ label, description, required }) {
   );
 }
 
+// ─── Suggestion banner ────────────────────────────────────────────────────────
+// Only shown right after "Suggest a build" on the picker page. Always states
+// the real budget outcome — including going over budget — rather than
+// glossing over it.
+function SuggestionBanner({ suggestion, onDismiss, narration, narrating, narrateError, onExplain }) {
+  const { budget, totalPrice, overBudget, notes } = suggestion;
+  return (
+    <Motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="bg-accent/10 border border-accent/25 rounded-2xl p-5 mb-5 relative">
+      <button onClick={onDismiss} className="absolute top-4 right-4 text-[#8a8a80] hover:text-[#292925]" aria-label="Dismiss">
+        <X size={16} />
+      </button>
+      <div className="flex items-center gap-2 mb-1.5 pr-6">
+        <Sparkles size={16} className="text-accent shrink-0" />
+        <p className="m-0 font-semibold text-[#292925] text-sm">Suggested for a {formatPrice(budget)} budget</p>
+      </div>
+      <p className="m-0 text-[13px] text-[#5c5c54] leading-relaxed">
+        {overBudget
+          ? `This came to ${formatPrice(totalPrice)} — a little over, to make sure every required essential is included.`
+          : `This came to ${formatPrice(totalPrice)}, within budget.`}{" "}
+        Swap anything below before you save or buy.
+      </p>
+      {notes?.length > 0 && (
+        <ul className="mt-2.5 mb-0 pl-4 space-y-1">
+          {notes.map((note, i) => (
+            <li key={i} className="text-[12px] text-[#8a8a80]">{note}</li>
+          ))}
+        </ul>
+      )}
+
+      {narration ? (
+        <div className="mt-3.5 pt-3.5 border-t border-accent/20">
+          <p className="m-0 text-[13px] text-[#292925] leading-relaxed italic">"{narration.narration}"</p>
+        </div>
+      ) : (
+        <button
+          onClick={onExplain}
+          disabled={narrating}
+          className="mt-3.5 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-secondary hover:text-primary transition-colors disabled:opacity-60"
+        >
+          <Sparkles size={12} /> {narrating ? "Thinking…" : "Explain this build"}
+        </button>
+      )}
+      {narrateError && <p className="mt-2 mb-0 text-[12px] text-[#b4573a]">{narrateError}</p>}
+    </Motion.div>
+  );
+}
+
 // ─── Category card (layer) ────────────────────────────────────────────────────
-function CategoryCard({ category, products, selected, isOpen, isMissing, onToggleOpen, onToggleProduct }) {
+function CategoryCard({ category, products, selected, isOpen, isMissing, suggestedProductIds, onToggleOpen, onToggleProduct }) {
   const selectedProducts = products.filter((p) => selected.includes(p._id));
   const hasOutOfStockSelection = selectedProducts.some((p) => p.stock === 0);
 
@@ -305,7 +417,13 @@ function CategoryCard({ category, products, selected, isOpen, isMissing, onToggl
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
               {products.map((product) => (
-                <BuilderProductCard key={product._id} product={product} isSelected={selected.includes(product._id)} onToggle={() => onToggleProduct(product._id)} />
+                <BuilderProductCard
+                  key={product._id}
+                  product={product}
+                  isSelected={selected.includes(product._id)}
+                  isSuggested={suggestedProductIds?.has(product._id)}
+                  onToggle={() => onToggleProduct(product._id)}
+                />
               ))}
             </div>
           )}
@@ -315,7 +433,7 @@ function CategoryCard({ category, products, selected, isOpen, isMissing, onToggl
   );
 }
 
-function BuilderProductCard({ product, isSelected, onToggle }) {
+function BuilderProductCard({ product, isSelected, isSuggested, onToggle }) {
   const outOfStock = product.stock === 0;
   return (
     <button
@@ -339,6 +457,11 @@ function BuilderProductCard({ product, isSelected, onToggle }) {
         )}
         {outOfStock && <div className="absolute bottom-0 inset-x-0 bg-[#292925]/70 text-white text-[9px] font-semibold py-0.75 text-center">OUT OF STOCK</div>}
       </div>
+      {isSelected && isSuggested && (
+        <div className="inline-flex items-center gap-1 mb-1 text-[9.5px] font-semibold text-accent uppercase tracking-wide">
+          <Sparkles size={9} /> Suggested
+        </div>
+      )}
       <div className={`text-[12px] font-medium leading-tight line-clamp-2 mb-1 ${isSelected ? "text-secondary" : "text-[#292925]"}`}>{product.name}</div>
       <div className={`text-[13px] font-semibold ${isSelected ? "text-secondary" : "text-primary"}`}>{formatPrice(product.price)}</div>
     </button>

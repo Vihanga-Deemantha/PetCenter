@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { googleLogin } from "../../api/auth.api";
 
 let scriptPromise;
@@ -26,6 +26,18 @@ const GoogleSignInButton = ({ onSuccess, onError }) => {
   const [ready, setReady] = useState(false);
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
+  // Callers (Login/Register) pass inline arrow functions, so a new reference
+  // arrives on every render — including every keystroke in those forms,
+  // since they re-render on formData changes. Reading through a ref instead
+  // of putting onSuccess/onError in the effect's own dependency array means
+  // the callback below always calls the LATEST handler without needing to
+  // re-run window.google.accounts.id.initialize()/renderButton() on every
+  // keystroke.
+  const handlersRef = useRef({ onSuccess, onError });
+  useLayoutEffect(() => {
+    handlersRef.current = { onSuccess, onError };
+  });
+
   useEffect(() => {
     if (!clientId) return;
     let cancelled = false;
@@ -38,9 +50,9 @@ const GoogleSignInButton = ({ onSuccess, onError }) => {
           callback: async (response) => {
             try {
               const data = await googleLogin(response.credential);
-              onSuccess(data.data.user, data.data.accessToken);
+              handlersRef.current.onSuccess(data.data.user, data.data.accessToken);
             } catch (err) {
-              onError?.(err.response?.data?.message || "Google sign-in failed. Please try again.");
+              handlersRef.current.onError?.(err.response?.data?.message || "Google sign-in failed. Please try again.");
             }
           },
         });
@@ -55,12 +67,12 @@ const GoogleSignInButton = ({ onSuccess, onError }) => {
         });
         setReady(true);
       })
-      .catch(() => onError?.("Couldn't load Google sign-in — check your connection and try again."));
+      .catch(() => handlersRef.current.onError?.("Couldn't load Google sign-in — check your connection and try again."));
 
     return () => {
       cancelled = true;
     };
-  }, [clientId, onSuccess, onError]);
+  }, [clientId]);
 
   if (!clientId) {
     return (

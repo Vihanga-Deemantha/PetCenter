@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion as Motion } from "framer-motion";
-import { Search, RefreshCw, Package, Eye, ChevronDown } from "lucide-react";
+import { Search, RefreshCw, Package, Eye, ChevronDown, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getAdminOrders, updateOrderStatus } from "../api/order.api";
 import { formatPrice } from "../utils/priceFormatter";
@@ -14,23 +14,55 @@ const STATUS_COLORS = {
   pending: "bg-[#EFEBE2] text-[#6e6e64]",
 };
 
-const StatusSelect = ({ orderId, currentStatus, onUpdate }) => {
+const StatusSelect = ({ orderId, currentStatus, trackingNumber, carrier, onUpdate }) => {
   const [updating, setUpdating] = useState(false);
-  const handleChange = async (e) => {
-    const newStatus = e.target.value;
-    if (newStatus === currentStatus) return;
+  // Set only while the "mark as shipped" tracking-info popover is open —
+  // the status isn't applied until the admin confirms (or skips) it.
+  const [pendingShip, setPendingShip] = useState(false);
+  const [trackingInput, setTrackingInput] = useState("");
+  const [carrierInput, setCarrierInput] = useState("");
+
+  const applyStatus = async (newStatus, extra = {}) => {
     setUpdating(true);
     try {
-      await updateOrderStatus(orderId, newStatus);
-      onUpdate(orderId, newStatus);
-    } catch { /* ignore */ }
+      await updateOrderStatus(orderId, newStatus, extra);
+      onUpdate(orderId, newStatus, extra);
+    } catch (err) {
+      // The server legitimately rejects some transitions (e.g. trying to
+      // move a cancelled/refunded order anywhere else, or a failed Stripe
+      // refund on cancel) — silently reverting the dropdown with no
+      // explanation left the admin with no idea why nothing happened.
+      alert(err.response?.data?.message || "Failed to update order status.");
+    }
     setUpdating(false);
+    setPendingShip(false);
+  };
+
+  const handleChange = (e) => {
+    const newStatus = e.target.value;
+    if (newStatus === currentStatus) return;
+    if (newStatus === "shipped") {
+      // Tracking info is optional but worth asking for right when it's
+      // decided — not a separate step admins would have to remember later.
+      setTrackingInput(trackingNumber || "");
+      setCarrierInput(carrier || "");
+      setPendingShip(true);
+      return;
+    }
+    applyStatus(newStatus);
+  };
+
+  const confirmShipped = () => {
+    const extra = {};
+    if (trackingInput.trim()) extra.trackingNumber = trackingInput.trim();
+    if (carrierInput.trim()) extra.carrier = carrierInput.trim();
+    applyStatus("shipped", extra);
   };
 
   return (
     <div className="relative inline-block">
       {updating && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center z-10">
           <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
         </div>
       )}
@@ -45,6 +77,44 @@ const StatusSelect = ({ orderId, currentStatus, onUpdate }) => {
         ))}
       </select>
       <ChevronDown size={12} className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${updating ? "opacity-0" : ""}`} />
+
+      {(trackingNumber || carrier) && (
+        <p className="mt-1.5 flex items-center gap-1 text-[10.5px] text-[#8a8a80] font-medium max-w-44 truncate" title={[carrier, trackingNumber].filter(Boolean).join(" · ")}>
+          <Truck size={11} className="shrink-0" />
+          <span className="truncate">{[carrier, trackingNumber].filter(Boolean).join(" · ")}</span>
+        </p>
+      )}
+
+      {pendingShip && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setPendingShip(false)} />
+          <div className="absolute left-0 top-full mt-2 z-40 w-64 bg-white border border-border rounded-2xl shadow-xl shadow-black/10 p-4 text-left normal-case">
+            <p className="text-xs font-semibold text-[#292925] mb-3">Mark as shipped</p>
+            <div className="flex flex-col gap-2.5">
+              <input
+                value={carrierInput}
+                onChange={(e) => setCarrierInput(e.target.value)}
+                placeholder="Carrier (optional)"
+                className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none focus:border-accent"
+              />
+              <input
+                value={trackingInput}
+                onChange={(e) => setTrackingInput(e.target.value)}
+                placeholder="Tracking number (optional)"
+                className="w-full px-3 py-2 rounded-lg border border-border text-xs outline-none focus:border-accent"
+              />
+            </div>
+            <div className="flex gap-2 mt-3.5">
+              <button onClick={() => setPendingShip(false)} className="flex-1 py-2 rounded-lg bg-light text-[#4F5B4B] text-xs font-semibold">
+                Cancel
+              </button>
+              <button onClick={confirmShipped} className="flex-1 py-2 rounded-lg bg-primary text-white text-xs font-semibold">
+                Confirm
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
@@ -54,27 +124,39 @@ const AdminOrdersManagement = () => {
   const [pagination, setPagination] = useState({});
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [page, setPage] = useState(1);
+  // Guards against an older, slower request (e.g. from a filter the admin
+  // has since changed) resolving after a newer one and overwriting the
+  // table with stale/wrong-filter data.
+  const requestSeq = useRef(0);
 
   const fetchOrders = useCallback(async () => {
+    const seq = ++requestSeq.current;
     setLoading(true);
+    setFetchError(false);
     try {
       const params = { page, limit: 15, sortBy };
       if (statusFilter) params.status = statusFilter;
       const res = await getAdminOrders(params);
+      if (seq !== requestSeq.current) return;
       setOrders(res.data.data.orders || []);
       setPagination(res.data.data.pagination || {});
       setStatistics(res.data.data.statistics || null);
-    } catch { setOrders([]); }
-    setLoading(false);
+    } catch {
+      if (seq !== requestSeq.current) return;
+      setOrders([]);
+      setFetchError(true);
+    }
+    if (seq === requestSeq.current) setLoading(false);
   }, [page, statusFilter, sortBy]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
-  const handleStatusUpdate = (orderId, newStatus) => {
-    setOrders((prev) => prev.map((o) => o._id === orderId ? { ...o, status: newStatus } : o));
+  const handleStatusUpdate = (orderId, newStatus, extra = {}) => {
+    setOrders((prev) => prev.map((o) => o._id === orderId ? { ...o, status: newStatus, ...extra } : o));
   };
 
   return (
@@ -135,6 +217,12 @@ const AdminOrdersManagement = () => {
         <div className="space-y-3">
           {[...Array(8)].map((_, i) => <div key={i} className="h-20 bg-border rounded-2xl animate-pulse" />)}
         </div>
+      ) : fetchError ? (
+        <div className="text-center py-24">
+          <Package size={44} className="mx-auto mb-4 text-[#c9c2b3]" />
+          <p className="font-semibold text-[#292925]">Couldn't load orders. Please try again.</p>
+          <button onClick={fetchOrders} className="mt-4 btn btn-primary">Retry</button>
+        </div>
       ) : orders.length === 0 ? (
         <div className="text-center py-24">
           <Package size={44} className="mx-auto mb-4 text-[#c9c2b3]" />
@@ -188,7 +276,13 @@ const AdminOrdersManagement = () => {
                       <p className="text-xs text-[#8a8a80]">{order.shippingAddress?.city}</p>
                     </td>
                     <td className="px-5 py-4">
-                      <StatusSelect orderId={order._id} currentStatus={order.status} onUpdate={handleStatusUpdate} />
+                      <StatusSelect
+                        orderId={order._id}
+                        currentStatus={order.status}
+                        trackingNumber={order.trackingNumber}
+                        carrier={order.carrier}
+                        onUpdate={handleStatusUpdate}
+                      />
                     </td>
                     <td className="px-5 py-4 font-semibold text-[#292925] whitespace-nowrap">{formatPrice(order.totalAmount)}</td>
                     <td className="px-5 py-4">

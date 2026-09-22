@@ -92,12 +92,20 @@ export const CartProvider = ({ children }) => {
   }, [fetchCart]);
 
   const clearCartLocal = useCallback(async () => {
+    setError(null);
     try {
       await apiClearCart();
-    } catch { /* ignore */ }
+    } catch (err) {
+      // Clearing local state unconditionally here would show "cart is empty"
+      // even though the server call failed and every item is still there —
+      // the real cart re-appears (wrongly looking like a bug) on next reload.
+      setError(err.response?.data?.message || "Couldn't clear your cart. Please try again.");
+      return { success: false };
+    }
     setCartItems([]);
     setItemCount(0);
     setCartTotal(0);
+    return { success: true };
   }, []);
 
   const clearLocalCartOnly = useCallback(() => {

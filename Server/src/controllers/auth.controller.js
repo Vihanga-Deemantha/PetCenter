@@ -59,7 +59,7 @@ export const register = async (req, res, next) => {
 // POST /api/v1/auth/login  — Public
 export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, remember = true } = req.body;
 
     if (!email || !password) {
       return sendError(res, "Please provide email and password", 400);
@@ -84,7 +84,7 @@ export const login = async (req, res, next) => {
 
     await User.updateOne({ _id: user._id }, { refreshToken: hashToken(refreshToken) });
 
-    setRefreshTokenCookie(res, refreshToken);
+    setRefreshTokenCookie(res, refreshToken, remember);
 
     return sendSuccess(res, {
       user: {
@@ -137,21 +137,31 @@ export const googleAuth = async (req, res, next) => {
     let user = await User.findOne({ googleId }).select("+refreshToken");
 
     if (!user) {
-      // Link to an existing local account with the same email, otherwise
-      // create a fresh Google-authenticated account.
-      user = await User.findOne({ email }).select("+refreshToken");
-      if (user) {
-        user.googleId = googleId;
-        await user.save();
-      } else {
-        user = await User.create({
-          name,
-          email,
-          googleId,
-          authProvider: "google",
-          profileImage: picture || "",
-        });
+      // Do NOT silently link to an existing local (password) account just
+      // because the email matches — registration requires no email
+      // verification, so an attacker could pre-register the victim's email
+      // with a password only the attacker knows, then have this endpoint
+      // hand them the victim's (soon-to-be) Google-linked account the first
+      // time the real owner signs in with Google. Require the user to prove
+      // they already control that account via password login instead; a
+      // genuine account-linking flow (initiated while already logged in)
+      // would be the safe way to offer this later.
+      const existingLocalAccount = await User.findOne({ email, authProvider: "local" });
+      if (existingLocalAccount) {
+        return sendError(
+          res,
+          "An account with this email already exists. Please log in with your password instead.",
+          409
+        );
       }
+
+      user = await User.create({
+        name,
+        email,
+        googleId,
+        authProvider: "google",
+        profileImage: picture || "",
+      });
     }
 
     if (user.isDeleted) {
@@ -330,9 +340,19 @@ export const changePassword = async (req, res, next) => {
     }
 
     user.password = newPassword;
+    // Same reasoning as resetPassword: invalidate every existing session so
+    // a stolen access/refresh token doesn't outlive a password change meant
+    // to secure the account. Issue a fresh pair below so the tab that just
+    // made this request isn't itself logged out.
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    const accessToken = generateAccessToken(user._id, user.tokenVersion);
+    const freshRefreshToken = generateRefreshToken(user._id, user.tokenVersion);
+    user.refreshToken = hashToken(freshRefreshToken);
     await user.save();
 
-    return sendSuccess(res, { message: "Password changed successfully" });
+    setRefreshTokenCookie(res, freshRefreshToken);
+
+    return sendSuccess(res, { message: "Password changed successfully", accessToken });
   } catch (error) {
     next(error);
   }

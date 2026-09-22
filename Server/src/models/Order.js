@@ -64,7 +64,13 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       required: [true, "Total amount is required"],
       min: [0, "Total amount cannot be negative"],
-      description: "Total in cents. Calculated server-side, never from client.",
+      description: "Total in cents (items + shippingFee). Calculated server-side, never from client.",
+    },
+    shippingFee: {
+      type: Number,
+      default: 0,
+      min: [0, "Shipping fee cannot be negative"],
+      description: "Cents. Included in totalAmount, broken out separately for display.",
     },
     status: {
       type: String,
@@ -73,6 +79,29 @@ const orderSchema = new mongoose.Schema(
         message: "Status must be one of: pending, processing, shipped, delivered, cancelled",
       },
       default: "processing",
+    },
+    trackingNumber: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    carrier: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    // A timestamped log of every status this order has been through — the
+    // `status` field alone can only ever say what's true *right now*, so
+    // without this a customer's timeline UI has no real dates to show.
+    statusHistory: {
+      type: [
+        {
+          status: { type: String, required: true },
+          changedAt: { type: Date, default: Date.now },
+          note: { type: String, default: "" },
+        },
+      ],
+      default: [],
     },
     paymentIntentId: {
       type: String,

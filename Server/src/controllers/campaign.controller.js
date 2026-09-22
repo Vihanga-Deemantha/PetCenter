@@ -1,12 +1,14 @@
 import Campaign from "../models/Campaign.js";
 import Donation from "../models/Donation.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
+import { clampLimit } from "../utils/pagination.js";
 
 // ─── Get Public Campaigns (Filterable, Paginated) ─────────────────────────────
 // GET /api/v1/campaigns — Public
 export const getCampaigns = async (req, res, next) => {
   try {
-    const { page = 1, limit = 9, category, search, status } = req.query;
+    const { page = 1, category, search, status } = req.query;
+    const limit = clampLimit(req.query.limit, { max: 60, fallback: 9 });
 
     const filter = { deletedAt: null, status: { $ne: "draft" } };
 
@@ -22,14 +24,14 @@ export const getCampaigns = async (req, res, next) => {
       filter.$text = { $search: search };
     }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(page) - 1) * limit;
 
     const [campaignsRaw, total] = await Promise.all([
       Campaign.find(filter)
         .populate("beneficiary", "name location logo")
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(limit)
         .lean(),
       Campaign.countDocuments(filter),
     ]);
@@ -54,14 +56,14 @@ export const getCampaigns = async (req, res, next) => {
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
-    const totalPages = Math.ceil(total / parseInt(limit));
+    const totalPages = Math.ceil(total / limit);
 
     return sendSuccess(res, campaigns, 200, {
       pagination: {
         currentPage: parseInt(page),
         totalPages,
         totalItems: total,
-        itemsPerPage: parseInt(limit),
+        itemsPerPage: limit,
       },
     });
   } catch (error) {
@@ -111,9 +113,10 @@ export const getCampaignDetail = async (req, res, next) => {
 export const getCampaignDonors = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { page = 1, limit = 10 } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = clampLimit(req.query.limit, { max: 60, fallback: 10 });
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (page - 1) * limit;
     const filter = { campaignId: id, status: "completed" };
 
     const [donations, total] = await Promise.all([
@@ -121,19 +124,19 @@ export const getCampaignDonors = async (req, res, next) => {
         .select("displayName amount createdAt message")
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(limit)
         .lean(),
       Donation.countDocuments(filter),
     ]);
 
-    const totalPages = Math.ceil(total / parseInt(limit));
+    const totalPages = Math.ceil(total / limit);
 
     return sendSuccess(res, donations, 200, {
       pagination: {
-        currentPage: parseInt(page),
+        currentPage: page,
         totalPages,
         totalItems: total,
-        itemsPerPage: parseInt(limit),
+        itemsPerPage: limit,
       },
     });
   } catch (error) {

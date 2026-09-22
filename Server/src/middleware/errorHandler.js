@@ -70,9 +70,19 @@ const errorHandler = (err, req, res, _next) => {
     );
   }
 
+  // Every branch above hand-crafts a safe, user-facing message for the error
+  // shapes we anticipate. Anything else falling through with the raw
+  // err.message (a generic programming/DB/third-party error) risks leaking
+  // internal detail — connection strings, file paths, driver internals — to
+  // the client. Only development gets the real message; production gets a
+  // generic one (the real one is still in the structured log line above).
+  const safeMessage = statusCode >= 500 && process.env.NODE_ENV !== "development"
+    ? "Something went wrong. Please try again later."
+    : message;
+
   res.status(statusCode).json({
     success: false,
-    message,
+    message: safeMessage,
     ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 };

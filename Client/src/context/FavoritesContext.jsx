@@ -12,8 +12,16 @@ export function FavoritesProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Guards against a slow response for a PREVIOUS user landing after a fast
+  // logout-then-login-as-someone-else, which would otherwise populate favSet
+  // with the wrong account's favorites for a moment.
+  const requestedForRef = useRef(null);
+
   // Load all favorites when user logs in
   const loadFavorites = useCallback(() => {
+    const requestedFor = user?._id || null;
+    requestedForRef.current = requestedFor;
+
     if (!user) {
       setFavSet(new Set());
       setError(null);
@@ -23,17 +31,21 @@ export function FavoritesProvider({ children }) {
     setError(null);
     getFavorites({ limit: 500 })
       .then((res) => {
+        if (requestedForRef.current !== requestedFor) return;
         const items = res.data.data || [];
         const set = new Set(items.map((f) => `${f.itemType}:${f.itemId}`));
         setFavSet(set);
       })
       .catch(() => {
+        if (requestedForRef.current !== requestedFor) return;
         // A failed load must not look like "nothing is favorited" — every
         // heart icon site-wide reads from favSet, so leaving it empty here
         // would make every previously-saved item appear unsaved.
         setError("Couldn't load your favorites.");
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (requestedForRef.current === requestedFor) setLoading(false);
+      });
   }, [user]);
 
   useEffect(() => {

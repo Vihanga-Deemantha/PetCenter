@@ -38,7 +38,7 @@ const Login = () => {
     setError("");
     setLoading(true);
     try {
-      const data = await loginUser(formData);
+      const data = await loginUser({ ...formData, remember });
       login(data.data.user, data.data.accessToken);
       goPostLogin();
     } catch (err) {

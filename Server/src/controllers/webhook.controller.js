@@ -150,6 +150,18 @@ export async function handleDonationSucceeded(paymentIntent) {
     await session.withTransaction(async () => {
       let donation = await Donation.findOne({ stripePaymentIntentId: paymentIntentId }).session(session);
 
+      // A concurrent delivery of the same event can lose a write conflict on
+      // this same donation document, which makes the Mongo driver retry this
+      // entire callback from scratch. By the time the retry runs, the OTHER
+      // delivery's transaction has already committed and marked this
+      // "completed" — without this guard, the retry would re-run the $inc
+      // below and double-credit the campaign for one real donation. Same
+      // reasoning handleChargeRefunded below already applies.
+      if (donation && donation.status === "completed") {
+        updatedCampaign = await Campaign.findById(campaignId).session(session);
+        return;
+      }
+
       if (!donation) {
         donation = new Donation({
           campaignId,

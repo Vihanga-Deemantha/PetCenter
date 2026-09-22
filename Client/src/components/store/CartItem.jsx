@@ -54,7 +54,7 @@ const CartItem = ({ item }) => {
           </span>
           <button
             onClick={() => handleQtyChange(item.quantity + 1)}
-            disabled={updating || item.quantity >= (item.product?.stock || 99)}
+            disabled={updating || item.quantity >= (item.product?.stock ?? 99)}
             className="w-7.5 h-7.5 rounded-full text-secondary hover:bg-light flex items-center justify-center transition-colors disabled:opacity-40"
           >
             <Plus size={13} />

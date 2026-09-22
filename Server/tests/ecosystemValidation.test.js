@@ -105,6 +105,30 @@ describe("POST /api/v1/ecosystem/builds — server-side selection validation", (
     expect(res.body.message).toMatch(/no longer available/i);
   });
 
+  it("rejects an active but out-of-stock product", async () => {
+    const { token } = await registerAndLogin("ecooutofstock@test.com");
+    const tank = await makeProduct({ isActive: true, stock: 0 });
+
+    const res = await request(app)
+      .post("/api/v1/ecosystem/builds")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ name: "My Fish Tank", petType: "fish", selections: [{ productId: tank._id, categoryKey: "tank" }] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/out of stock/i);
+  });
+
+  it("returns a clean 400 instead of crashing when selections is null", async () => {
+    const { token } = await registerAndLogin("econullsel@test.com");
+
+    const res = await request(app)
+      .post("/api/v1/ecosystem/builds")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ name: "My Fish Tank", petType: "fish", selections: null });
+
+    expect(res.status).toBe(400);
+  });
+
   it("accepts a well-formed, compatible selection", async () => {
     const { token } = await registerAndLogin("ecovalid@test.com");
     const tank = await makeProduct();

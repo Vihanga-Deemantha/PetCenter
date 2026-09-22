@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link, Navigate } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
-import { ArrowLeft, Package, MapPin, CreditCard } from "lucide-react";
+import { ArrowLeft, Package, MapPin, CreditCard, Truck } from "lucide-react";
 import { getOrderById, cancelOrder as cancelOrderApi } from "../api/order.api";
 import { useAuth } from "../context/AuthContext";
 import StatusTimeline from "../components/store/StatusTimeline";
@@ -17,11 +17,19 @@ const OrderDetail = () => {
 
   useEffect(() => {
     if (!user) return;
+    // Without the ignore guard and the error/order reset, navigating client-
+    // side from an invalid order ID to a valid one kept showing "Order not
+    // found" (error was never cleared), and a slower response for an older
+    // orderId could resolve after a newer one and overwrite it with stale data.
+    let ignore = false;
     setLoading(true);
+    setError(null);
+    setOrder(null);
     getOrderById(orderId)
-      .then((res) => setOrder(res.data.data.order))
-      .catch(() => setError("Order not found"))
-      .finally(() => setLoading(false));
+      .then((res) => { if (!ignore) setOrder(res.data.data.order); })
+      .catch(() => { if (!ignore) setError("Order not found"); })
+      .finally(() => { if (!ignore) setLoading(false); });
+    return () => { ignore = true; };
   }, [orderId, user]);
 
   if (!user) return <Navigate to="/login" replace />;
@@ -97,7 +105,17 @@ const OrderDetail = () => {
 
       <div className="bg-white border border-[#E8E2D8] rounded-[22px] p-6 mb-6">
         <h2 className="m-0 mb-5 font-heading text-lg font-medium text-[#292925]">Order status</h2>
-        <StatusTimeline status={order.status} />
+        <StatusTimeline status={order.status} statusHistory={order.statusHistory} />
+
+        {(order.trackingNumber || order.carrier) && (
+          <div className="mt-5 pt-5 border-t border-border flex items-center gap-2.5 text-sm">
+            <Truck size={16} className="text-primary shrink-0" />
+            <span className="text-[#8a8a80] font-medium">Tracking</span>
+            <span className="font-semibold text-[#292925]">
+              {[order.carrier, order.trackingNumber].filter(Boolean).join(" · ")}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -161,9 +179,19 @@ const OrderDetail = () => {
             </div>
           ))}
 
-          <div className="border-t border-border pt-4 flex justify-between">
-            <span className="font-semibold text-[#292925]">Total</span>
-            <span className="font-heading text-lg font-medium text-primary">{formatPrice(order.totalAmount)}</span>
+          <div className="border-t border-border pt-4 space-y-2">
+            <div className="flex justify-between text-sm text-[#3f3f38]">
+              <span>Subtotal</span>
+              <span className="font-medium">{formatPrice(order.items?.reduce((sum, item) => sum + item.priceAtPurchase * item.quantity, 0) || 0)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-[#40543C]">
+              <span>Delivery</span>
+              <span className="font-medium">{order.shippingFee ? formatPrice(order.shippingFee) : "Free"}</span>
+            </div>
+            <div className="flex justify-between pt-2">
+              <span className="font-semibold text-[#292925]">Total</span>
+              <span className="font-heading text-lg font-medium text-primary">{formatPrice(order.totalAmount)}</span>
+            </div>
           </div>
         </div>
       </div>

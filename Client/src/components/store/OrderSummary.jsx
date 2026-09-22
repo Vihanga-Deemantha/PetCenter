@@ -1,8 +1,16 @@
 import React from "react";
 import { Package } from "lucide-react";
 import { formatPrice } from "../../utils/priceFormatter";
+import { estimateShippingFee } from "../../utils/shipping";
 
-const OrderSummary = ({ items = [], total = 0, title = "Order summary", children }) => {
+// `shippingFee` is optional: pass the server's authoritative value once
+// known (post-checkout-intent); otherwise this estimates it from the same
+// threshold the server uses, so the Cart page's preview never claims a flat
+// "Free" that the real charge won't honor.
+const OrderSummary = ({ items = [], subtotal = 0, shippingFee, title = "Order summary", children }) => {
+  const fee = shippingFee ?? estimateShippingFee(subtotal);
+  const total = subtotal + fee;
+
   return (
     <div className="bg-white border border-[#E8E2D8] rounded-[22px] p-6.5">
       <p className="m-0 mb-4.5 text-[11px] tracking-[0.14em] uppercase text-accent font-semibold">{title}</p>
@@ -35,11 +43,11 @@ const OrderSummary = ({ items = [], total = 0, title = "Order summary", children
       <div className="flex flex-col gap-2.5">
         <div className="flex justify-between text-sm text-[#3f3f38]">
           <span>Subtotal</span>
-          <span className="font-medium">{formatPrice(total)}</span>
+          <span className="font-medium">{formatPrice(subtotal)}</span>
         </div>
         <div className="flex justify-between text-sm text-[#40543C]">
           <span>Delivery</span>
-          <span className="font-medium">Free</span>
+          <span className="font-medium">{fee === 0 ? "Free" : formatPrice(fee)}</span>
         </div>
       </div>
 

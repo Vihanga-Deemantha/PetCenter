@@ -23,6 +23,8 @@ const Checkout = () => {
 
   const [clientSecret, setClientSecret] = useState(null);
   const [serverTotal, setServerTotal] = useState(0);
+  const [serverSubtotal, setServerSubtotal] = useState(0);
+  const [serverShippingFee, setServerShippingFee] = useState(null);
   const [creatingIntent, setCreatingIntent] = useState(false);
   const [intentError, setIntentError] = useState(null);
   const [step, setStep] = useState("address"); // "address" | "payment"
@@ -58,6 +60,8 @@ const Checkout = () => {
       const res = await createPaymentIntent(address);
       setClientSecret(res.data.data.clientSecret);
       setServerTotal(res.data.data.totalAmount);
+      setServerSubtotal(res.data.data.subtotal);
+      setServerShippingFee(res.data.data.shippingFee);
       setStep("payment");
     } catch (err) {
       setIntentError(err.response?.data?.message || "Failed to initialize payment. Please try again.");
@@ -190,7 +194,12 @@ const Checkout = () => {
         </div>
 
         <div className="lg:sticky lg:top-28">
-          <OrderSummary items={cartItems} total={serverTotal || cartTotal} title="Order summary" />
+          <OrderSummary
+            items={cartItems}
+            subtotal={serverSubtotal || cartTotal}
+            shippingFee={step === "payment" ? serverShippingFee : undefined}
+            title="Order summary"
+          />
         </div>
       </div>
     </div>

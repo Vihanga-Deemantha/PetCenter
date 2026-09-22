@@ -38,8 +38,6 @@ app.use(
     credentials: true, // Allow cookies
   })
 );
-app.use(nosqlSanitize);
-
 // ── Request Logging ──────────────────────────────────────────────────────────
 if (process.env.NODE_ENV === "production") {
   app.use(morgan("combined"));
@@ -63,6 +61,13 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
+
+// nosqlSanitize reads/rewrites req.body, so it must run AFTER the body
+// parsers above populate it — Express leaves req.body undefined until then,
+// which silently no-ops the `if (req.body)` guard and lets every unsanitized
+// field straight through to controllers. req.query is populated by Express
+// core before any middleware runs, so it's unaffected by this ordering.
+app.use(nosqlSanitize);
 
 // ── Rate Limiting (general) ───────────────────────────────────────────────────
 app.use("/api", generalLimiter);

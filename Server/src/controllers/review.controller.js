@@ -5,11 +5,16 @@ import Product from "../models/Products.js";
 import User from "../models/User.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { createNotification } from "./notification.controller.js";
+import { clampLimit, clampPage } from "../utils/pagination.js";
 
 // ─── Helper: recalculate product's averageRating and reviewCount ──────────────
 async function recalculateProductRating(productId) {
+  // $match in an aggregation pipeline never goes through Mongoose's schema
+  // casting (unlike Model.find()), so a plain string productId — e.g. straight
+  // from req.params — would match zero documents against the ObjectId-typed
+  // field and silently zero out the product's rating. Cast explicitly.
   const [result] = await Review.aggregate([
-    { $match: { productId, isVisible: true } },
+    { $match: { productId: new mongoose.Types.ObjectId(productId), isVisible: true } },
     {
       $group: {
         _id: null,
@@ -29,7 +34,9 @@ async function recalculateProductRating(productId) {
 export const getProductReviews = async (req, res, next) => {
   try {
     const { id: productId } = req.params;
-    const { page = 1, limit = 10, sort = "newest" } = req.query;
+    const { sort = "newest" } = req.query;
+    const page = clampPage(req.query.page);
+    const limit = clampLimit(req.query.limit);
 
     const filter = { productId, isVisible: true };
 
@@ -37,13 +44,13 @@ export const getProductReviews = async (req, res, next) => {
     if (sort === "highest") sortObj = { rating: -1, createdAt: -1 };
     if (sort === "lowest") sortObj = { rating: 1, createdAt: -1 };
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (page - 1) * limit;
 
     const [reviews, total, distribution] = await Promise.all([
       Review.find(filter)
         .sort(sortObj)
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(limit)
         .populate("userId", "name profileImage")
         .lean(),
       Review.countDocuments(filter),
@@ -60,10 +67,10 @@ export const getProductReviews = async (req, res, next) => {
 
     return sendSuccess(res, reviews, 200, {
       pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(total / parseInt(limit)),
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
         totalItems: total,
-        itemsPerPage: parseInt(limit),
+        itemsPerPage: limit,
       },
       distribution: dist,
     });
@@ -198,6 +205,13 @@ export const deleteReview = async (req, res, next) => {
       return sendError(res, "Not authorized to delete this review", 403);
     }
 
+    // Same 48-hour window as editing (README-documented policy) — without
+    // this, delete was silently unrestricted regardless of review age.
+    const hoursSinceCreated = (Date.now() - review.createdAt.getTime()) / (1000 * 60 * 60);
+    if (hoursSinceCreated > 48) {
+      return sendError(res, "Reviews can only be deleted within 48 hours of posting", 403);
+    }
+
     const { productId } = review;
     await review.deleteOne();
     await recalculateProductRating(productId);
@@ -211,20 +225,22 @@ export const deleteReview = async (req, res, next) => {
 // ─── GET /admin/reviews — Admin: all reviews including hidden ─────────────────
 export const adminGetReviews = async (req, res, next) => {
   try {
-    const { productId, rating, isVisible, page = 1, limit = 20 } = req.query;
+    const { productId, rating, isVisible } = req.query;
+    const page = clampPage(req.query.page);
+    const limit = clampLimit(req.query.limit, { max: 100, fallback: 20 });
 
     const filter = {};
     if (productId) filter.productId = productId;
     if (rating) filter.rating = parseInt(rating);
     if (isVisible !== undefined) filter.isVisible = isVisible === "true";
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (page - 1) * limit;
 
     const [reviews, total] = await Promise.all([
       Review.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(limit)
         .populate("userId", "name email profileImage")
         .populate("productId", "name images")
         .lean(),
@@ -233,10 +249,10 @@ export const adminGetReviews = async (req, res, next) => {
 
     return sendSuccess(res, reviews, 200, {
       pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(total / parseInt(limit)),
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
         totalItems: total,
-        itemsPerPage: parseInt(limit),
+        itemsPerPage: limit,
       },
     });
   } catch (error) {
@@ -314,11 +330,11 @@ export const getReviewEligibility = async (req, res, next) => {
 // ─── GET /reviews/testimonials — Public: curated 5-star product reviews ────────
 export const getPublicTestimonials = async (req, res, next) => {
   try {
-    const { limit = 6 } = req.query;
+    const limit = clampLimit(req.query.limit, { max: 20, fallback: 6 });
 
     const testimonials = await Review.find({ rating: 5, isVisible: true, comment: { $ne: "" } })
       .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
+      .limit(limit)
       .populate("userId", "name profileImage")
       .populate("productId", "name")
       .lean();

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { Check, AlertTriangle, ShieldCheck } from "lucide-react";
-import { getPetList, getMyBuilds } from "../api/ecosystem.api";
+import { Check, AlertTriangle, ShieldCheck, Sparkles } from "lucide-react";
+import { getPetList, getMyBuilds, suggestBuild } from "../api/ecosystem.api";
 import { useBuilder } from "../context/BuilderContext";
 import { useAuth } from "../context/AuthContext";
 import EcosystemTabs from "../components/ecosystem/EcosystemTabs";
@@ -28,8 +28,13 @@ export default function EcosystemPicker() {
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [confirmChange, setConfirmChange] = useState(null);
+  const [confirmChange, setConfirmChange] = useState(null); // { petType, budgetCents? } | null
   const [mySavedBuilds, setMySavedBuilds] = useState([]);
+
+  const [suggestPetType, setSuggestPetType] = useState("");
+  const [suggestBudget, setSuggestBudget] = useState("");
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestError, setSuggestError] = useState("");
 
   useEffect(() => {
     document.title = "Build a pet setup | PetCenter";
@@ -53,18 +58,70 @@ export default function EcosystemPicker() {
 
   const handlePickPet = (petType) => {
     if (hasSelections && currentPetType && currentPetType !== petType) {
-      setConfirmChange(petType);
+      setConfirmChange({ petType });
       return;
     }
     setPet(petType);
     navigate(`/ecosystem/build/${petType}?step=2`);
   };
 
+  const runSuggestion = async (petType, budgetCents) => {
+    setSuggesting(true);
+    setSuggestError("");
+    try {
+      const res = await suggestBuild(petType, budgetCents);
+      const suggestion = res.data.data;
+      // Reuses the exact same context function used to load a saved build —
+      // the suggestion response is shaped identically (petType + selections).
+      loadBuild(suggestion);
+      navigate(`/ecosystem/build/${petType}?step=3`, {
+        state: {
+          suggestion: {
+            budget: suggestion.budget,
+            totalPrice: suggestion.totalPrice,
+            overBudget: suggestion.overBudget,
+            notes: suggestion.notes,
+            productIds: suggestion.selections.map((s) => s.productId),
+          },
+        },
+      });
+    } catch (err) {
+      setSuggestError(err.response?.data?.message || "Couldn't generate a suggestion. Please try again.");
+    } finally {
+      setSuggesting(false);
+    }
+  };
+
+  const handleSuggestSubmit = (e) => {
+    e.preventDefault();
+    if (!suggestPetType) {
+      setSuggestError("Pick a pet type first.");
+      return;
+    }
+    const budgetCents = Math.round(parseFloat(suggestBudget) * 100);
+    if (!Number.isFinite(budgetCents) || budgetCents <= 0) {
+      setSuggestError("Enter a budget greater than $0.");
+      return;
+    }
+    setSuggestError("");
+
+    if (hasSelections && currentPetType && currentPetType !== suggestPetType) {
+      setConfirmChange({ petType: suggestPetType, budgetCents });
+      return;
+    }
+    runSuggestion(suggestPetType, budgetCents);
+  };
+
   const handleConfirmChange = () => {
+    const { petType, budgetCents } = confirmChange;
     clearSelections();
-    setPet(confirmChange);
-    navigate(`/ecosystem/build/${confirmChange}?step=2`);
     setConfirmChange(null);
+    if (budgetCents) {
+      runSuggestion(petType, budgetCents);
+    } else {
+      setPet(petType);
+      navigate(`/ecosystem/build/${petType}?step=2`);
+    }
   };
 
   return (
@@ -145,6 +202,49 @@ export default function EcosystemPicker() {
         </div>
       )}
 
+      {!loading && !error && pets.length > 0 && (
+        <Motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-7 bg-secondary text-light rounded-[26px] p-7 sm:p-8">
+          <div className="flex items-center gap-2.5 mb-2">
+            <Sparkles size={18} className="text-accent shrink-0" />
+            <h3 className="font-heading text-lg font-medium m-0">Not sure where to start?</h3>
+          </div>
+          <p className="text-[13.5px] text-[#DCE0D6] mb-5 max-w-140">
+            Tell us the pet and your budget — we'll pick real, in-stock essentials that fit, straight from the store catalog. You can swap anything before you save or buy.
+          </p>
+          <form onSubmit={handleSuggestSubmit} className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-[#C8CFC1]">
+              Pet type
+              <select
+                value={suggestPetType}
+                onChange={(e) => setSuggestPetType(e.target.value)}
+                className="bg-white text-[#292925] rounded-xl px-3.5 py-2.75 text-sm outline-none min-w-40 cursor-pointer"
+              >
+                <option value="">Choose a pet</option>
+                {pets.map((pet) => (
+                  <option key={pet.key} value={pet.key}>{pet.displayName}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1.5 text-xs font-medium text-[#C8CFC1]">
+              Budget (USD)
+              <input
+                type="number"
+                min="1"
+                step="0.01"
+                value={suggestBudget}
+                onChange={(e) => setSuggestBudget(e.target.value)}
+                placeholder="e.g. 150"
+                className="bg-white text-[#292925] rounded-xl px-3.5 py-2.75 text-sm outline-none w-32"
+              />
+            </label>
+            <button type="submit" disabled={suggesting} className="btn bg-primary text-white hover:bg-primary-dark px-6 py-2.75 text-sm disabled:opacity-60">
+              {suggesting ? "Thinking…" : "Suggest a build"}
+            </button>
+          </form>
+          {suggestError && <p className="mt-3.5 text-[13px] text-[#F7C9B0] font-medium">{suggestError}</p>}
+        </Motion.div>
+      )}
+
       <AnimatePresence>
         {confirmChange && (
           <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-[#292925]/40 backdrop-blur-sm p-4">
@@ -154,7 +254,7 @@ export default function EcosystemPicker() {
               </div>
               <h3 className="font-heading text-xl mb-2">Change pet type?</h3>
               <p className="text-[#6e6e64] text-sm mb-6 leading-relaxed">
-                You have an unsaved {currentPetType} build in progress. Switching to <strong className="text-[#292925]">{confirmChange}</strong> will clear all your current selections.
+                You have an unsaved {currentPetType} build in progress. Switching to <strong className="text-[#292925]">{confirmChange?.petType}</strong> will clear all your current selections.
               </p>
               <div className="flex gap-3">
                 <button onClick={() => setConfirmChange(null)} className="flex-1 py-3 bg-light text-[#4F5B4B] rounded-full font-medium hover:bg-border transition-colors">

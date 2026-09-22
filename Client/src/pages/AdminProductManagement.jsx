@@ -286,6 +286,7 @@ const AdminProductManagement = () => {
   const [editProduct, setEditProduct] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [error, setError] = useState("");
+  const [stockUpdating, setStockUpdating] = useState(new Set());
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -320,11 +321,24 @@ const AdminProductManagement = () => {
   };
 
   const handleStockUpdate = async (id, stock) => {
+    // Guards against rapid +/- double-clicks: each click computes the new
+    // value from `p.stock` captured in that render's closure, so two clicks
+    // before the first response lands both compute e.g. 10+1=11 instead of
+    // 11 then 12, and both requests set stock to 11 — silently dropping one
+    // increment. Blocking a second update while one is in flight fixes it.
+    if (stockUpdating.has(id)) return;
+    setStockUpdating((prev) => new Set(prev).add(id));
     try {
       await updateProductStock(id, stock);
       setProducts((prev) => prev.map((p) => p._id === id ? { ...p, stock } : p));
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update stock");
+    } finally {
+      setStockUpdating((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   };
 
@@ -424,9 +438,9 @@ const AdminProductManagement = () => {
                     <td className="px-5 py-4 font-semibold text-[#292925]">{formatPrice(p.price)}</td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => handleStockUpdate(p._id, Math.max(0, p.stock - 1))} className="w-6 h-6 rounded-lg bg-border text-[#5c5c54] text-xs font-semibold hover:bg-rose-100 hover:text-rose-600 transition-all">-</button>
+                        <button onClick={() => handleStockUpdate(p._id, Math.max(0, p.stock - 1))} disabled={stockUpdating.has(p._id)} className="w-6 h-6 rounded-lg bg-border text-[#5c5c54] text-xs font-semibold hover:bg-rose-100 hover:text-rose-600 transition-all disabled:opacity-40">-</button>
                         <span className={`font-semibold text-sm w-8 text-center ${p.stock === 0 ? "text-rose-600" : p.stock <= 5 ? "text-[#8f4a28]" : "text-[#292925]"}`}>{p.stock}</span>
-                        <button onClick={() => handleStockUpdate(p._id, p.stock + 1)} className="w-6 h-6 rounded-lg bg-border text-[#5c5c54] text-xs font-semibold hover:bg-[#E9EDE4] hover:text-[#40543C] transition-all">+</button>
+                        <button onClick={() => handleStockUpdate(p._id, p.stock + 1)} disabled={stockUpdating.has(p._id)} className="w-6 h-6 rounded-lg bg-border text-[#5c5c54] text-xs font-semibold hover:bg-[#E9EDE4] hover:text-[#40543C] transition-all disabled:opacity-40">+</button>
                       </div>
                     </td>
                     <td className="px-5 py-4 font-medium text-[#5c5c54] text-sm">{p.soldCount || 0}</td>

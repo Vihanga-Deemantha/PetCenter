@@ -44,7 +44,12 @@ describe("POST /api/v1/auth/google", () => {
     expect(count).toBe(1);
   });
 
-  it("links Google sign-in to an existing local account with the same email", async () => {
+  it("refuses to silently link Google sign-in to an existing local account with the same email", async () => {
+    // Registration requires no email verification, so silently linking here
+    // would let an attacker who pre-registered the victim's email (with a
+    // password only the attacker knows) inherit the victim's account the
+    // first time the real owner tries "Sign in with Google". The correct
+    // behavior is to refuse and point the user at password login instead.
     const local = await User.create({
       name: "Local User",
       email: "linked@test.com",
@@ -56,11 +61,10 @@ describe("POST /api/v1/auth/google", () => {
     mockPayload = { sub: "google-sub-3", email: "linked@test.com", name: "Local User", picture: "" };
     const res = await request(app).post("/api/v1/auth/google").send({ credential: "fake-token" });
 
-    expect(res.status).toBe(200);
-    expect(res.body.data.user._id).toBe(String(local._id));
+    expect(res.status).toBe(409);
 
     const updated = await User.findById(local._id).select("+googleId");
-    expect(updated.googleId).toBe("google-sub-3");
+    expect(updated.googleId).toBeFalsy();
     expect(updated.authProvider).toBe("local");
   });
 

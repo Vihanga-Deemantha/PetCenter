@@ -16,13 +16,16 @@ export const generateRefreshToken = (userId, tokenVersion = 0) => {
   });
 };
 
-export const setRefreshTokenCookie = (res, refreshToken) => {
+// remember=false issues a session cookie (no maxAge — cleared when the
+// browser closes) instead of a persistent 7-day one, so "Keep me signed in"
+// on the login form actually controls something instead of being decorative.
+export const setRefreshTokenCookie = (res, refreshToken, remember = true) => {
   const isProduction = process.env.NODE_ENV === "production";
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    ...(remember ? { maxAge: 7 * 24 * 60 * 60 * 1000 } : {}), // 7 days, or session-only
   });
 };
 

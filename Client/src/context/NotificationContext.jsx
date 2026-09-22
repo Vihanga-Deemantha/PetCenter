@@ -11,28 +11,38 @@ export function NotificationProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const intervalRef = useRef(null);
+  // Guards against a slow response for a PREVIOUS user landing after a fast
+  // logout-then-login-as-someone-else and populating this account's state
+  // with the other user's notifications/unread count for a moment.
+  const requestedForRef = useRef(null);
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
+    const requestedFor = user._id;
+    requestedForRef.current = requestedFor;
     setLoading(true);
     setError(null);
     try {
       const res = await getNotifications({ limit: 20 });
+      if (requestedForRef.current !== requestedFor) return;
       setNotifications(res.data.data || []);
       setUnreadCount(res.data.meta?.unreadCount ?? 0);
     } catch {
+      if (requestedForRef.current !== requestedFor) return;
       // A failed fetch must not read as "you're all caught up" — that's a
       // materially different (and false) message to show the user.
       setError("Couldn't load notifications.");
     } finally {
-      setLoading(false);
+      if (requestedForRef.current === requestedFor) setLoading(false);
     }
   }, [user]);
 
   const pollUnreadCount = useCallback(async () => {
     if (!user) return;
+    const requestedFor = user._id;
     try {
       const res = await getUnreadCount();
+      if (requestedForRef.current !== requestedFor) return;
       setUnreadCount(res.data.data?.count ?? 0);
     } catch {
       // silently fail

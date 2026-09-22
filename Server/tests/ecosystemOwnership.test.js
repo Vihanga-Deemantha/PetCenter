@@ -132,3 +132,52 @@ describe("Ecosystem gallery scoping", () => {
     expect(ids).toContain(String(build._id));
   });
 });
+
+describe("Publish integrity — a published build can't be edited into an incomplete one", () => {
+  it("rejects an update that would drop a required category while the build stays published", async () => {
+    const owner = await registerAndLogin("ecopublishedit@test.com");
+    const build = await makePublishableBuild(owner.token);
+
+    const publishRes = await request(app)
+      .patch(`/api/v1/ecosystem/builds/${build._id}/publish`)
+      .set("Authorization", `Bearer ${owner.token}`);
+    expect(publishRes.status).toBe(200);
+    expect(publishRes.body.data.isPublished).toBe(true);
+
+    const tankSelection = build.selections.find((s) => s.categoryKey === "tank");
+    const res = await request(app)
+      .put(`/api/v1/ecosystem/builds/${build._id}`)
+      .set("Authorization", `Bearer ${owner.token}`)
+      .send({ selections: [{ productId: tankSelection.productId, categoryKey: "tank" }] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/published/i);
+
+    // The gallery must still be serving the original, complete build.
+    const galleryRes = await request(app).get(`/api/v1/ecosystem/gallery/${build._id}`);
+    expect(galleryRes.status).toBe(200);
+    expect(galleryRes.body.data.selections).toHaveLength(3);
+  });
+
+  it("still allows editing a published build as long as required categories stay filled", async () => {
+    const owner = await registerAndLogin("ecopublisheditok@test.com");
+    const build = await makePublishableBuild(owner.token);
+    await request(app)
+      .patch(`/api/v1/ecosystem/builds/${build._id}/publish`)
+      .set("Authorization", `Bearer ${owner.token}`);
+
+    const newTank = await makeTank();
+    const otherSelections = build.selections
+      .filter((s) => s.categoryKey !== "tank")
+      .map((s) => ({ productId: s.productId, categoryKey: s.categoryKey }));
+
+    const res = await request(app)
+      .put(`/api/v1/ecosystem/builds/${build._id}`)
+      .set("Authorization", `Bearer ${owner.token}`)
+      .send({ selections: [...otherSelections, { productId: newTank._id, categoryKey: "tank" }] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.isPublished).toBe(true);
+    expect(res.body.data.selections).toHaveLength(3);
+  });
+});

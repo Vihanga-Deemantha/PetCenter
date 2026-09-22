@@ -3,9 +3,19 @@ import stripe from "../config/stripe.js";
 import Cart from "../models/Cart.js";
 import Product from "../models/Products.js";
 import Order from "../models/Order.js";
+import PendingCheckout from "../models/PendingCheckout.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { validateCartStock } from "./cart.controller.js";
 import { createNotification } from "./notification.controller.js";
+
+// Mirrors the Navbar's "Free delivery over $75" banner — keep both this
+// threshold/fee and the client-side estimate in Client/src/utils/shipping.js
+// in sync if either changes.
+const FREE_SHIPPING_THRESHOLD_CENTS = 7500;
+const FLAT_SHIPPING_FEE_CENTS = 599;
+
+const calculateShippingFee = (subtotalCents) =>
+  subtotalCents >= FREE_SHIPPING_THRESHOLD_CENTS ? 0 : FLAT_SHIPPING_FEE_CENTS;
 
 /**
  * Create a Stripe PaymentIntent for checkout
@@ -90,10 +100,14 @@ export const createPaymentIntent = async (req, res, next) => {
       return sendError(res, "Invalid order total", 400);
     }
 
-    // Step 5: Create Stripe PaymentIntent
+    // Step 5: Add shipping and create the Stripe PaymentIntent for the full
+    // amount — the customer must be charged exactly what they're shown.
+    const shippingFee = calculateShippingFee(totalInCents);
+    const amountToCharge = totalInCents + shippingFee;
+
     // Store shippingAddress as JSON string in metadata so webhook can use it
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: totalInCents,
+      amount: amountToCharge,
       currency: "usd",
       metadata: {
         type: "checkout",
@@ -106,12 +120,32 @@ export const createPaymentIntent = async (req, res, next) => {
       },
     });
 
+    // Snapshot exactly what this PaymentIntent was created to charge for.
+    // verifyPayment (run by the webhook, possibly minutes later) builds the
+    // Order from this snapshot — never from the live cart — so items the
+    // user adds/changes after this point can't get bundled into an order
+    // that was paid for something else. See PendingCheckout.js.
+    await PendingCheckout.findOneAndUpdate(
+      { paymentIntentId: paymentIntent.id },
+      {
+        paymentIntentId: paymentIntent.id,
+        userId,
+        items: orderItems,
+        subtotal: totalInCents,
+        shippingFee,
+        totalAmount: amountToCharge,
+      },
+      { upsert: true }
+    );
+
     // Step 6: Return clientSecret to client
     return sendSuccess(res, {
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
-      totalAmount: totalInCents,
-      totalInDollars: (totalInCents / 100).toFixed(2),
+      subtotal: totalInCents,
+      shippingFee,
+      totalAmount: amountToCharge,
+      totalInDollars: (amountToCharge / 100).toFixed(2),
       itemCount: cart.items.length,
       orderItems, // For client-side preview
     });
@@ -147,49 +181,45 @@ export const verifyPayment = async (userId, paymentIntentId, shippingAddress) =>
       };
     }
 
-    // Step 3: Get cart and validate stock one more time
-    const cart = await Cart.findOne({ userId }).populate("items.productId");
-    if (!cart || cart.items.length === 0) {
+    // Step 3: Load the snapshot of exactly what this PaymentIntent was
+    // created to charge for — NOT the user's live cart. The cart can change
+    // (items added, quantities bumped) in the window between createPaymentIntent
+    // and this webhook firing; building the order from the live cart would let
+    // an order (and the stock/fulfillment that comes with it) diverge from
+    // what Stripe actually charged. See PendingCheckout.js.
+    const snapshot = await PendingCheckout.findOne({ paymentIntentId });
+    if (!snapshot || snapshot.items.length === 0) {
       return {
         success: false,
-        message: "Cart empty or not found",
+        message: "No checkout snapshot found for this payment",
       };
     }
 
-    const stockValidation = await validateCartStock(userId);
-    if (!stockValidation.valid) {
+    // Defense in depth: both numbers are derived from the same computation
+    // in createPaymentIntent, so they should always agree. A mismatch means
+    // the PaymentIntent was altered out-of-band and must not proceed silently.
+    if (paymentIntent.amount !== snapshot.totalAmount) {
       return {
         success: false,
-        message: stockValidation.message,
+        message: "Charged amount does not match the checkout snapshot",
       };
     }
 
     // Steps 4-7 run atomically: either the order + stock decrement + cart
-    // clear all land together, or none of them do. Stock is decremented with
+    // update all land together, or none of them do. Stock is decremented with
     // a single conditional update per item (not read-then-write) so two
     // concurrent checkouts for the last unit can never both succeed.
     const session = await mongoose.startSession();
     let orderId;
     try {
       await session.withTransaction(async () => {
-        let totalAmount = 0;
-        const orderItems = [];
-
-        for (const cartItem of cart.items) {
-          const product = await Product.findById(cartItem.productId).session(session);
-          if (!product || !product.isActive) {
-            throw new Error("Product no longer available during order creation");
-          }
-
-          totalAmount += cartItem.priceAtAdd * cartItem.quantity;
-          orderItems.push({
-            productId: product._id,
-            name: product.name,
-            image: product.images[0] || { url: "", publicId: "" },
-            priceAtPurchase: cartItem.priceAtAdd,
-            quantity: cartItem.quantity,
-          });
-        }
+        const orderItems = snapshot.items.map((item) => ({
+          productId: item.productId,
+          name: item.name,
+          image: item.image,
+          priceAtPurchase: item.priceAtPurchase,
+          quantity: item.quantity,
+        }));
 
         const [order] = await Order.create(
           [
@@ -197,36 +227,59 @@ export const verifyPayment = async (userId, paymentIntentId, shippingAddress) =>
               userId,
               items: orderItems,
               shippingAddress,
-              totalAmount,
+              totalAmount: snapshot.totalAmount,
+              shippingFee: snapshot.shippingFee,
               paymentIntentId,
               paymentStatus: "paid",
               status: "processing",
+              statusHistory: [{ status: "processing", changedAt: new Date(), note: "Order placed" }],
             },
           ],
           { session }
         );
 
-        for (const cartItem of cart.items) {
+        for (const item of snapshot.items) {
           const decremented = await Product.findOneAndUpdate(
-            { _id: cartItem.productId, stock: { $gte: cartItem.quantity } },
-            { $inc: { stock: -cartItem.quantity, soldCount: cartItem.quantity } },
+            { _id: item.productId, stock: { $gte: item.quantity } },
+            { $inc: { stock: -item.quantity, soldCount: item.quantity } },
             { returnDocument: "after", session }
           );
 
           if (!decremented) {
             throw new Error(
-              `Insufficient stock for product ${cartItem.productId} — order cannot be completed`
+              `Insufficient stock for product ${item.productId} — order cannot be completed`
             );
           }
         }
 
-        await Cart.findByIdAndUpdate(cart._id, { items: [] }, { session });
+        // Only remove the quantities actually paid for. Anything the user
+        // added to their cart (or bumped up) after this checkout started
+        // stays in the cart instead of being silently discarded.
+        const cart = await Cart.findOne({ userId }).session(session);
+        if (cart) {
+          const paidQtyByProduct = new Map(
+            snapshot.items.map((i) => [i.productId.toString(), i.quantity])
+          );
+          cart.items = cart.items
+            .map((cartItem) => ({
+              productId: cartItem.productId,
+              priceAtAdd: cartItem.priceAtAdd,
+              quantity: cartItem.quantity - (paidQtyByProduct.get(cartItem.productId.toString()) || 0),
+            }))
+            .filter((item) => item.quantity > 0);
+          await cart.save({ session });
+        }
 
         orderId = order._id;
       });
     } finally {
       await session.endSession();
     }
+
+    // Snapshot has served its purpose. TTL would eventually clean up an
+    // unconsumed one (failed/abandoned checkout), but a successfully-consumed
+    // one can go immediately.
+    await PendingCheckout.deleteOne({ paymentIntentId });
 
     return {
       success: true,
@@ -235,6 +288,23 @@ export const verifyPayment = async (userId, paymentIntentId, shippingAddress) =>
     };
   } catch (error) {
     console.error("Verify Payment Error:", error);
+
+    // A concurrent delivery of the same webhook event can lose a race on
+    // Order.create's unique paymentIntentId index — that's not a real
+    // failure, it means the OTHER call already created the order. Reporting
+    // it as a failure would make the caller (handleCheckoutSucceeded) treat
+    // a successfully-fulfilled order as failed payment and refund it.
+    if (error.code === 11000 && error.keyPattern?.paymentIntentId) {
+      const winningOrder = await Order.findOne({ paymentIntentId });
+      if (winningOrder) {
+        return {
+          success: true,
+          orderId: winningOrder._id,
+          message: "Order already created by a concurrent request (idempotent)",
+        };
+      }
+    }
+
     return {
       success: false,
       message: error.message,
@@ -322,7 +392,7 @@ export const getOrderDetail = async (req, res, next) => {
 export const updateOrderStatus = async (req, res, next) => {
   try {
     const { orderId } = req.params;
-    const { status } = req.body;
+    const { status, trackingNumber, carrier, note } = req.body;
 
     if (!status) {
       return sendError(res, "Status is required", 400);
@@ -358,21 +428,19 @@ export const updateOrderStatus = async (req, res, next) => {
       );
     }
 
-    // If admin is cancelling, issue a real Stripe refund first
-    if (status === "cancelled" && previousStatus !== "cancelled") {
-      try {
-        await stripe.refunds.create({
-          payment_intent: order.paymentIntentId,
-          reason: "requested_by_customer",
-        });
-      } catch (refundError) {
-        console.error("Admin Stripe refund failed:", refundError.message);
-        return sendError(res, "Stripe refund failed. Order status not changed.", 500);
-      }
-      order.paymentStatus = "refunded";
-    }
+    if (trackingNumber !== undefined) order.trackingNumber = trackingNumber;
+    if (carrier !== undefined) order.carrier = carrier;
 
-    // Order save + any stock adjustment land together, atomically.
+    const isCancelling = status === "cancelled" && previousStatus !== "cancelled";
+    if (isCancelling) order.paymentStatus = "refunded";
+
+    // Order save + stock restore are persisted BEFORE the Stripe refund call
+    // (not after) — a transient DB failure here must never leave an order
+    // that's about to be refunded still looking "paid/active" and eligible
+    // to ship. If the refund call itself fails afterward, the order is
+    // already safely marked cancelled/refunded in our own records (so it
+    // can't be fulfilled or double-refunded), and that failure is reported
+    // for manual follow-up rather than silently lost.
     const session = await mongoose.startSession();
     try {
       await session.withTransaction(async () => {
@@ -390,10 +458,27 @@ export const updateOrderStatus = async (req, res, next) => {
         }
 
         order.status = status;
+        order.statusHistory.push({ status, changedAt: new Date(), note: note || "" });
         await order.save({ session });
       });
     } finally {
       await session.endSession();
+    }
+
+    if (isCancelling) {
+      try {
+        await stripe.refunds.create({
+          payment_intent: order.paymentIntentId,
+          reason: "requested_by_customer",
+        });
+      } catch (refundError) {
+        console.error("Admin Stripe refund failed after order was marked cancelled:", refundError.message);
+        return sendError(
+          res,
+          "Order was cancelled and stock restored, but the Stripe refund failed — please process it manually.",
+          502
+        );
+      }
     }
 
     // Notify the order's user about the status change
@@ -453,24 +538,12 @@ export const cancelOrder = async (req, res, next) => {
       return sendError(res, `Cannot cancel order in ${order.status} status`, 400);
     }
 
-    // Issue actual Stripe refund before marking as cancelled
-    try {
-      await stripe.refunds.create({
-        payment_intent: order.paymentIntentId,
-        reason: "requested_by_customer",
-      });
-    } catch (refundError) {
-      console.error("Stripe refund failed:", refundError.message);
-      return sendError(
-        res,
-        "Unable to process refund. Please contact support.",
-        500
-      );
-    }
-
     order.status = "cancelled";
     order.paymentStatus = "refunded";
+    order.statusHistory.push({ status: "cancelled", changedAt: new Date(), note: "Cancelled by customer" });
 
+    // Persisted BEFORE the Stripe refund call — see the matching comment in
+    // updateOrderStatus above for why this ordering matters.
     const session = await mongoose.startSession();
     try {
       await session.withTransaction(async () => {
@@ -486,6 +559,20 @@ export const cancelOrder = async (req, res, next) => {
       });
     } finally {
       await session.endSession();
+    }
+
+    try {
+      await stripe.refunds.create({
+        payment_intent: order.paymentIntentId,
+        reason: "requested_by_customer",
+      });
+    } catch (refundError) {
+      console.error("Stripe refund failed after order was marked cancelled:", refundError.message);
+      return sendError(
+        res,
+        "Your order was cancelled and stock restored, but the refund failed — please contact support.",
+        502
+      );
     }
 
     return sendSuccess(res, { order, message: "Order cancelled successfully" });

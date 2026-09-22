@@ -9,6 +9,25 @@ export const getPetList = () =>
 export const getPetConfig = (petType) =>
   axiosInstance.get(`/ecosystem/pets/${petType}/config`);
 
+/**
+ * Requests a budget-aware starter build suggestion — a deterministic
+ * pick from real, in-stock, compatible products (no LLM, nothing invented).
+ * @param {string} petType
+ * @param {number} budget - cents
+ */
+export const suggestBuild = (petType, budget) =>
+  axiosInstance.post("/ecosystem/suggest", { petType, budget });
+
+/**
+ * Requests a short AI-written explanation of a selection the caller already
+ * has (the model only ever narrates the exact items given — it never picks
+ * products). Falls back server-side to a plain sentence if no API key is
+ * configured or the call fails, so this never rejects.
+ * @param {{ petType: string, budget?: number, totalPrice?: number, overBudget?: boolean, notes?: string[], items: Array<{category: string, name: string, price: number}> }} data
+ */
+export const narrateBuild = (data) =>
+  axiosInstance.post("/ecosystem/narrate", data);
+
 // ─── Gallery (public) ─────────────────────────────────────────────────────────
 /** Returns paginated published builds. Params: { page, limit, petType, sort } */
 export const getGallery = (params = {}) =>

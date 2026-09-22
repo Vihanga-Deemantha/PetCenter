@@ -2,6 +2,7 @@ import Favorite from "../models/Favorite.js";
 import PetListing from "../models/PetListing.js";
 import Product from "../models/Products.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
+import { clampLimit } from "../utils/pagination.js";
 
 // ─── Helper: verify the referenced item exists ────────────────────────────────
 async function itemExists(itemType, itemId) {
@@ -17,7 +18,8 @@ async function itemExists(itemType, itemId) {
 // ─── GET /favorites — Get user's favorites (paginated, filterable) ─────────────
 export const getFavorites = async (req, res, next) => {
   try {
-    const { itemType, page = 1, limit = 20 } = req.query;
+    const { itemType, page = 1 } = req.query;
+    const limit = clampLimit(req.query.limit, { max: 100, fallback: 20 });
     const userId = req.user._id;
 
     const filter = { userId };
@@ -25,13 +27,13 @@ export const getFavorites = async (req, res, next) => {
       filter.itemType = itemType;
     }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parseInt(page) - 1) * limit;
 
     const [favorites, total] = await Promise.all([
       Favorite.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(limit)
         .lean(),
       Favorite.countDocuments(filter),
     ]);
@@ -56,9 +58,9 @@ export const getFavorites = async (req, res, next) => {
     return sendSuccess(res, populated, 200, {
       pagination: {
         currentPage: parseInt(page),
-        totalPages: Math.ceil(total / parseInt(limit)),
+        totalPages: Math.ceil(total / limit),
         totalItems: total,
-        itemsPerPage: parseInt(limit),
+        itemsPerPage: limit,
       },
     });
   } catch (error) {
@@ -133,6 +135,10 @@ export const checkFavorites = async (req, res, next) => {
     if (!Array.isArray(items) || items.length === 0) {
       return sendSuccess(res, {});
     }
+
+    // Bound the batch size — this becomes an $or clause below, and nothing
+    // upstream limits how large a client-supplied array can be.
+    items = items.slice(0, 200);
 
     // Items may come from a hand-parsed query-string JSON blob, which runs
     // after the app-wide sanitizer already executed — validate each entry's

@@ -54,6 +54,7 @@ const MyListings = () => {
   const [toast, setToast] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(null);
+  const [pauseLoading, setPauseLoading] = useState(null);
 
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
@@ -250,12 +251,16 @@ const MyListings = () => {
   };
 
   const handleTogglePause = async (listing) => {
+    if (pauseLoading) return;
+    setPauseLoading(listing._id);
     try {
       await toggleListingPause(listing._id);
       flash(listing.status === "active" ? `${listing.title} paused — hidden from the marketplace.` : `${listing.title} is live again.`);
       fetchListings();
     } catch (err) {
       flash(err.response?.data?.message || "Couldn't update the listing.");
+    } finally {
+      setPauseLoading(null);
     }
   };
 
@@ -384,8 +389,8 @@ const MyListings = () => {
                           Preview
                         </Link>
                         {canToggle && (
-                          <button onClick={() => handleTogglePause(l)} className="text-[12.5px] text-[#8a8a7e] hover:text-primary transition-colors px-1 whitespace-nowrap">
-                            {l.status === "active" ? "Pause listing" : "Make live"}
+                          <button onClick={() => handleTogglePause(l)} disabled={pauseLoading === l._id} className="text-[12.5px] text-[#8a8a7e] hover:text-primary transition-colors px-1 whitespace-nowrap disabled:opacity-50">
+                            {pauseLoading === l._id ? "Updating…" : l.status === "active" ? "Pause listing" : "Make live"}
                           </button>
                         )}
                       </div>

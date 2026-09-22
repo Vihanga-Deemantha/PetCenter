@@ -3,13 +3,18 @@ import mongoose from "mongoose";
 import Product from "../src/models/Products.js";
 import Cart from "../src/models/Cart.js";
 import Order from "../src/models/Order.js";
+import PendingCheckout from "../src/models/PendingCheckout.js";
 
-// verifyPayment always calls stripe.paymentIntents.retrieve first — mock it
-// so the test never talks to the real Stripe API.
+// verifyPayment always calls stripe.paymentIntents.retrieve first, and now
+// cross-checks the returned amount against the PendingCheckout snapshot — the
+// mock looks up whatever amount the test registered for that intent ID.
+const intentAmounts = new Map();
 vi.mock("../src/config/stripe.js", () => ({
   default: {
     paymentIntents: {
-      retrieve: vi.fn().mockResolvedValue({ status: "succeeded" }),
+      retrieve: vi.fn((id) =>
+        Promise.resolve({ status: "succeeded", amount: intentAmounts.get(id) })
+      ),
     },
   },
 }));
@@ -31,11 +36,32 @@ const makeProduct = (overrides = {}) =>
 const makeCart = (userId, productId, quantity = 1, priceAtAdd = 500) =>
   Cart.create({ userId, items: [{ productId, quantity, priceAtAdd }] });
 
+// verifyPayment now builds the order from a PendingCheckout snapshot (what
+// createPaymentIntent actually charged Stripe for) rather than the live
+// cart — see PendingCheckout.js for why. This mirrors what createPaymentIntent
+// itself would have written, and registers the matching amount on the mock.
+const makeSnapshot = async (userId, paymentIntentId, product, quantity, priceAtPurchase = 500) => {
+  const subtotal = priceAtPurchase * quantity;
+  const shippingFee = subtotal >= 7500 ? 0 : 599;
+  const totalAmount = subtotal + shippingFee;
+  intentAmounts.set(paymentIntentId, totalAmount);
+  await PendingCheckout.create({
+    paymentIntentId,
+    userId,
+    items: [{ productId: product._id, name: product.name, priceAtPurchase, quantity }],
+    subtotal,
+    shippingFee,
+    totalAmount,
+  });
+  return { subtotal, shippingFee, totalAmount };
+};
+
 describe("verifyPayment — stock integrity", () => {
   it("decrements stock atomically and creates an order on success", async () => {
     const product = await makeProduct({ stock: 5 });
     const userId = new mongoose.Types.ObjectId();
     await makeCart(userId, product._id, 2, 500);
+    await makeSnapshot(userId, "pi_success_1", product, 2, 500);
 
     const result = await verifyPayment(userId, "pi_success_1", {
       fullName: "A",
@@ -52,7 +78,10 @@ describe("verifyPayment — stock integrity", () => {
     expect(updated.soldCount).toBe(2);
 
     const order = await Order.findById(result.orderId);
-    expect(order.totalAmount).toBe(1000);
+    // Item subtotal (1000) is under the $75 free-shipping threshold, so the
+    // flat shipping fee (599) is included in the stored total.
+    expect(order.shippingFee).toBe(599);
+    expect(order.totalAmount).toBe(1599);
   });
 
   it("never oversells when two checkouts race for the last unit", async () => {
@@ -61,6 +90,8 @@ describe("verifyPayment — stock integrity", () => {
     const userB = new mongoose.Types.ObjectId();
     await makeCart(userA, product._id, 1, 500);
     await makeCart(userB, product._id, 1, 500);
+    await makeSnapshot(userA, "pi_race_a", product, 1, 500);
+    await makeSnapshot(userB, "pi_race_b", product, 1, 500);
 
     const shippingAddress = {
       fullName: "A",

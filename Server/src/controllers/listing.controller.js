@@ -3,6 +3,7 @@ import Favorite from "../models/Favorite.js";
 import cloudinary from "../config/cloudinary.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import escapeRegExp from "../utils/escapeRegExp.js";
+import { clampLimit } from "../utils/pagination.js";
 
 // ─── Get All Active Listings (public) ─────────────────────────────────────────
 // GET /api/v1/listings
@@ -18,8 +19,8 @@ export const getListings = async (req, res, next) => {
       gender,
       sort = "-createdAt",
       page = 1,
-      limit = 12,
     } = req.query;
+    const limit = clampLimit(req.query.limit, { max: 60, fallback: 12 });
 
     const filter = { status: "active" };
 
@@ -44,14 +45,14 @@ export const getListings = async (req, res, next) => {
       ];
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (Number(page) - 1) * limit;
 
     const [listings, total] = await Promise.all([
       PetListing.find(filter)
         .populate("owner", "name profileImage location")
         .sort(sort)
         .skip(skip)
-        .limit(Number(limit)),
+        .limit(limit),
       PetListing.countDocuments(filter),
     ]);
 
@@ -59,8 +60,8 @@ export const getListings = async (req, res, next) => {
       pagination: {
         total,
         page: Number(page),
-        limit: Number(limit),
-        pages: Math.ceil(total / Number(limit)),
+        limit,
+        pages: Math.ceil(total / limit),
       },
     });
   } catch (error) {
@@ -203,9 +204,18 @@ export const updateListing = async (req, res, next) => {
     let imagePublicIds = [...listing.imagePublicIds];
 
     if (req.body.removeImageIds) {
-      const idsToRemove = Array.isArray(req.body.removeImageIds)
+      const requestedIds = Array.isArray(req.body.removeImageIds)
         ? req.body.removeImageIds
         : [req.body.removeImageIds];
+
+      // cloudinary.uploader.destroy() isn't scoped to this listing (or even
+      // this owner) — it deletes whatever asset matches the given publicId
+      // anywhere in the account. Only ever destroy IDs that were actually
+      // this listing's own images, never the raw client-supplied list, or
+      // any authenticated user could delete an arbitrary Cloudinary asset
+      // (another user's listing/product/shelter image) just by knowing its
+      // publicId, which is visible in every image URL on the site.
+      const idsToRemove = requestedIds.filter((id) => imagePublicIds.includes(id));
 
       const keptIndexes = imagePublicIds
         .map((publicId, i) => ({ publicId, i }))

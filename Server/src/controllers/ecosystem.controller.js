@@ -243,7 +243,15 @@ export const narrateBuild = async (req, res, next) => {
           : "";
 
         const response = await client.models.generateContent({
-          model: "gemini-flash-latest",
+          // flash-lite (not flash) deliberately — this is a simple, single-
+          // step writing task with no reasoning required. gemini-flash-latest
+          // spends a large, non-optional share of maxOutputTokens on hidden
+          // "thinking" tokens even with thinkingBudget: 0 (that config option
+          // isn't honored by every model), which truncated the narration to
+          // a handful of words before any visible text was produced.
+          // flash-lite doesn't do implicit reasoning, so the full token
+          // budget goes to the actual response.
+          model: "gemini-flash-lite-latest",
           contents: `Pet type: ${petType}\n${budgetLine}\n${totalLine}\nItems:\n${itemLines}`,
           config: {
             maxOutputTokens: 200,

@@ -73,7 +73,7 @@ describe("POST /api/v1/ecosystem/narrate", () => {
 
     // The prompt must only ever reference the given real items — never invent.
     const [callArgs] = generateContentMock.mock.calls[0];
-    expect(callArgs.model).toBe("gemini-flash-latest");
+    expect(callArgs.model).toBe("gemini-flash-lite-latest");
     for (const item of items) {
       expect(callArgs.contents).toContain(item.name);
     }

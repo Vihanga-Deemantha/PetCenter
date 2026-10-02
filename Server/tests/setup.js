@@ -14,6 +14,13 @@ const uriFile = path.join(__dirname, ".mongo-test-uri");
 process.env.JWT_ACCESS_SECRET ||= "test-access-secret";
 process.env.JWT_REFRESH_SECRET ||= "test-refresh-secret";
 process.env.STRIPE_SECRET_KEY ||= "sk_test_placeholder";
+// webhookEvent.test.js mocks stripe.webhooks.constructEvent, but
+// verifyWebhookSignature() checks this env var exists BEFORE ever calling
+// that (mocked) function — so it still needs *some* value. A fresh clone or
+// CI runner has no Server/.env (gitignored), so without this fallback every
+// webhook request fails at that early check with 401 regardless of what the
+// mock would have returned.
+process.env.STRIPE_WEBHOOK_SECRET ||= "whsec_test_placeholder";
 process.env.CLOUDINARY_CLOUD_NAME ||= "test";
 process.env.CLOUDINARY_API_KEY ||= "test";
 process.env.CLOUDINARY_API_SECRET ||= "test";

@@ -24,17 +24,27 @@ import { stripeWebhookMiddleware } from "./src/middleware/stripeWebhook.js";
 import errorHandler from "./src/middleware/errorHandler.js";
 import { generalLimiter } from "./src/middleware/rateLimit.js";
 import { nosqlSanitize } from "./src/middleware/nosqlSanitize.js";
+import { getClientOrigins } from "./src/config/clientOrigins.js";
 
 // Building the app has no side effects (no DB connection, no listening) so
 // it can be imported safely by tests — server.js is the only entrypoint that
 // actually connects to a database and starts the server.
 const app = express();
 
+// Render (like most PaaS hosts) terminates TLS at a reverse proxy in front of
+// the app. Without this, req.ip is the proxy's address for every visitor —
+// so the IP-keyed rate limiters would treat the whole internet as one client
+// (and express-rate-limit logs a validation error on every request about the
+// X-Forwarded-For header it can't trust). One hop = Render's load balancer.
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 // ── Security ──────────────────────────────────────────────────────────────────
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CLIENT_URL?.split(",").map(s => s.trim()) || "http://localhost:5173",
+    origin: getClientOrigins(),
     credentials: true, // Allow cookies
   })
 );

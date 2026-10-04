@@ -1,8 +1,15 @@
 import "dotenv/config.js";
 import mongoose from "mongoose";
-import app from "./app.js";
-import connectDB from "./src/config/db.js";
-import { startScheduledJobs } from "./src/config/scheduledJobs.js";
+import { validateEnv } from "./src/config/validateEnv.js";
+
+// Must run before app.js is loaded: config/stripe.js builds its client from
+// env at import time, so a missing key would otherwise surface as a cryptic
+// SDK error instead of a clear "STRIPE_SECRET_KEY is not set" message.
+validateEnv();
+
+const { default: app } = await import("./app.js");
+const { default: connectDB } = await import("./src/config/db.js");
+const { startScheduledJobs } = await import("./src/config/scheduledJobs.js");
 
 const PORT = process.env.PORT || 5011;
 
@@ -11,12 +18,6 @@ await connectDB();
 const server = app.listen(PORT, () => {
   console.log(`🚀 PetCenter server running on port ${PORT} in ${process.env.NODE_ENV || "development"} mode`);
   startScheduledJobs();
-
-  if (process.env.NODE_ENV === "production" && (!process.env.SMTP_USER || !process.env.SMTP_PASS)) {
-    console.warn(
-      "⚠️  SMTP is not configured — password reset emails will fail in production until SMTP_USER/SMTP_PASS are set."
-    );
-  }
 });
 
 // Handle unhandled promise rejections without crashing the server

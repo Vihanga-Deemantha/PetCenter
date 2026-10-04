@@ -51,6 +51,12 @@ describe("POST /api/v1/auth/forgot-password + PUT /api/v1/auth/reset-password/:t
     expect(meRes.status).toBe(401);
   });
 
+  it("rejects a non-string email on forgot-password with a 400", async () => {
+    const res = await request(app).post("/api/v1/auth/forgot-password").send({ email: { $ne: null } });
+    expect(res.status).toBe(400);
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
   it("rejects an invalid/garbage reset token", async () => {
     const res = await request(app).put("/api/v1/auth/reset-password/not-a-real-token").send({ password: "whatever123" });
     expect(res.status).toBe(400);

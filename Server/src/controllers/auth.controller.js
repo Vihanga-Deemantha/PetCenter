@@ -13,11 +13,22 @@ import {
   hashToken,
 } from "../utils/generateToken.js";
 
+// Credentials must be plain strings. nosqlSanitize strips operator keys like
+// {"$ne": null} down to an empty object, which is still truthy — without this
+// check it reached Mongoose, threw a CastError, and surfaced as a misleading
+// 404 "Resource not found" instead of a 400.
+const isString = (value) => typeof value === "string";
+const INVALID_INPUT = "Invalid input — expected text values";
+
 // ─── Register ────────────────────────────────────────────────────────────────
 // POST /api/v1/auth/register  — Public
 export const register = async (req, res, next) => {
   try {
     const { name, email, password, phone, location } = req.body;
+
+    if (!isString(email) || !isString(password) || [name, phone, location].some((v) => v !== undefined && !isString(v))) {
+      return sendError(res, INVALID_INPUT, 400);
+    }
 
     const existing = await User.findOne({ email });
     if (existing) {
@@ -64,6 +75,9 @@ export const login = async (req, res, next) => {
 
     if (!email || !password) {
       return sendError(res, "Please provide email and password", 400);
+    }
+    if (!isString(email) || !isString(password)) {
+      return sendError(res, INVALID_INPUT, 400);
     }
 
     const user = await User.findOne({ email }).select("+password +refreshToken");
@@ -326,7 +340,7 @@ export const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
-    if (!newPassword || newPassword.length < 6) {
+    if (!isString(newPassword) || newPassword.length < 6) {
       return sendError(res, "New password must be at least 6 characters", 400);
     }
 
@@ -336,7 +350,7 @@ export const changePassword = async (req, res, next) => {
       return sendError(res, "This account signs in with Google and has no password to change", 400);
     }
 
-    if (!currentPassword || !(await user.matchPassword(currentPassword))) {
+    if (!isString(currentPassword) || !currentPassword || !(await user.matchPassword(currentPassword))) {
       return sendError(res, "Current password is incorrect", 401);
     }
 
@@ -365,7 +379,7 @@ export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
 
-    if (!email) {
+    if (!email || !isString(email)) {
       return sendError(res, "Please provide an email address", 400);
     }
 
@@ -456,7 +470,7 @@ export const resetPassword = async (req, res, next) => {
     const { resetToken } = req.params;
     const { password } = req.body;
 
-    if (!password || password.length < 6) {
+    if (!isString(password) || password.length < 6) {
       return sendError(res, "Password must be at least 6 characters", 400);
     }
 

@@ -113,7 +113,8 @@ A copy-paste starting point for each lives in `Server/.env.example` and `Client/
 | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Yes | Image uploads (listings, products, campaigns, shelters, profile photos) |
 | `STRIPE_SECRET_KEY` | Yes | Server-side Stripe key |
 | `STRIPE_WEBHOOK_SECRET` | Yes | Verifies the `/api/v1/webhooks/stripe` signature |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Yes in production | Password-reset emails; the server logs a startup warning if missing in production |
+| `BREVO_API_KEY` + `EMAIL_FROM` | One email provider is required in production | Password-reset emails via Brevo's HTTPS API (works on Render's free tier). `EMAIL_FROM` must be a sender verified in Brevo |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | Alternative to Brevo | Plain SMTP, used only when `BREVO_API_KEY` is unset. The server logs a startup warning if no provider is configured |
 | `GEMINI_API_KEY` | No | Powers the Ecosystem Builder's "Explain this build" AI narration (Google Gemini); omitting it falls back to a plain, still-accurate sentence |
 
 #### `Client/.env`
@@ -250,7 +251,7 @@ Deploy in this order — each step produces a URL the next one needs.
 
 ### 2. Render — backend
 1. Push the repo to GitHub, then **New + → Blueprint** and pick it. [`render.yaml`](render.yaml) defines the service (root dir `Server`, `npm ci` → `npm start`, health check `/api/v1/health`, Node 22).
-2. Render prompts for every secret marked `sync: false`: `MONGODB_URI`, `CLIENT_URL`, Stripe, Cloudinary (optional: Google, Gemini, SMTP). The two JWT secrets are generated for you.
+2. Render prompts for every secret marked `sync: false`: `MONGODB_URI`, `CLIENT_URL`, Stripe, Cloudinary (optional: Google, Gemini; plus `BREVO_API_KEY` + `EMAIL_FROM` for password-reset email). The two JWT secrets are generated for you.
 3. Leave `CLIENT_URL` as a placeholder for now; you'll fill it in at step 4.
 4. The server **refuses to start in production** if a required variable is missing, the JWT secrets are identical/short/placeholder, etc. — check the deploy log for a `❌ Invalid production configuration` list.
 
@@ -267,7 +268,7 @@ Deploy in this order — each step produces a URL the next one needs.
 The Vercel build **fails on purpose** if `VITE_API_URL` / `VITE_STRIPE_PUBLISHABLE_KEY` are missing or the API URL isn't `https://`, rather than shipping a site that quietly calls `localhost`.
 
 ### 4. Wire them together
-- Render → set `CLIENT_URL` to your Vercel URL (e.g. `https://petcenter.vercel.app`). Comma-separate to allow several origins. Redeploy.
+- Render → set `CLIENT_URL` to your Vercel production URL (exactly as it appears in the browser, e.g. `https://<your-project>.vercel.app`). Comma-separate to allow several origins. Redeploy.
 - **Stripe → Developers → Webhooks → Add endpoint**: `https://<your-service>.onrender.com/api/v1/webhooks/stripe`, events `payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`. Copy its signing secret into Render's `STRIPE_WEBHOOK_SECRET`.
 - **Google Cloud Console → OAuth client → Authorized JavaScript origins**: add your Vercel URL (only if using Google sign-in).
 
@@ -276,7 +277,8 @@ The Vercel build **fails on purpose** if `VITE_API_URL` / `VITE_STRIPE_PUBLISHAB
 
 ### Things to know before going live
 - **Cross-site cookies (Safari / iOS, some Chrome modes).** The refresh-token cookie is set by `*.onrender.com` while the site lives on `*.vercel.app`, which browsers treat as third-party and may block — users would be logged out on every reload. Two fixes: put both behind custom domains under one parent (`app.example.com` + `api.example.com`), **or** proxy the API through Vercel so the browser only ever sees one origin: add `{ "source": "/api/:path*", "destination": "https://<your-service>.onrender.com/api/:path*" }` as the *first* entry in `Client/vercel.json`'s `rewrites`, and set `VITE_API_URL=/api/v1`.
-- **Render free tier** sleeps after ~15 min idle (first request ≈ 50 s), the in-process cron jobs (closing-soon notifications, donation reconciliation) don't run while it's asleep, and outbound SMTP ports are blocked, so password-reset emails won't send. Use a paid instance (or an HTTP-API email provider) for production.
+- **Render free tier** sleeps after ~15 min idle (first request ≈ 50 s) and the in-process cron jobs (closing-soon notifications, donation reconciliation) don’t run while it’s asleep. It also blocks outbound SMTP ports (25/465/587) — that’s why password-reset email goes through Brevo’s **HTTPS API** (`BREVO_API_KEY` + `EMAIL_FROM`), which isn’t affected. Use a paid instance if you need the cron jobs to run reliably.
+- **Vercel Deployment Protection.** New Vercel projects can have *Vercel Authentication* switched on, which redirects every visitor (and API calls from the page) to a Vercel login. For a public site, turn it off under **Project → Settings → Deployment Protection** (or at least make sure your production domain is public).
 - **Vercel preview deployments** have different origins than `CLIENT_URL`, so API calls from them are blocked by CORS. Add the preview origin to `CLIENT_URL` if you need to test one against the live API.
 - **Never run `npm run seed` against production** — it wipes the database.
 
@@ -284,5 +286,5 @@ The Vercel build **fails on purpose** if `VITE_API_URL` / `VITE_STRIPE_PUBLISHAB
 
 ## ⚠️ Known Limitations
 
-- **Email Verification** — Accounts are not email-verified at sign-up; password reset requires working SMTP (see Deployment notes above).
+- **Email Verification** — Accounts are not email-verified at sign-up; password reset requires a working email provider (Brevo — see Deployment notes above).
 - **Production Stripe Webhooks** — Webhook signature validation requires a production domain. Stripe webhooks operate locally via Stripe CLI forwarding.

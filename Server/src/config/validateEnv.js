@@ -41,8 +41,13 @@ export const checkEnv = (env = process.env) => {
   if (env.STRIPE_SECRET_KEY?.startsWith("sk_test_")) {
     warnings.push("STRIPE_SECRET_KEY is a test-mode key — no real payments will be taken");
   }
-  if (!env.SMTP_USER || !env.SMTP_PASS) {
-    warnings.push("SMTP_USER/SMTP_PASS are not set — password reset emails will fail until they are");
+  const hasBrevoApi = Boolean(env.BREVO_API_KEY);
+  const hasSmtp = Boolean(env.SMTP_USER && env.SMTP_PASS);
+  if (!hasBrevoApi && !hasSmtp) {
+    warnings.push("No email provider configured (set BREVO_API_KEY, or SMTP_USER/SMTP_PASS) — password reset emails will fail until one is");
+  }
+  if (hasBrevoApi && !(env.EMAIL_FROM || env.SMTP_FROM)) {
+    warnings.push("BREVO_API_KEY is set but EMAIL_FROM is not — Brevo rejects mail without a verified sender address");
   }
 
   return { errors, warnings };

@@ -35,6 +35,11 @@ describe("POST /api/v1/auth/register", () => {
     expect(res.status).toBe(409);
   });
 
+  it("rejects non-string field values with a 400", async () => {
+    const res = await register({ email: { $gt: "" }, password: "password123" });
+    expect(res.status).toBe(400);
+  });
+
   it("ignores a client-supplied role — mass assignment is not possible", async () => {
     const res = await request(app)
       .post("/api/v1/auth/register")
@@ -62,6 +67,15 @@ describe("POST /api/v1/auth/login", () => {
     const res = await request(app).post("/api/v1/auth/login").send({ email: "doesnotexist@test.com", password: "whatever" });
     expect(res.status).toBe(401);
     expect(res.body.message).toMatch(/invalid email or password/i);
+  });
+
+  // Regression: {"$ne": null} is sanitized to {} (truthy), which used to reach
+  // Mongoose, throw a CastError, and come back as a misleading 404.
+  it("answers operator-object credentials with a clean 400, not a 404 or a login", async () => {
+    await register({ email: "injection@test.com", password: "correctpass" });
+    const res = await request(app).post("/api/v1/auth/login").send({ email: { $ne: null }, password: { $ne: null } });
+    expect(res.status).toBe(400);
+    expect(res.body.data?.accessToken).toBeUndefined();
   });
 
   it("rejects a blocked user", async () => {

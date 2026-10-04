@@ -52,6 +52,26 @@ describe("checkEnv", () => {
   });
 });
 
+describe("checkEnv — email provider", () => {
+  const noSmtp = () => ({ ...goodEnv(), SMTP_USER: undefined, SMTP_PASS: undefined });
+
+  it("is satisfied by a Brevo API key + sender, with no SMTP creds at all", () => {
+    const { errors, warnings } = checkEnv({ ...noSmtp(), BREVO_API_KEY: "xkeysib-x", EMAIL_FROM: "no-reply@example.com" });
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+  });
+
+  it("warns when a Brevo key is set without a sender address", () => {
+    const { warnings } = checkEnv({ ...noSmtp(), BREVO_API_KEY: "xkeysib-x" });
+    expect(warnings.some((w) => /EMAIL_FROM/.test(w))).toBe(true);
+  });
+
+  it("warns when no email provider is configured at all", () => {
+    const { warnings } = checkEnv(noSmtp());
+    expect(warnings.some((w) => /No email provider/.test(w))).toBe(true);
+  });
+});
+
 describe("validateEnv", () => {
   it("does nothing outside production", () => {
     const exit = vi.spyOn(process, "exit").mockImplementation(() => {});

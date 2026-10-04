@@ -16,6 +16,7 @@ A premium, full-stack web platform for pet adoption, supplies, and custom habita
 - [Data Models](#data-models)
 - [Security & Validation](#security--validation)
 - [Pages & Routes](#pages--routes)
+- [Deployment (Render + Vercel)](#deployment-render--vercel)
 - [Known Limitations](#known-limitations)
 
 ---
@@ -231,7 +232,57 @@ All routes are fully implemented and connected:
 
 ---
 
+## 🚀 Deployment (Render + Vercel)
+
+```
+Browser ──► Vercel (Client/, static React build)
+   │
+   └──────► Render (Server/, Express API) ──► MongoDB Atlas · Stripe · Cloudinary
+                     ▲
+                     └── Stripe webhooks POST here directly
+```
+
+Deploy in this order — each step produces a URL the next one needs.
+
+### 1. MongoDB Atlas
+- Use an Atlas cluster (checkout/refund flows use multi-document transactions, which need a replica set — every Atlas tier is one).
+- **Network Access → allow `0.0.0.0/0`.** Render's free/starter instances have no fixed outbound IP, so an IP allow-list would block the API.
+
+### 2. Render — backend
+1. Push the repo to GitHub, then **New + → Blueprint** and pick it. [`render.yaml`](render.yaml) defines the service (root dir `Server`, `npm ci` → `npm start`, health check `/api/v1/health`, Node 22).
+2. Render prompts for every secret marked `sync: false`: `MONGODB_URI`, `CLIENT_URL`, Stripe, Cloudinary (optional: Google, Gemini, SMTP). The two JWT secrets are generated for you.
+3. Leave `CLIENT_URL` as a placeholder for now; you'll fill it in at step 4.
+4. The server **refuses to start in production** if a required variable is missing, the JWT secrets are identical/short/placeholder, etc. — check the deploy log for a `❌ Invalid production configuration` list.
+
+### 3. Vercel — frontend
+1. **Add New → Project**, import the same repo, and set **Root Directory = `Client`** (framework preset: Vite). [`Client/vercel.json`](Client/vercel.json) adds the SPA fallback so deep links like `/reset-password/:token` don't 404.
+2. Environment variables (Production):
+
+| Variable | Value |
+|---|---|
+| `VITE_API_URL` | `https://<your-service>.onrender.com/api/v1` |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | `pk_live_…` (or `pk_test_…`) |
+| `VITE_GOOGLE_CLIENT_ID` | optional — same value as the server's `GOOGLE_CLIENT_ID` |
+
+The Vercel build **fails on purpose** if `VITE_API_URL` / `VITE_STRIPE_PUBLISHABLE_KEY` are missing or the API URL isn't `https://`, rather than shipping a site that quietly calls `localhost`.
+
+### 4. Wire them together
+- Render → set `CLIENT_URL` to your Vercel URL (e.g. `https://petcenter.vercel.app`). Comma-separate to allow several origins. Redeploy.
+- **Stripe → Developers → Webhooks → Add endpoint**: `https://<your-service>.onrender.com/api/v1/webhooks/stripe`, events `payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`. Copy its signing secret into Render's `STRIPE_WEBHOOK_SECRET`.
+- **Google Cloud Console → OAuth client → Authorized JavaScript origins**: add your Vercel URL (only if using Google sign-in).
+
+### 5. Smoke test
+`GET https://<service>.onrender.com/api/v1/health` → 200 · register/log in from the Vercel site · reload the page (stays signed in) · open a deep link directly · run a Stripe test-mode checkout and confirm the order appears (proves the webhook is wired).
+
+### Things to know before going live
+- **Cross-site cookies (Safari / iOS, some Chrome modes).** The refresh-token cookie is set by `*.onrender.com` while the site lives on `*.vercel.app`, which browsers treat as third-party and may block — users would be logged out on every reload. Two fixes: put both behind custom domains under one parent (`app.example.com` + `api.example.com`), **or** proxy the API through Vercel so the browser only ever sees one origin: add `{ "source": "/api/:path*", "destination": "https://<your-service>.onrender.com/api/:path*" }` as the *first* entry in `Client/vercel.json`'s `rewrites`, and set `VITE_API_URL=/api/v1`.
+- **Render free tier** sleeps after ~15 min idle (first request ≈ 50 s), the in-process cron jobs (closing-soon notifications, donation reconciliation) don't run while it's asleep, and outbound SMTP ports are blocked, so password-reset emails won't send. Use a paid instance (or an HTTP-API email provider) for production.
+- **Vercel preview deployments** have different origins than `CLIENT_URL`, so API calls from them are blocked by CORS. Add the preview origin to `CLIENT_URL` if you need to test one against the live API.
+- **Never run `npm run seed` against production** — it wipes the database.
+
+---
+
 ## ⚠️ Known Limitations
 
-- **Email Verification / Password Reset** — The SMTP server configuration is left mock for development. Users can reset passwords internally or retrieve credentials from the seeded list.
+- **Email Verification** — Accounts are not email-verified at sign-up; password reset requires working SMTP (see Deployment notes above).
 - **Production Stripe Webhooks** — Webhook signature validation requires a production domain. Stripe webhooks operate locally via Stripe CLI forwarding.

@@ -4,6 +4,7 @@ import { OAuth2Client } from "google-auth-library";
 import User from "../models/User.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import sendEmail from "../utils/sendEmail.js";
+import { getClientOrigins } from "../config/clientOrigins.js";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -395,7 +396,7 @@ export const forgotPassword = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     // Build reset URL
-    const clientUrl = process.env.CLIENT_URL?.split(",")[0]?.trim() || "http://localhost:5173";
+    const clientUrl = getClientOrigins()[0];
     const resetUrl = `${clientUrl}/reset-password/${resetToken}`;
 
     // Send email

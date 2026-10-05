@@ -16,6 +16,8 @@ import Marketplace from "./pages/Marketplace";
 import ListingDetails from "./pages/ListingDetails";
 import Dashboard from "./pages/Dashboard";
 import MyListings from "./pages/MyListings";
+import MyOrders from "./pages/MyOrders";
+import SavedItems from "./pages/SavedItems";
 import Store from "./pages/Store";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
@@ -92,6 +94,11 @@ function App() {
             <BuilderProvider>
               <Router>
           <Routes>
+            {/* The account dashboard is its own application shell. Keeping it
+                outside GlobalLayout avoids duplicating the site header/footer
+                around the dashboard's dedicated navigation. */}
+            <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+
             {/* Global User Interface */}
             <Route element={<GlobalLayout />}>
               <Route path="/" element={<Home />} />
@@ -104,6 +111,8 @@ function App() {
               <Route path="/create-listing" element={<PrivateRoute><MyListings /></PrivateRoute>} />
               <Route path="/edit-listing/:id" element={<PrivateRoute><MyListings /></PrivateRoute>} />
               <Route path="/my-listings" element={<PrivateRoute><MyListings /></PrivateRoute>} />
+              <Route path="/favorites" element={<PrivateRoute><SavedItems /></PrivateRoute>} />
+              <Route path="/orders" element={<PrivateRoute><MyOrders /></PrivateRoute>} />
               <Route path="/products" element={<Store />} />
               <Route path="/products/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
@@ -129,11 +138,8 @@ function App() {
               <Route path="/privacy" element={<PaddedContainer><Privacy /></PaddedContainer>} />
               <Route path="/contact" element={<PaddedContainer><Contact /></PaddedContainer>} />
 
-              {/* Consolidated account dashboard */}
-              <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+              {/* Account shortcuts */}
               <Route path="/profile" element={<Navigate to="/dashboard?tab=details" replace />} />
-              <Route path="/favorites" element={<Navigate to="/dashboard?tab=favorites" replace />} />
-              <Route path="/orders" element={<Navigate to="/dashboard?tab=orders" replace />} />
               <Route path="/my-donations" element={<Navigate to="/dashboard?tab=donations" replace />} />
               <Route path="/ecosystem/my-builds" element={<Navigate to="/dashboard?tab=builds" replace />} />
 

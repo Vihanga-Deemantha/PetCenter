@@ -32,7 +32,7 @@ const FAQS = [
     q: "Where's my order?",
     a: (
       <>
-        Check <Link to="/dashboard?tab=orders">Order History</Link> for real-time status. You'll also get a
+        Check <Link to="/orders">Order History</Link> for real-time status. You'll also get a
         notification (bell icon, top right) whenever your order's status changes.
       </>
     ),
@@ -50,7 +50,7 @@ const FAQS = [
     a: (
       <>
         Tap the heart icon on any pet or product to save it — view everything you've saved under{" "}
-        <Link to="/dashboard?tab=favorites">Favorites</Link>.
+        <Link to="/favorites">Favorites</Link>.
       </>
     ),
   },

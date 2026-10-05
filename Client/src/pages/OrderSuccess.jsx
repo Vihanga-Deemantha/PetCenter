@@ -77,7 +77,7 @@ const OrderSuccess = () => {
         </Motion.div>
 
         <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="flex flex-col sm:flex-row gap-3.5 justify-center">
-          <Link to="/dashboard?tab=orders" className="btn btn-primary px-7 py-3.5">
+          <Link to="/orders" className="btn btn-primary px-7 py-3.5">
             <Package size={17} /> View my orders
           </Link>
           <Link to="/products" className="btn border border-[#cfc8ba] text-secondary hover:bg-border px-7 py-3.5">

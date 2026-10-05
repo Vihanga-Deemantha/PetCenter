@@ -77,10 +77,10 @@ const Navbar = () => {
                   <Link to="/my-listings" className="text-secondary hover:text-primary transition-colors" title="My Listings">
                     <ClipboardList size={19} />
                   </Link>
-                  <Link to="/dashboard?tab=favorites" className="text-secondary hover:text-primary transition-colors" title="My Favorites">
+                  <Link to="/favorites" className="text-secondary hover:text-primary transition-colors" title="My Favorites">
                     <Heart size={19} />
                   </Link>
-                  <Link to="/dashboard?tab=orders" className="text-secondary hover:text-primary transition-colors" title="My Orders">
+                  <Link to="/orders" className="text-secondary hover:text-primary transition-colors" title="My Orders">
                     <Package size={19} />
                   </Link>
                   <Link to="/cart" className="relative text-secondary hover:text-primary transition-colors" title="Shopping Cart">
@@ -171,10 +171,10 @@ const Navbar = () => {
                           </Link>
                         )}
                         <div className="flex gap-4">
-                          <Link to="/dashboard?tab=favorites" className="flex-1 py-4 bg-[#F2EFE7] text-primary rounded-2xl flex items-center justify-center gap-3 font-semibold" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Link to="/favorites" className="flex-1 py-4 bg-[#F2EFE7] text-primary rounded-2xl flex items-center justify-center gap-3 font-semibold" onClick={() => setIsMobileMenuOpen(false)}>
                             <Heart size={20} /> Favorites
                           </Link>
-                          <Link to="/dashboard?tab=orders" className="flex-1 py-4 bg-primary/5 border border-primary/10 text-primary rounded-2xl flex items-center justify-center gap-3 font-semibold" onClick={() => setIsMobileMenuOpen(false)}>
+                          <Link to="/orders" className="flex-1 py-4 bg-primary/5 border border-primary/10 text-primary rounded-2xl flex items-center justify-center gap-3 font-semibold" onClick={() => setIsMobileMenuOpen(false)}>
                             <Package size={20} /> Orders
                           </Link>
                         </div>

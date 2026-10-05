@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Package, Heart, Gift, Boxes, ArrowRight, Clock, Truck, CheckCircle, XCircle } from "lucide-react";
+import { Package, Heart, Gift, Boxes, ArrowRight, ArrowUpRight, Clock, Truck, CheckCircle, XCircle, ShoppingBag, Plus } from "lucide-react";
 import { getUserOrders } from "../../api/order.api";
 import { getMyDonations } from "../../api/donation.api";
 import { getMyBuilds } from "../../api/ecosystem.api";
@@ -51,35 +51,59 @@ export default function OverviewTab({ onNavigateTab }) {
 
   return (
     <div>
-      <div className="mb-8">
-        <p className="text-xs tracking-[0.18em] uppercase text-accent font-semibold mb-2.5">Dashboard</p>
-        <h1 className="font-heading text-[30px] sm:text-[36px] font-medium tracking-tight text-[#292925]">Welcome back, {user?.name?.split(" ")[0]}</h1>
+      <div className="mb-8 sm:mb-10">
+        <p className="text-[11px] tracking-[0.2em] uppercase text-accent font-semibold mb-3">Your account</p>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 className="font-heading text-[34px] sm:text-[42px] font-medium tracking-[-0.025em] leading-[1.05] text-[#292925]">
+              Welcome back, {user?.name?.split(" ")[0]}
+            </h1>
+            <p className="mt-3 max-w-xl text-sm sm:text-[15px] leading-6 text-[#6e6e64]">
+              Keep track of your orders, saved finds, donations and habitat plans in one place.
+            </p>
+          </div>
+          <Link to="/ecosystem" className="inline-flex items-center justify-center gap-2 self-start sm:self-auto rounded-full border border-[#d9d2c5] bg-white px-4 py-2.5 text-[12.5px] font-semibold whitespace-nowrap text-secondary hover:border-[#bdb4a4] hover:bg-[#fbfaf7] transition-colors">
+            <Plus size={14} /> New habitat build
+          </Link>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-9">
-        <StatCard icon={Package} label="Orders" value={orderCount} onClick={() => onNavigateTab("orders")} />
-        <StatCard icon={Heart} label="Saved items" value={favCount} onClick={() => onNavigateTab("favorites")} />
-        <StatCard icon={Gift} label="Donated" value={donationsTotal == null ? null : `$${(donationsTotal / 100).toFixed(2)}`} onClick={() => onNavigateTab("donations")} />
-        <StatCard icon={Boxes} label="Habitat builds" value={buildCount} onClick={() => onNavigateTab("builds")} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 sm:gap-4 mb-7 sm:mb-8">
+        <StatCard icon={Package} label="Orders" helper="Track every purchase" value={orderCount} onClick={() => onNavigateTab("orders")} />
+        <StatCard icon={Heart} label="Saved items" helper="Pets and products" value={favCount} onClick={() => onNavigateTab("favorites")} />
+        <StatCard icon={Gift} label="Donated" helper="Across your campaigns" value={donationsTotal == null ? null : `$${(donationsTotal / 100).toFixed(2)}`} onClick={() => onNavigateTab("donations")} />
+        <StatCard icon={Boxes} label="Habitat builds" helper="Ready to revisit" value={buildCount} onClick={() => onNavigateTab("builds")} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-[#E8E2D8] rounded-[22px] p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="m-0 font-heading text-lg font-medium text-[#292925]">Recent orders</h2>
-            <button onClick={() => onNavigateTab("orders")} className="text-xs font-semibold text-primary flex items-center gap-1">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <section className="bg-white border border-[#E8E2D8] rounded-[24px] p-5 sm:p-6.5 min-h-[280px] flex flex-col shadow-[0_12px_35px_rgba(72,65,52,0.035)]">
+          <div className="flex items-start justify-between gap-4 pb-4 border-b border-[#eee9df]">
+            <div>
+              <h2 className="m-0 font-heading text-[20px] font-medium text-[#292925]">Recent orders</h2>
+              <p className="mt-1 text-[12px] text-[#8a8a80]">Your latest store purchases</p>
+            </div>
+            <button onClick={() => onNavigateTab("orders")} className="mt-0.5 text-xs font-semibold text-primary flex items-center gap-1.5 hover:gap-2 transition-all">
               View all <ArrowRight size={12} />
             </button>
           </div>
           {recentOrders.length === 0 ? (
-            <p className="text-sm text-[#8a8a80]">No orders yet.</p>
+            <div className="flex-1 flex flex-col items-center justify-center text-center py-7">
+              <div className="w-12 h-12 rounded-2xl bg-[#F5F2EB] flex items-center justify-center mb-3.5">
+                <ShoppingBag size={20} className="text-[#8f897c]" />
+              </div>
+              <p className="font-heading text-[17px] font-medium text-[#292925]">Nothing ordered yet</p>
+              <p className="mt-1.5 mb-4 text-[12.5px] leading-5 text-[#8a8a80] max-w-[250px]">When you place your first order, its progress will appear here.</p>
+              <Link to="/products" className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary hover:gap-2 transition-all">
+                Browse the store <ArrowRight size={12} />
+              </Link>
+            </div>
           ) : (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1 pt-3">
               {recentOrders.map((order) => {
                 const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
                 const StatusIcon = cfg.icon;
                 return (
-                  <Link key={order._id} to={`/orders/${order._id}`} className="flex items-center gap-3 p-2.5 -mx-2.5 rounded-xl hover:bg-light transition-colors">
+                  <Link key={order._id} to={`/orders/${order._id}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-light transition-colors">
                     <div className="w-11 h-11 rounded-lg overflow-hidden bg-light border border-border shrink-0">
                       {order.items?.[0]?.image?.url ? (
                         <img src={order.items[0].image.url} alt="" className="w-full h-full object-cover" />
@@ -100,46 +124,63 @@ export default function OverviewTab({ onNavigateTab }) {
               })}
             </div>
           )}
-        </div>
+        </section>
 
-        <div className="bg-white border border-[#E8E2D8] rounded-[22px] p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="m-0 font-heading text-lg font-medium text-[#292925]">Saved builds</h2>
-            <button onClick={() => onNavigateTab("builds")} className="text-xs font-semibold text-primary flex items-center gap-1">
+        <section className="bg-white border border-[#E8E2D8] rounded-[24px] p-5 sm:p-6.5 min-h-[280px] flex flex-col shadow-[0_12px_35px_rgba(72,65,52,0.035)]">
+          <div className="flex items-start justify-between gap-4 pb-4 border-b border-[#eee9df]">
+            <div>
+              <h2 className="m-0 font-heading text-[20px] font-medium text-[#292925]">Saved builds</h2>
+              <p className="mt-1 text-[12px] text-[#8a8a80]">Habitat plans you can return to</p>
+            </div>
+            <button onClick={() => onNavigateTab("builds")} className="mt-0.5 text-xs font-semibold text-primary flex items-center gap-1.5 hover:gap-2 transition-all">
               View all <ArrowRight size={12} />
             </button>
           </div>
           {savedBuilds.length === 0 ? (
-            <p className="text-sm text-[#8a8a80]">No habitat builds saved yet.</p>
+            <div className="flex-1 flex flex-col items-center justify-center text-center py-7">
+              <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center mb-3.5">
+                <Boxes size={20} className="text-secondary" />
+              </div>
+              <p className="font-heading text-[17px] font-medium text-[#292925]">No saved builds yet</p>
+              <p className="mt-1.5 mb-4 text-[12.5px] leading-5 text-[#8a8a80] max-w-[250px]">Plan a complete habitat and save it here for later.</p>
+              <Link to="/ecosystem" className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary hover:gap-2 transition-all">
+                Start a habitat <ArrowRight size={12} />
+              </Link>
+            </div>
           ) : (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1 pt-3">
               {savedBuilds.map((build) => (
-                <button key={build._id} onClick={() => onNavigateTab("builds")} className="flex items-center gap-3 p-2.5 -mx-2.5 rounded-xl hover:bg-light transition-colors text-left w-full">
-                  <div className="w-11 h-11 rounded-lg bg-accent/10 flex items-center justify-center text-lg shrink-0 capitalize">🌿</div>
+                <button key={build._id} onClick={() => onNavigateTab("builds")} className="group flex items-center gap-3 p-3 rounded-xl hover:bg-light transition-colors text-left w-full">
+                  <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center text-lg shrink-0 capitalize">🌿</div>
                   <div className="flex-1 min-w-0">
                     <p className="m-0 text-[13px] font-semibold text-[#292925] truncate">{build.name}</p>
                     <p className="m-0 text-[11px] text-[#8a8a80] capitalize">{build.petType} · {build.selections?.length || 0} items</p>
                   </div>
                   <p className="m-0 text-[13px] font-semibold text-[#292925] shrink-0">{formatPrice(build.totalPrice)}</p>
+                  <ArrowUpRight size={15} className="text-[#c9c2b3] group-hover:text-primary transition-colors shrink-0" />
                 </button>
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );
 }
 
-function StatCard({ icon, label, value, onClick }) {
+function StatCard({ icon, label, helper, value, onClick }) {
   const Icon = icon;
   return (
-    <button onClick={onClick} className="bg-white border border-[#E8E2D8] rounded-2xl p-5 text-left hover:border-[#cfc8ba] hover:shadow-sm transition-all">
-      <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center text-secondary mb-3">
-        <Icon size={16} />
+    <button onClick={onClick} className="group bg-white border border-[#E8E2D8] rounded-[20px] p-5 text-left hover:-translate-y-0.5 hover:border-[#cfc8ba] hover:shadow-[0_14px_30px_rgba(72,65,52,0.07)] transition-all">
+      <div className="flex items-start justify-between gap-3 mb-5">
+        <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-secondary">
+          <Icon size={17} />
+        </div>
+        <ArrowUpRight size={15} className="text-[#c9c2b3] group-hover:text-primary transition-colors" />
       </div>
-      <p className="m-0 font-heading text-2xl font-medium text-[#292925]">{value == null ? "—" : value}</p>
-      <p className="m-0 mt-0.5 text-[12px] text-[#8a8a80]">{label}</p>
+      <p className="m-0 font-heading text-[26px] leading-none font-medium text-[#292925]">{value == null ? "—" : value}</p>
+      <p className="m-0 mt-2 text-[12.5px] font-semibold text-[#4f4f48]">{label}</p>
+      <p className="m-0 mt-1 text-[11px] text-[#9a968c]">{helper}</p>
     </button>
   );
 }

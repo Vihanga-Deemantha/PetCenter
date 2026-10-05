@@ -14,13 +14,13 @@ export default function DashboardSidebar({ activeTab, onSelect }) {
   };
 
   return (
-    <aside className="w-full md:w-64 bg-[#292925] text-light flex flex-col md:sticky md:top-0 md:h-screen shrink-0 z-20">
-      <NavLink to="/" className="flex items-center gap-2.5 px-6 py-6 border-b border-white/10">
+    <aside className="z-20 w-full shrink-0 bg-[#292925] text-light md:sticky md:top-0 md:flex md:h-screen md:w-64 md:flex-col">
+      <NavLink to="/" className="hidden items-center gap-2.5 border-b border-white/10 px-6 py-6 md:flex">
         <span className="w-8.5 h-8.5 rounded-full bg-accent flex items-center justify-center text-light font-heading text-[17px]">P</span>
         <span className="font-heading text-[19px] font-semibold tracking-tight">PetCenter</span>
       </NavLink>
 
-      <nav className="flex-1 p-4 space-y-1 flex flex-row md:flex-col overflow-x-auto md:overflow-visible">
+      <nav className="flex gap-1.5 overflow-x-auto p-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:flex-1 md:flex-col md:gap-0 md:space-y-1 md:overflow-visible md:p-4">
         {DASHBOARD_TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.key;
@@ -28,7 +28,7 @@ export default function DashboardSidebar({ activeTab, onSelect }) {
             <button
               key={tab.key}
               onClick={() => onSelect(tab.key)}
-              className={`flex items-center gap-3 px-4 py-2.75 rounded-xl text-[13.5px] font-medium transition-colors shrink-0 md:shrink text-left w-full ${
+              className={`flex w-auto shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.75 text-left text-[13px] font-medium whitespace-nowrap transition-colors md:w-full md:shrink md:gap-3 md:text-[13.5px] ${
                 isActive ? "bg-white/10 text-light" : "text-[#B9B6AC] hover:bg-white/5 hover:text-light"
               }`}
             >
@@ -38,7 +38,7 @@ export default function DashboardSidebar({ activeTab, onSelect }) {
         })}
       </nav>
 
-      <div className="p-4 border-t border-white/10 space-y-1">
+      <div className="hidden space-y-1 border-t border-white/10 p-4 md:block">
         <NavLink to="/" className="flex items-center gap-3 px-4 py-2.75 rounded-xl text-[13.5px] font-medium text-[#B9B6AC] hover:bg-white/5 hover:text-light transition-colors">
           <ArrowLeft size={17} /> Back to site
         </NavLink>

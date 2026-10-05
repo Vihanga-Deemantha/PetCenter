@@ -68,14 +68,14 @@ const OrderDetail = () => {
       <div className="max-w-4xl mx-auto px-7 pt-8 pb-24 text-center">
         <Package size={40} className="mx-auto mb-4 text-[#c9c2b3]" />
         <h2 className="font-heading text-2xl mb-4">Order not found</h2>
-        <Link to="/dashboard?tab=orders" className="btn btn-primary">View all orders</Link>
+        <Link to="/orders" className="btn btn-primary">View all orders</Link>
       </div>
     );
   }
 
   return (
     <div className="max-w-4xl mx-auto px-7 pt-8 pb-24">
-      <Link to="/dashboard?tab=orders" className="inline-flex items-center gap-1.5 text-secondary text-sm font-medium mb-5">
+      <Link to="/orders" className="inline-flex items-center gap-1.5 text-secondary text-sm font-medium mb-5">
         <ArrowLeft size={15} /> All orders
       </Link>
 

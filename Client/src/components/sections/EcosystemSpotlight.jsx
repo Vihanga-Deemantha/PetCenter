@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
 import { Box } from "lucide-react";
-import builderMockup from "../../assets/stunning_ecosystem_builder.png";
+import builderMockup from "../../assets/habitat_spotlight.jpg";
 
 const STEPS = [
   { title: "Pick a species", desc: "Fish, reptile, bird — each with its own guidance." },
@@ -45,8 +45,8 @@ const EcosystemSpotlight = () => (
         transition={{ duration: 0.8 }}
         className="relative"
       >
-        <div className="rounded-[26px] overflow-hidden border border-light/20">
-          <img src={builderMockup} alt="Ecosystem Builder" className="w-full h-auto block" />
+        <div className="rounded-[26px] overflow-hidden border border-light/20 shadow-[0_30px_65px_rgba(19,24,18,0.28)]">
+          <img src={builderMockup} alt="A planted reptile habitat prepared in the Ecosystem Builder" className="block aspect-[4/3] h-full w-full object-cover" />
         </div>
         <div className="absolute -right-5 -top-5 bg-light text-[#292925] rounded-2xl px-4.5 py-3.5 shadow-2xl shadow-black/40 flex items-center gap-3.5">
           <span className="w-10 h-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">

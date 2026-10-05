@@ -65,10 +65,10 @@
 }
 @keyframes dogJump {
   0% { transform: translateY(0) rotate(0); }
-  30% { transform: translateY(-70px) rotate(-18deg); }
-  55% { transform: translateY(-90px) rotate(-340deg); }
-  80% { transform: translateY(-14px) rotate(-358deg); }
-  100% { transform: translateY(0) rotate(-360deg); }
+  32% { transform: translateY(-28px) rotate(-4deg); }
+  58% { transform: translateY(-34px) rotate(4deg); }
+  82% { transform: translateY(-6px) rotate(-1deg); }
+  100% { transform: translateY(0) rotate(0); }
 }
 @keyframes dogDead {
   0% { transform: rotate(0); }
@@ -82,12 +82,17 @@
 }
 @keyframes dogBeg {
   0% { transform: rotate(0); }
-  40% { transform: rotate(-16deg) translateY(-6px); }
-  100% { transform: rotate(-14deg) translateY(-4px); }
+  35%, 65% { transform: rotate(-9deg) translateY(-5px); }
+  100% { transform: rotate(0) translateY(0); }
 }
 @keyframes tailWag {
-  0%, 100% { transform: rotate(-16deg); }
-  50% { transform: rotate(24deg); }
+  0%, 100% { transform: rotate(-12deg); }
+  50% { transform: rotate(18deg); }
+}
+@keyframes earPerk {
+  0%, 68%, 100% { transform: rotate(0) translateY(0); }
+  75% { transform: rotate(-4deg) translateY(-1px); }
+  82% { transform: rotate(1.5deg) translateY(0); }
 }
 @keyframes breathe {
   0%, 100% { transform: translateY(0); }
@@ -97,6 +102,17 @@
   0% { transform: scale(1); opacity: 0.5; }
   100% { transform: scale(1.7); opacity: 0; }
 }
+@keyframes dogArrival {
+  from { opacity: 0; transform: translateY(18px) scale(0.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes dogBubble {
+  from { opacity: 0; transform: translateY(5px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.home-dog-mascot { animation: dogArrival 0.55s ease-out both; }
+.home-dog-bubble { animation: dogBubble 0.22s ease-out both; }
 
 /* Accessibility – respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {

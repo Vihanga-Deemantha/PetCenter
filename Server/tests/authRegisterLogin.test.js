@@ -29,6 +29,12 @@ describe("POST /api/v1/auth/register", () => {
     expect(res.body.data.user.role).toBe("user");
   });
 
+  it("accepts valid modern top-level domains", async () => {
+    const res = await register({ email: "keeper@wildlife.museum" });
+    expect(res.status).toBe(201);
+    expect(res.body.data.user.email).toBe("keeper@wildlife.museum");
+  });
+
   it("rejects a duplicate email", async () => {
     await register({ email: "dupe@test.com" });
     const res = await register({ email: "dupe@test.com" });

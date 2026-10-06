@@ -3,6 +3,7 @@ import { Link, useLocation, useParams, useNavigate } from "react-router-dom";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { Plus, ImagePlus, X, ArrowLeft, Trash2, Check } from "lucide-react";
 import { getMyListings, createListing, updateListing, deleteListing, toggleListingPause } from "../api/listing.api";
+import { CURRENCY_CODE, formatCurrency } from "../utils/priceFormatter";
 
 const SPECIES = [
   { value: "dog", label: "Dogs" },
@@ -210,7 +211,7 @@ const MyListings = () => {
   const validate = () => {
     if (!formData.title || !formData.breed || !formData.age) return "Please fill out the pet's name, breed and age.";
     if (!formData.location || !formData.contactDetails) return "Please provide a location and contact details.";
-    if (formData.listingType === "sale" && (!formData.price || formData.price === "0")) return "Please set a price for a sale listing.";
+    if (formData.listingType === "sale" && (!Number.isFinite(Number(formData.price)) || Number(formData.price) <= 0)) return "Please set a valid price for a sale listing.";
     if (!formData.description || !formData.healthInfo) return "Please add a description and health notes.";
     if (photos.length === 0) return "Please add at least one photo.";
     return "";
@@ -360,7 +361,7 @@ const MyListings = () => {
                           </span>
                         </div>
                         <p className="mt-1.5 m-0 text-[13px] text-[#6e6e64]">
-                          {l.breed} · {l.age} mo · {l.location} · {l.listingType === "adoption" && !l.price ? "Free" : `LKR ${l.price?.toLocaleString()}`}
+                          {l.breed} · {l.age} mo · {l.location} · {l.listingType === "adoption" && !l.price ? "Free" : formatCurrency(l.price)}
                         </p>
                         <div className="flex gap-5 flex-wrap mt-3">
                           {[
@@ -493,8 +494,8 @@ const MyListings = () => {
 
                 {formData.listingType === "sale" && (
                   <label className="flex flex-col gap-1.75 text-[11px] font-semibold uppercase tracking-wider text-[#8a8a7e] mt-4.5 max-w-60">
-                    Price (LKR)
-                    <input type="number" name="price" min="0" value={formData.price} onChange={onChange} className={fieldCls(false)} />
+                    Price ({CURRENCY_CODE})
+                    <input type="number" name="price" min="0.01" step="0.01" value={formData.price} onChange={onChange} className={fieldCls(false)} />
                   </label>
                 )}
               </div>

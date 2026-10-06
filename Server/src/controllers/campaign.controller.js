@@ -1,13 +1,14 @@
 import Campaign from "../models/Campaign.js";
 import Donation from "../models/Donation.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
-import { clampLimit } from "../utils/pagination.js";
+import { clampLimit, clampPage } from "../utils/pagination.js";
 
 // ─── Get Public Campaigns (Filterable, Paginated) ─────────────────────────────
 // GET /api/v1/campaigns — Public
 export const getCampaigns = async (req, res, next) => {
   try {
-    const { page = 1, category, search, status } = req.query;
+    const { category, search, status } = req.query;
+    const page = clampPage(req.query.page);
     const limit = clampLimit(req.query.limit, { max: 60, fallback: 9 });
 
     const filter = { deletedAt: null, status: { $ne: "draft" } };
@@ -24,7 +25,7 @@ export const getCampaigns = async (req, res, next) => {
       filter.$text = { $search: search };
     }
 
-    const skip = (parseInt(page) - 1) * limit;
+    const skip = (page - 1) * limit;
 
     const [campaignsRaw, total] = await Promise.all([
       Campaign.find(filter)
@@ -60,7 +61,7 @@ export const getCampaigns = async (req, res, next) => {
 
     return sendSuccess(res, campaigns, 200, {
       pagination: {
-        currentPage: parseInt(page),
+        currentPage: page,
         totalPages,
         totalItems: total,
         itemsPerPage: limit,
@@ -113,7 +114,7 @@ export const getCampaignDetail = async (req, res, next) => {
 export const getCampaignDonors = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const page = parseInt(req.query.page) || 1;
+    const page = clampPage(req.query.page);
     const limit = clampLimit(req.query.limit, { max: 60, fallback: 10 });
 
     const skip = (page - 1) * limit;

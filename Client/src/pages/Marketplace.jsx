@@ -5,6 +5,7 @@ import { motion as Motion, AnimatePresence } from "framer-motion";
 import { Search, MapPin, Plus, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import HeartButton from "../components/ui/HeartButton";
+import { formatCurrency } from "../utils/priceFormatter";
 
 const SPECIES = [
   { value: "", label: "All" },
@@ -241,8 +242,8 @@ const Marketplace = () => {
               className="w-full accent-accent"
             />
             <div className="flex justify-between mt-2 text-[13px] text-[#6e6e64]">
-              <span>0</span>
-              <span>Up to {filters.maxPrice && Number(filters.maxPrice) < MAX_FEE ? filters.maxPrice : `${MAX_FEE}+`}</span>
+              <span>{formatCurrency(0)}</span>
+              <span>Up to {filters.maxPrice && Number(filters.maxPrice) < MAX_FEE ? formatCurrency(filters.maxPrice) : `${formatCurrency(MAX_FEE)}+`}</span>
             </div>
           </div>
           <div className="border-t border-border pt-6">
@@ -328,7 +329,7 @@ const Marketplace = () => {
                         <div className="flex items-baseline justify-between gap-2.5">
                           <h3 className="font-heading text-[21px] font-medium text-[#292925] m-0">{pet.title}</h3>
                           <span className="text-sm text-primary font-semibold shrink-0">
-                            {pet.listingType === "adoption" && !pet.price ? "Free" : `LKR ${pet.price?.toLocaleString()}`}
+                            {pet.listingType === "adoption" && !pet.price ? "Free" : formatCurrency(pet.price)}
                           </span>
                         </div>
                         <p className="m-0 text-[13px] text-[#7a7a70]">

@@ -5,7 +5,7 @@ import { useAuth } from "./AuthContext";
 const FavoritesContext = createContext(null);
 
 export function FavoritesProvider({ children }) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   // Set of "itemType:itemId" strings for O(1) lookup
   const [favSet, setFavSet] = useState(new Set());
@@ -19,6 +19,7 @@ export function FavoritesProvider({ children }) {
 
   // Load all favorites when user logs in
   const loadFavorites = useCallback(() => {
+    if (authLoading) return;
     const requestedFor = user?._id || null;
     requestedForRef.current = requestedFor;
 
@@ -29,10 +30,20 @@ export function FavoritesProvider({ children }) {
     }
     setLoading(true);
     setError(null);
-    getFavorites({ limit: 500 })
-      .then((res) => {
+    getFavorites({ limit: 100, page: 1 })
+      .then(async (res) => {
         if (requestedForRef.current !== requestedFor) return;
-        const items = res.data.data || [];
+        const firstPage = res.data.data || [];
+        const totalPages = res.data.pagination?.totalPages || 1;
+        const remainingPages = await Promise.all(
+          Array.from({ length: Math.max(0, totalPages - 1) }, (_, index) =>
+            getFavorites({ limit: 100, page: index + 2 })
+          )
+        );
+        if (requestedForRef.current !== requestedFor) return;
+        const items = firstPage.concat(
+          remainingPages.flatMap((pageResponse) => pageResponse.data.data || [])
+        );
         const set = new Set(items.map((f) => `${f.itemType}:${f.itemId}`));
         setFavSet(set);
       })
@@ -46,7 +57,7 @@ export function FavoritesProvider({ children }) {
       .finally(() => {
         if (requestedForRef.current === requestedFor) setLoading(false);
       });
-  }, [user]);
+  }, [authLoading, user]);
 
   useEffect(() => {
     loadFavorites();

@@ -1,7 +1,9 @@
 import stripe from "../config/stripe.js";
+import { CURRENCY_CODE, STRIPE_CURRENCY } from "../config/currency.js";
 import Campaign from "../models/Campaign.js";
 import Donation from "../models/Donation.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
+import { clampLimit, clampPage } from "../utils/pagination.js";
 
 // ─── Create Payment Intent for Donation ───────────────────────────────────────
 // POST /api/v1/donations/create-payment-intent — Public (optional authentication)
@@ -14,7 +16,7 @@ export const createDonationPaymentIntent = async (req, res, next) => {
     }
 
     if (!amount || parseInt(amount) < 50) {
-      return sendError(res, "Donation amount must be at least 50 cents (0.50 USD)", 400);
+      return sendError(res, `Donation amount must be at least 50 cents (0.50 ${CURRENCY_CODE})`, 400);
     }
 
     const campaign = await Campaign.findOne({ _id: campaignId, deletedAt: null });
@@ -45,7 +47,7 @@ export const createDonationPaymentIntent = async (req, res, next) => {
     // Create the Stripe PaymentIntent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: parseInt(amount),
-      currency: "usd",
+      currency: STRIPE_CURRENCY,
       metadata: {
         type: "donation",
         campaignId: campaignId.toString(),
@@ -100,8 +102,10 @@ export const getMyDonations = async (req, res, next) => {
 // GET /api/v1/admin/donations — Admin Only
 export const getAdminDonations = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const { status } = req.query;
+    const page = clampPage(req.query.page);
+    const limit = clampLimit(req.query.limit, { max: 100, fallback: 20 });
+    const skip = (page - 1) * limit;
 
     const filter = {};
     if (status) filter.status = status;
@@ -112,17 +116,17 @@ export const getAdminDonations = async (req, res, next) => {
         .populate("userId", "name email")
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(limit)
         .lean(),
       Donation.countDocuments(filter),
     ]);
 
     return sendSuccess(res, donations, 200, {
       pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(total / parseInt(limit)),
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
         totalItems: total,
-        itemsPerPage: parseInt(limit),
+        itemsPerPage: limit,
       },
     });
   } catch (error) {

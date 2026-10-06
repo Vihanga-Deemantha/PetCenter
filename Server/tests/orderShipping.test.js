@@ -7,6 +7,7 @@ import Order from "../src/models/Order.js";
 import User from "../src/models/User.js";
 
 const createMock = vi.fn();
+const refundCreateMock = vi.fn();
 vi.mock("../src/config/stripe.js", () => ({
   default: {
     paymentIntents: {
@@ -14,12 +15,17 @@ vi.mock("../src/config/stripe.js", () => ({
       retrieve: vi.fn(),
     },
     refunds: {
-      create: vi.fn().mockResolvedValue({}),
+      create: (...args) => refundCreateMock(...args),
     },
   },
 }));
 
 const { default: app } = await import("../app.js");
+
+beforeEach(() => {
+  refundCreateMock.mockReset();
+  refundCreateMock.mockResolvedValue({ id: "re_test" });
+});
 
 async function registerAndLogin(email) {
   const res = await request(app).post("/api/v1/auth/register").send({
@@ -155,6 +161,50 @@ describe("PUT /api/v1/orders/:orderId/status — tracking info + status history"
     expect(updated.statusHistory).toHaveLength(2);
     expect(updated.statusHistory[1].status).toBe("delivered");
   });
+
+  it("rejects backward status transitions", async () => {
+    const { userId, token } = await registerAdmin("orderadmin-backward@test.com");
+    const order = await Order.create({
+      userId,
+      items: [{ productId: new mongoose.Types.ObjectId(), name: "X", priceAtPurchase: 1000, quantity: 1 }],
+      shippingAddress,
+      totalAmount: 1599,
+      shippingFee: 599,
+      paymentIntentId: "pi_manual_backward",
+      status: "shipped",
+    });
+
+    const res = await request(app)
+      .put(`/api/v1/orders/${order._id}/status`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ status: "processing" });
+
+    expect(res.status).toBe(400);
+    expect((await Order.findById(order._id)).status).toBe("shipped");
+  });
+
+  it("does not cancel and restock an order that has already shipped", async () => {
+    const { userId, token } = await registerAdmin("orderadmin-shipped@test.com");
+    const product = await makeProduct({ price: 1000, stock: 4 });
+    const order = await Order.create({
+      userId,
+      items: [{ productId: product._id, name: product.name, priceAtPurchase: 1000, quantity: 1 }],
+      shippingAddress,
+      totalAmount: 1599,
+      shippingFee: 599,
+      paymentIntentId: "pi_manual_shipped_cancel",
+      status: "shipped",
+    });
+
+    const res = await request(app)
+      .put(`/api/v1/orders/${order._id}/status`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ status: "cancelled" });
+
+    expect(res.status).toBe(400);
+    expect((await Order.findById(order._id)).status).toBe("shipped");
+    expect((await Product.findById(product._id)).stock).toBe(4);
+  });
 });
 
 describe("PUT /api/v1/orders/:orderId/cancel — status history", () => {
@@ -181,5 +231,30 @@ describe("PUT /api/v1/orders/:orderId/cancel — status history", () => {
     expect(updated.status).toBe("cancelled");
     expect(updated.statusHistory).toHaveLength(2);
     expect(updated.statusHistory[1]).toMatchObject({ status: "cancelled", note: "Cancelled by customer" });
+  });
+
+  it("records a pending refund honestly when Stripe refunding fails", async () => {
+    const { userId, token } = await registerAndLogin("ordercancel-refund-failure@test.com");
+    const product = await makeProduct({ price: 2000, stock: 5 });
+    const order = await Order.create({
+      userId,
+      items: [{ productId: product._id, name: product.name, priceAtPurchase: 2000, quantity: 1 }],
+      shippingAddress,
+      totalAmount: 2599,
+      shippingFee: 599,
+      paymentIntentId: "pi_manual_refund_failure",
+      status: "processing",
+    });
+    refundCreateMock.mockRejectedValueOnce(new Error("Stripe temporarily unavailable"));
+
+    const res = await request(app)
+      .put(`/api/v1/orders/${order._id}/cancel`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(502);
+    const updated = await Order.findById(order._id);
+    expect(updated.status).toBe("cancelled");
+    expect(updated.paymentStatus).toBe("refund_pending");
+    expect((await Product.findById(product._id)).stock).toBe(6);
   });
 });

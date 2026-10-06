@@ -1,13 +1,12 @@
 import Product from "../models/Products.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
-import { clampLimit } from "../utils/pagination.js";
+import { clampLimit, clampPage } from "../utils/pagination.js";
 
 // ─── Get All Products (Paginated, Filterable, Searchable) ─────────────────────
 // GET /api/v1/products  — Public
 export const getProducts = async (req, res, next) => {
   try {
     const {
-      page = 1,
       category,
       compatiblePets,
       tags,
@@ -17,6 +16,7 @@ export const getProducts = async (req, res, next) => {
       search,
       sort = "newest",
     } = req.query;
+    const page = clampPage(req.query.page);
     const limit = clampLimit(req.query.limit, { max: 60, fallback: 12 });
 
     const filter = { isActive: true };
@@ -63,7 +63,7 @@ export const getProducts = async (req, res, next) => {
     if (sort === "bestseller") sortObj = { soldCount: -1 };
 
     // Pagination
-    const skip = (parseInt(page) - 1) * limit;
+    const skip = (page - 1) * limit;
 
     // Execute query
     const [products, total] = await Promise.all([
@@ -83,7 +83,7 @@ export const getProducts = async (req, res, next) => {
       200,
       {
         pagination: {
-          currentPage: parseInt(page),
+          currentPage: page,
           totalPages,
           totalItems: total,
           itemsPerPage: limit,

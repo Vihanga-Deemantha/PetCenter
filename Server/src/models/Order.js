@@ -114,8 +114,8 @@ const orderSchema = new mongoose.Schema(
     paymentStatus: {
       type: String,
       enum: {
-        values: ["paid", "failed", "refunded"],
-        message: "Payment status must be one of: paid, failed, refunded",
+        values: ["paid", "failed", "refund_pending", "refunded"],
+        message: "Payment status must be one of: paid, failed, refund_pending, refunded",
       },
       default: "paid",
     },

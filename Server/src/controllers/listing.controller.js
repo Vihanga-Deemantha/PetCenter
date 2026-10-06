@@ -3,7 +3,7 @@ import Favorite from "../models/Favorite.js";
 import cloudinary from "../config/cloudinary.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import escapeRegExp from "../utils/escapeRegExp.js";
-import { clampLimit } from "../utils/pagination.js";
+import { clampLimit, clampPage } from "../utils/pagination.js";
 
 // ─── Get All Active Listings (public) ─────────────────────────────────────────
 // GET /api/v1/listings
@@ -18,8 +18,8 @@ export const getListings = async (req, res, next) => {
       maxPrice,
       gender,
       sort = "-createdAt",
-      page = 1,
     } = req.query;
+    const page = clampPage(req.query.page);
     const limit = clampLimit(req.query.limit, { max: 60, fallback: 12 });
 
     const filter = { status: "active" };
@@ -45,7 +45,7 @@ export const getListings = async (req, res, next) => {
       ];
     }
 
-    const skip = (Number(page) - 1) * limit;
+    const skip = (page - 1) * limit;
 
     const [listings, total] = await Promise.all([
       PetListing.find(filter)
@@ -59,7 +59,7 @@ export const getListings = async (req, res, next) => {
     return sendSuccess(res, listings, 200, {
       pagination: {
         total,
-        page: Number(page),
+        page,
         limit,
         pages: Math.ceil(total / limit),
       },

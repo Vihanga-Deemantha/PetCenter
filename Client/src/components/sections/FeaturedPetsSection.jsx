@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
 import { getListings } from "../../api/listing.api";
+import { formatCurrency } from "../../utils/priceFormatter";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -78,7 +79,7 @@ const FeaturedPetsSection = () => {
                   <div className="flex items-baseline justify-between gap-2.5">
                     <h3 className="font-heading text-xl font-medium text-[#292925] truncate">{pet.title}</h3>
                     <span className="text-sm text-primary font-semibold shrink-0">
-                      {pet.listingType === "adoption" || !pet.price ? "Free" : `LKR ${pet.price.toLocaleString()}`}
+                      {pet.listingType === "adoption" && !pet.price ? "Free" : formatCurrency(pet.price)}
                     </span>
                   </div>
                   <p className="mt-1.5 mb-4 text-[13px] text-[#7a7a70]">{pet.location}</p>

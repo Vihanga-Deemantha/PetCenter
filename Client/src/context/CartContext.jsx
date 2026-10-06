@@ -5,7 +5,7 @@ import { useAuth } from "./AuthContext";
 const CartContext = createContext(null);
 
 export const CartProvider = ({ children }) => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [cartItems, setCartItems] = useState([]);
   const [itemCount, setItemCount] = useState(0);
   const [cartTotal, setCartTotal] = useState(0);
@@ -14,6 +14,7 @@ export const CartProvider = ({ children }) => {
 
   // Fetch cart from server whenever user changes
   const fetchCart = useCallback(async () => {
+    if (authLoading) return;
     if (!user) {
       setCartItems([]);
       setItemCount(0);
@@ -35,7 +36,7 @@ export const CartProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [authLoading, user]);
 
   useEffect(() => {
     fetchCart();

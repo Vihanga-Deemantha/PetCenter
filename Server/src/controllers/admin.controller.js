@@ -11,6 +11,7 @@ import Shelter from "../models/Shelter.js";
 import PlatformFeedback from "../models/PlatformFeedback.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { createNotification } from "./notification.controller.js";
+import { clampLimit, clampPage } from "../utils/pagination.js";
 
 // ─── GET /admin/stats/public — Public platform stats ──────────────────────────
 export const getPlatformStats = async (req, res, next) => {
@@ -370,7 +371,9 @@ export const getDashboardStats = async (req, res, next) => {
 // GET /api/v1/admin/users  — Admin
 export const getUsers = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, search } = req.query;
+    const { search } = req.query;
+    const page = clampPage(req.query.page);
+    const limit = clampLimit(req.query.limit, { max: 100, fallback: 20 });
     const filter = { role: "user", isDeleted: { $ne: true } };
     if (search) {
       filter.$or = [
@@ -379,14 +382,14 @@ export const getUsers = async (req, res, next) => {
       ];
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (page - 1) * limit;
     const [users, total] = await Promise.all([
-      User.find(filter).sort("-createdAt").skip(skip).limit(Number(limit)),
+      User.find(filter).sort("-createdAt").skip(skip).limit(limit),
       User.countDocuments(filter),
     ]);
 
     return sendSuccess(res, users, 200, {
-      pagination: { total, page: Number(page), limit: Number(limit) },
+      pagination: { total, page, limit },
     });
   } catch (error) {
     next(error);
@@ -453,7 +456,9 @@ export const deleteUser = async (req, res, next) => {
 // GET /api/v1/admin/listings  — Admin
 export const getAllListings = async (req, res, next) => {
   try {
-    const { status, page = 1, limit = 20, search } = req.query;
+    const { status, search } = req.query;
+    const page = clampPage(req.query.page);
+    const limit = clampLimit(req.query.limit, { max: 100, fallback: 20 });
     const filter = {};
 
     if (status) filter.status = status;
@@ -464,18 +469,18 @@ export const getAllListings = async (req, res, next) => {
       ];
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (page - 1) * limit;
     const [listings, total] = await Promise.all([
       PetListing.find(filter)
         .populate("owner", "name email")
         .sort("-createdAt")
         .skip(skip)
-        .limit(Number(limit)),
+        .limit(limit),
       PetListing.countDocuments(filter),
     ]);
 
     return sendSuccess(res, listings, 200, {
-      pagination: { total, page: Number(page), limit: Number(limit) },
+      pagination: { total, page, limit },
     });
   } catch (error) {
     next(error);

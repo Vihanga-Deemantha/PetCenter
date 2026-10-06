@@ -1,15 +1,61 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
-import { CheckCircle, Package, ArrowRight, ShoppingBag } from "lucide-react";
+import { CheckCircle, Package, ArrowRight, ShoppingBag, AlertCircle, LoaderCircle } from "lucide-react";
 import confetti from "canvas-confetti";
 import CheckoutSteps from "../components/store/CheckoutSteps";
+import { confirmPayment } from "../api/checkout.api";
+import { useCart } from "../context/CartContext";
 
 const OrderSuccess = () => {
   const [params] = useSearchParams();
-  const paymentIntentId = params.get("paymentIntent");
+  // Stripe appends `payment_intent` after redirect-based payment methods;
+  // the in-page card flow uses the friendlier `paymentIntent` name.
+  const paymentIntentId = params.get("paymentIntent") || params.get("payment_intent");
+  const { clearLocalCartOnly } = useCart();
+  const confirmationRequest = useRef(null);
+  const [orderId, setOrderId] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState(null);
+  const [confirmationState, setConfirmationState] = useState(
+    paymentIntentId ? "confirming" : "error"
+  );
+  const [confirmationError, setConfirmationError] = useState(
+    paymentIntentId ? "" : "No payment reference was provided."
+  );
 
   useEffect(() => {
+    if (!paymentIntentId) return;
+
+    let active = true;
+    // Reuse one request when React Strict Mode intentionally re-runs effects
+    // in development. The server is idempotent too, but avoiding a duplicate
+    // request keeps logs quiet and makes the loading state deterministic.
+    confirmationRequest.current ||= confirmPayment(paymentIntentId);
+    confirmationRequest.current
+      .then((response) => {
+        if (!active) return;
+        const order = response.data.data.order;
+        setOrderId(order?._id || null);
+        setPaymentStatus(order?.paymentStatus || null);
+        clearLocalCartOnly();
+        setConfirmationState(order?.status === "cancelled" ? "cancelled" : "confirmed");
+      })
+      .catch((error) => {
+        if (!active) return;
+        setConfirmationError(
+          error.response?.data?.message ||
+            "We couldn't finish confirming this order. Your cart has been kept intact; please try again."
+        );
+        setConfirmationState("error");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [clearLocalCartOnly, paymentIntentId]);
+
+  useEffect(() => {
+    if (confirmationState !== "confirmed") return;
     const fire = (particleRatio, opts) => {
       confetti(
         Object.assign(
@@ -29,7 +75,7 @@ const OrderSuccess = () => {
     } catch {
       /* confetti not available */
     }
-  }, []);
+  }, [confirmationState]);
 
   return (
     <div className="max-w-7xl mx-auto px-7 pt-7 pb-24">
@@ -42,15 +88,31 @@ const OrderSuccess = () => {
           transition={{ type: "spring", stiffness: 300, damping: 15, delay: 0.1 }}
           className="inline-flex items-center justify-center w-16.5 h-16.5 rounded-full bg-[#E9EDE4] mb-6"
         >
-          <CheckCircle size={30} className="text-[#40543C]" />
+          {confirmationState === "confirmed" && <CheckCircle size={30} className="text-[#40543C]" />}
+          {confirmationState === "confirming" && <LoaderCircle size={30} className="text-[#40543C] animate-spin" />}
+          {(confirmationState === "error" || confirmationState === "cancelled") && <AlertCircle size={30} className="text-[#9a4d32]" />}
         </Motion.span>
 
         <Motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="font-heading text-[36px] sm:text-[44px] font-medium tracking-tight mb-3">
-          Order confirmed
+          {confirmationState === "confirmed"
+            ? "Order confirmed"
+            : confirmationState === "confirming"
+              ? "Confirming your order"
+              : confirmationState === "cancelled"
+                ? "Order cancelled"
+                : "Order needs attention"}
         </Motion.h1>
 
         <Motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="text-[#5c5c54] text-[15.5px] leading-relaxed mb-1">
-          Thank you for your purchase — we're preparing your order now.
+          {confirmationState === "confirmed"
+            ? "Thank you for your purchase — we're preparing your order now."
+            : confirmationState === "confirming"
+              ? "Your payment was received. We're creating your order securely now."
+              : confirmationState === "cancelled"
+                ? paymentStatus === "refund_pending"
+                  ? "This order was cancelled. Its refund still needs attention from our support team."
+                  : "This order was cancelled and its payment has been refunded."
+                : confirmationError}
         </Motion.p>
 
         {paymentIntentId && (
@@ -59,7 +121,7 @@ const OrderSuccess = () => {
           </Motion.p>
         )}
 
-        <Motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-white border border-[#E8E2D8] rounded-[22px] p-7 mt-6 mb-8 text-left space-y-4">
+        {confirmationState === "confirmed" && <Motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-white border border-[#E8E2D8] rounded-[22px] p-7 mt-6 mb-8 text-left space-y-4">
           <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-[#8a8a7e]">What happens next</p>
           {[
             { icon: "📦", title: "Order processing", desc: "We're packing your items carefully." },
@@ -74,11 +136,11 @@ const OrderSuccess = () => {
               </div>
             </div>
           ))}
-        </Motion.div>
+        </Motion.div>}
 
-        <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="flex flex-col sm:flex-row gap-3.5 justify-center">
-          <Link to="/orders" className="btn btn-primary px-7 py-3.5">
-            <Package size={17} /> View my orders
+        <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="flex flex-col sm:flex-row gap-3.5 justify-center mt-8">
+          <Link to={orderId ? `/orders/${orderId}` : "/orders"} className="btn btn-primary px-7 py-3.5">
+            <Package size={17} /> {orderId ? "View order details" : "View my orders"}
           </Link>
           <Link to="/products" className="btn border border-[#cfc8ba] text-secondary hover:bg-border px-7 py-3.5">
             <ShoppingBag size={17} /> Continue shopping <ArrowRight size={15} />

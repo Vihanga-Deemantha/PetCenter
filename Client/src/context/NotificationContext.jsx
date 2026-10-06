@@ -5,7 +5,7 @@ import { useAuth } from "./AuthContext";
 const NotificationContext = createContext(null);
 
 export function NotificationProvider({ children }) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,7 @@ export function NotificationProvider({ children }) {
   const requestedForRef = useRef(null);
 
   const fetchNotifications = useCallback(async () => {
-    if (!user) return;
+    if (authLoading || !user) return;
     const requestedFor = user._id;
     requestedForRef.current = requestedFor;
     setLoading(true);
@@ -26,7 +26,7 @@ export function NotificationProvider({ children }) {
       const res = await getNotifications({ limit: 20 });
       if (requestedForRef.current !== requestedFor) return;
       setNotifications(res.data.data || []);
-      setUnreadCount(res.data.meta?.unreadCount ?? 0);
+      setUnreadCount(res.data.unreadCount ?? 0);
     } catch {
       if (requestedForRef.current !== requestedFor) return;
       // A failed fetch must not read as "you're all caught up" — that's a
@@ -35,10 +35,10 @@ export function NotificationProvider({ children }) {
     } finally {
       if (requestedForRef.current === requestedFor) setLoading(false);
     }
-  }, [user]);
+  }, [authLoading, user]);
 
   const pollUnreadCount = useCallback(async () => {
-    if (!user) return;
+    if (authLoading || !user) return;
     const requestedFor = user._id;
     try {
       const res = await getUnreadCount();
@@ -47,10 +47,11 @@ export function NotificationProvider({ children }) {
     } catch {
       // silently fail
     }
-  }, [user]);
+  }, [authLoading, user]);
 
   // Initial load + 60-second polling
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       setNotifications([]);
       setUnreadCount(0);
@@ -62,7 +63,7 @@ export function NotificationProvider({ children }) {
 
     intervalRef.current = setInterval(pollUnreadCount, 60000);
     return () => clearInterval(intervalRef.current);
-  }, [user, fetchNotifications, pollUnreadCount]);
+  }, [authLoading, user, fetchNotifications, pollUnreadCount]);
 
   const markRead = useCallback(async (id) => {
     try {

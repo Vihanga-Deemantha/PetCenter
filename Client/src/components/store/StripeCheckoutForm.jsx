@@ -37,7 +37,15 @@ const StripeCheckoutForm = ({ onSuccess, totalAmount }) => {
     }
 
     if (paymentIntent && paymentIntent.status === "succeeded") {
-      onSuccess?.(paymentIntent.id);
+      try {
+        await onSuccess?.(paymentIntent.id);
+      } catch (confirmationError) {
+        setError(
+          confirmationError.response?.data?.message ||
+            "Your payment succeeded, but we couldn't confirm the order yet. Please try again."
+        );
+        setProcessing(false);
+      }
     } else {
       setError("Payment was not completed. Please try again.");
       setProcessing(false);

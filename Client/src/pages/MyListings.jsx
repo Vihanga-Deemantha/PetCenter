@@ -10,7 +10,12 @@ const SPECIES = [
   { value: "cat", label: "Cats" },
   { value: "bird", label: "Birds" },
   { value: "fish", label: "Fish" },
+  { value: "snake", label: "Snakes" },
+  { value: "spider", label: "Spiders" },
+  { value: "turtle", label: "Turtles" },
+  { value: "mouse", label: "Mice" },
   { value: "reptile", label: "Reptiles" },
+  { value: "amphibian", label: "Amphibians" },
   { value: "other", label: "Other" },
 ];
 const VERIFIED_FLAGS = ["Vaccinated", "Spayed / Neutered", "Microchipped", "Habitat Included", "House-trained"];

@@ -11,7 +11,7 @@ const petListingSchema = new mongoose.Schema(
     petType: {
       type: String,
       required: [true, "Please add a pet type"],
-      enum: ["dog", "cat", "bird", "fish", "reptile", "other"],
+      enum: ["dog", "cat", "bird", "fish", "snake", "spider", "turtle", "mouse", "reptile", "amphibian", "other"],
     },
     breed: {
       type: String,

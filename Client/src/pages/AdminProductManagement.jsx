@@ -5,7 +5,7 @@ import { getProducts, createProduct, updateProduct, updateProductStock, deletePr
 import { formatPrice } from "../utils/priceFormatter";
 
 const CATEGORIES = ["food", "habitat", "accessories", "healthcare", "cleaning", "toys"];
-const PETS = ["dog", "cat", "bird", "fish", "snake", "rabbit", "turtle", "mouse", "universal"];
+const PETS = ["dog", "cat", "bird", "fish", "snake", "spider", "rabbit", "turtle", "mouse", "reptile", "amphibian", "universal"];
 
 const EMPTY_FORM = {
   name: "", description: "", category: "food", brand: "", price: "",

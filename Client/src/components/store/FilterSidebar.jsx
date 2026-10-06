@@ -3,7 +3,7 @@ import { motion as Motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 
 const CATEGORIES = ["food", "habitat", "accessories", "healthcare", "cleaning", "toys"];
-const PETS = ["dog", "cat", "bird", "fish", "snake", "rabbit", "turtle", "mouse", "universal"];
+const PETS = ["dog", "cat", "bird", "fish", "snake", "spider", "rabbit", "turtle", "mouse", "reptile", "amphibian", "universal"];
 const PET_ICONS = { dog: "🐕", cat: "🐈", bird: "🦜", fish: "🐟", snake: "🐍", rabbit: "🐇", turtle: "🐢", mouse: "🐭", universal: "🐾" };
 
 const FilterSidebar = ({ filters, onChange, onClear, productCounts = {} }) => {

@@ -83,8 +83,8 @@ const Shelters = () => {
           </Motion.div>
 
           <div className="relative hidden lg:block">
-            <div className="relative rounded-[26px] overflow-hidden aspect-4/3 bg-border border border-[#dcd4c6] flex items-center justify-center">
-              <Landmark size={48} className="text-[#c9c2b3]" />
+            <div className="relative rounded-[26px] overflow-hidden aspect-4/3 bg-border border border-[#dcd4c6]">
+              <img src="/demo-images/editorial/shelters-hero.webp" alt="Volunteers caring for rescued pets at a partner shelter" className="w-full h-full object-cover" />
             </div>
             <div className="absolute -left-6 top-7 bg-light border border-border rounded-2xl px-4.5 py-3.5 shadow-xl shadow-black/10">
               <p className="m-0 text-[11px] tracking-wider uppercase text-accent">Partner network</p>

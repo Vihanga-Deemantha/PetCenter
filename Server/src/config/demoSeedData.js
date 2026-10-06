@@ -1,46 +1,12 @@
 // Fictional demo catalog used by seedAll.js. Contacts use example.com and the
 // image URLs are deterministic so repeated seeds produce the same records.
-// Every product and pet listing uses its own original local catalog image;
-// shelters and campaigns retain fixed, browser-verified Unsplash photos.
+// Every product, pet, shelter, and campaign uses its own original local image.
 
 const slug = (value) =>
   value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 
 const fileSlug = (value) =>
   value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-
-const PHOTO_IDS = {
-  fish: ["1558898268-9afca916a69d", "1514503180323-5097b045d4b7", "1659242926280-eb5882652258"],
-  snake: ["1773808605088-525d99c03a1e"],
-  bird: ["1778245265200-002d9896a5a6"],
-  spider: ["1564398042875-dddb3c722039"],
-  turtle: ["1686244002514-2ecc62b222ad"],
-  mouse: ["1768511526475-aebb7b521580"],
-  reptile: ["1777577406551-cba747d3c107"],
-  amphibian: ["1530339592171-f6f078614979"],
-  dog: ["1543466835-00a7907e9de1"],
-  cat: ["1514888286974-6c03e2ca1dba"],
-};
-
-const unsplashImage = (photoId, key, cropIndex = 0, width = 1000, height = 750) => {
-  const focalPoints = ["0.42", "0.50", "0.58"];
-  return `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&w=${width}&h=${height}&q=82&fp-x=${focalPoints[cropIndex % focalPoints.length]}&petcenter=${encodeURIComponent(key)}`;
-};
-
-const photoFor = (type, key, index = 0, width = 1000, height = 750) => {
-  const pool = PHOTO_IDS[type] || PHOTO_IDS.dog;
-  return unsplashImage(pool[index % pool.length], key, index, width, height);
-};
-
-const subjectType = (description, fallbackIndex = 0) => {
-  const value = String(description).toLowerCase();
-  if (value.includes("bird")) return "bird";
-  if (value.includes("reptile") || value.includes("exotic")) return "reptile";
-  if (value.includes("mouse")) return "mouse";
-  if (value.includes("cat") || value.includes("kitten")) return "cat";
-  if (value.includes("dog") || value.includes("puppy")) return "dog";
-  return fallbackIndex % 2 === 0 ? "dog" : "cat";
-};
 
 const product = (name, category, price, stock, compatiblePets, tags, _imageTerm, description) => ({
   name,
@@ -200,7 +166,7 @@ export const DEMO_SHELTERS = [
     website: `https://example.com/${s.key}`,
   },
   logo: {
-    url: photoFor(subjectType(s.imageTerm, index), `${s.key}-shelter`, index, 500, 500),
+    url: `/demo-images/catalog/shelter-${s.key}.webp`,
     publicId: `demo_shelter_${s.key}`,
   },
   isVerified: true,
@@ -221,16 +187,10 @@ export const DEMO_CAMPAIGNS = [
 ].map((campaign, index) => ({
   ...campaign,
   description: `${campaign.shortDescription} This is a fictional demonstration campaign used to exercise PetCenter's campaign, donation, and shelter workflows.`,
-  images: ["campaign", "support", "care"].map((view, imageIndex) => ({
-    url: photoFor(
-      subjectType(campaign.imageTerm, index + imageIndex),
-      `${campaign.key}-${view}`,
-      imageIndex,
-      1000,
-      700,
-    ),
-    publicId: `demo_campaign_${campaign.key}_${imageIndex + 1}`,
-  })),
+  images: [{
+    url: `/demo-images/catalog/campaign-${campaign.key}.webp`,
+    publicId: `demo_campaign_${campaign.key}_cover`,
+  }],
   status: "active",
   featuredOrder: index < 3 ? index + 1 : null,
 }));

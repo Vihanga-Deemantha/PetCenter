@@ -23,8 +23,8 @@ const CATEGORY_TILES = [
 ];
 
 const PROMO_TILES = [
-  { key: "accessories", title: "Rest & relax", desc: "Comfort-first beds and furniture for better sleep.", icon: Sofa },
-  { key: "cleaning", title: "Clean & natural", desc: "Gentle grooming care for their daily routine.", icon: Sparkles },
+  { key: "accessories", title: "Rest & relax", desc: "Comfort-first beds and furniture for better sleep.", image: "/demo-images/editorial/store-rest-relax.webp" },
+  { key: "cleaning", title: "Clean & natural", desc: "Gentle grooming care for their daily routine.", image: "/demo-images/editorial/store-clean-natural.webp" },
 ];
 
 const Store = () => {
@@ -286,15 +286,14 @@ const Store = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-16">
         {PROMO_TILES.map((tile) => {
-          const Icon = tile.icon;
           return (
             <button
               key={tile.key}
               onClick={() => pickCategory(tile.key)}
               className="text-left bg-white border border-border rounded-card overflow-hidden flex flex-col hover:border-[#cfc8ba] transition-colors"
             >
-              <div className="aspect-3/2 bg-light flex items-center justify-center">
-                <Icon size={36} className="text-accent" />
+              <div className="aspect-3/2 bg-light overflow-hidden">
+                <img src={tile.image} alt={tile.title} className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.025]" />
               </div>
               <div className="p-5.5">
                 <p className="m-0 font-heading text-xl font-medium text-[#292925]">{tile.title}</p>

@@ -50,12 +50,12 @@ describe("demo seed catalog", () => {
       allUrls.push(...item.images);
     }
     for (const item of DEMO_SHELTERS) {
-      expect(item.logo.url).toMatch(/^https:\/\//);
+      expect(item.logo.url).toMatch(/^\/demo-images\/catalog\/shelter-.+\.webp$/);
       allUrls.push(item.logo.url);
     }
     for (const item of DEMO_CAMPAIGNS) {
-      expect(item.images).toHaveLength(3);
-      expect(item.images.every((image) => image.url.startsWith("https://"))).toBe(true);
+      expect(item.images).toHaveLength(1);
+      expect(item.images[0].url).toMatch(/^\/demo-images\/catalog\/campaign-.+\.webp$/);
       allUrls.push(...item.images.map((image) => image.url));
     }
 

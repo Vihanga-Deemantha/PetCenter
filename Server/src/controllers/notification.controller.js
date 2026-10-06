@@ -1,6 +1,6 @@
 import Notification from "../models/Notification.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
-import { clampLimit } from "../utils/pagination.js";
+import { clampLimit, clampPage } from "../utils/pagination.js";
 
 // ─── Helper: create a notification (used by other controllers) ────────────────
 export async function createNotification({ userId, type, title, message, link = "" }) {
@@ -16,7 +16,7 @@ export async function createNotification({ userId, type, title, message, link = 
 export const getNotifications = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    const page = parseInt(req.query.page) || 1;
+    const page = clampPage(req.query.page);
     const limit = clampLimit(req.query.limit, { max: 100, fallback: 20 });
 
     const skip = (page - 1) * limit;

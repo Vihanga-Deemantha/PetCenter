@@ -6,6 +6,7 @@ import { getFavorites } from "../../api/favorite.api";
 import { useFavorites } from "../../context/FavoritesContext";
 import ProductCard from "../store/ProductCard";
 import HeartButton from "../ui/HeartButton";
+import { formatCurrency } from "../../utils/priceFormatter";
 
 const STATUS_TINT = {
   active: "bg-[#E9EDE4] text-[#40543C] border-[#d9e2d0]",
@@ -175,7 +176,7 @@ export default function FavoritesTab() {
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                       <div className="absolute top-3.5 right-3.5 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full font-semibold text-primary text-xs border border-[#E8E2D8]">
-                        {item.listingType === "adoption" ? "Free" : `LKR ${item.price?.toLocaleString()}`}
+                        {item.listingType === "adoption" && !item.price ? "Free" : formatCurrency(item.price)}
                       </div>
                       <div className="absolute top-3.5 left-3.5">
                         <span className={`px-2.25 py-1 border rounded-full text-[10px] font-semibold uppercase tracking-wider ${STATUS_TINT[item.status] || "bg-light text-[#6e6e64] border-border"}`}>

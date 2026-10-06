@@ -7,3 +7,7 @@ import axiosInstance from "./axiosInstance";
  */
 export const createPaymentIntent = (shippingAddress) =>
   axiosInstance.post("/orders/create-payment-intent", { shippingAddress });
+
+/** Finalize a successful Stripe payment into a durable, idempotent order. */
+export const confirmPayment = (paymentIntentId) =>
+  axiosInstance.post("/orders/confirm-payment", { paymentIntentId });

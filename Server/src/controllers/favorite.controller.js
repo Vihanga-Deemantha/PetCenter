@@ -2,7 +2,7 @@ import Favorite from "../models/Favorite.js";
 import PetListing from "../models/PetListing.js";
 import Product from "../models/Products.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
-import { clampLimit } from "../utils/pagination.js";
+import { clampLimit, clampPage } from "../utils/pagination.js";
 
 // ─── Helper: verify the referenced item exists ────────────────────────────────
 async function itemExists(itemType, itemId) {
@@ -18,7 +18,8 @@ async function itemExists(itemType, itemId) {
 // ─── GET /favorites — Get user's favorites (paginated, filterable) ─────────────
 export const getFavorites = async (req, res, next) => {
   try {
-    const { itemType, page = 1 } = req.query;
+    const { itemType } = req.query;
+    const page = clampPage(req.query.page);
     const limit = clampLimit(req.query.limit, { max: 100, fallback: 20 });
     const userId = req.user._id;
 
@@ -27,7 +28,7 @@ export const getFavorites = async (req, res, next) => {
       filter.itemType = itemType;
     }
 
-    const skip = (parseInt(page) - 1) * limit;
+    const skip = (page - 1) * limit;
 
     const [favorites, total] = await Promise.all([
       Favorite.find(filter)
@@ -57,7 +58,7 @@ export const getFavorites = async (req, res, next) => {
 
     return sendSuccess(res, populated, 200, {
       pagination: {
-        currentPage: parseInt(page),
+        currentPage: page,
         totalPages: Math.ceil(total / limit),
         totalItems: total,
         itemsPerPage: limit,

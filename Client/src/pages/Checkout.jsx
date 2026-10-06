@@ -4,7 +4,7 @@ import { motion as Motion } from "framer-motion";
 import { Elements } from "@stripe/react-stripe-js";
 import { Lock, ArrowLeft, MapPin } from "lucide-react";
 import { stripePromise } from "../utils/stripeConfig";
-import { createPaymentIntent } from "../api/checkout.api";
+import { createPaymentIntent, confirmPayment } from "../api/checkout.api";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import StripeCheckoutForm from "../components/store/StripeCheckoutForm";
@@ -28,6 +28,7 @@ const Checkout = () => {
   const [creatingIntent, setCreatingIntent] = useState(false);
   const [intentError, setIntentError] = useState(null);
   const [step, setStep] = useState("address"); // "address" | "payment"
+  const [finalizingOrder, setFinalizingOrder] = useState(false);
 
   const [address, setAddress] = useState({
     fullName: user?.name || "",
@@ -40,7 +41,7 @@ const Checkout = () => {
   const [addressErrors, setAddressErrors] = useState({});
 
   if (!user) return <Navigate to="/login" replace />;
-  if (cartItems.length === 0) return <Navigate to="/cart" replace />;
+  if (cartItems.length === 0 && !finalizingOrder) return <Navigate to="/cart" replace />;
 
   const validateAddress = () => {
     const errs = {};
@@ -70,8 +71,16 @@ const Checkout = () => {
   };
 
   const handlePaymentSuccess = async (intentId) => {
-    clearLocalCartOnly();
-    navigate(`/order-success?paymentIntent=${intentId}`);
+    setFinalizingOrder(true);
+    try {
+      const response = await confirmPayment(intentId);
+      const orderId = response.data.data.order?._id;
+      clearLocalCartOnly();
+      navigate(`/order-success?paymentIntent=${intentId}&orderId=${orderId}`, { replace: true });
+    } catch (error) {
+      setFinalizingOrder(false);
+      throw error;
+    }
   };
 
   const stripeOptions = clientSecret

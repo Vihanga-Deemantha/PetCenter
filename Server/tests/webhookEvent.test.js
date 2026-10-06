@@ -66,7 +66,8 @@ async function makeCampaign() {
 
 beforeEach(() => {
   retrieveMock.mockReset();
-  refundsCreateMock.mockClear();
+  refundsCreateMock.mockReset();
+  refundsCreateMock.mockResolvedValue({ id: "re_test" });
   constructEventMock.mockClear();
 });
 
@@ -149,10 +150,59 @@ describe("payment_intent.succeeded — checkout", () => {
       },
     });
 
-    expect(res.status).toBe(200); // webhooks always ack 200
+    expect(res.status).toBe(200);
     expect(refundsCreateMock).toHaveBeenCalledTimes(1);
     const order = await Order.findOne({ paymentIntentId });
     expect(order).toBeNull();
+  });
+
+  it("returns 500 so Stripe retries when verification fails transiently", async () => {
+    const product = await makeProduct();
+    const userId = new mongoose.Types.ObjectId();
+    const paymentIntentId = "pi_checkout_transient";
+    await PendingCheckout.create({
+      paymentIntentId,
+      userId,
+      items: [{ productId: product._id, name: product.name, priceAtPurchase: 1000, quantity: 1 }],
+      subtotal: 1000,
+      shippingFee: 599,
+      totalAmount: 1599,
+      shippingAddress: { fullName: "A", addressLine1: "1 Main St", city: "Colombo", country: "Sri Lanka", postalCode: "00100" },
+    });
+    retrieveMock.mockRejectedValue(new Error("temporary Stripe outage"));
+
+    const res = await postWebhook({
+      type: "payment_intent.succeeded",
+      data: { object: { id: paymentIntentId, metadata: { type: "checkout", userId: userId.toString() } } },
+    });
+
+    expect(res.status).toBe(500);
+    expect(refundsCreateMock).not.toHaveBeenCalled();
+    expect(await PendingCheckout.findOne({ paymentIntentId })).toBeTruthy();
+  });
+
+  it("returns 500 when an automatic refund fails so the event is not discarded", async () => {
+    const userId = new mongoose.Types.ObjectId();
+    const paymentIntentId = "pi_checkout_refund_failure";
+    retrieveMock.mockResolvedValue({ status: "succeeded", amount: 1599 });
+    refundsCreateMock.mockRejectedValue(new Error("temporary refund outage"));
+
+    const res = await postWebhook({
+      type: "payment_intent.succeeded",
+      data: {
+        object: {
+          id: paymentIntentId,
+          metadata: {
+            type: "checkout",
+            userId: userId.toString(),
+            shippingAddress: JSON.stringify({ fullName: "A", addressLine1: "1 Main St", city: "Colombo", country: "Sri Lanka", postalCode: "00100" }),
+          },
+        },
+      },
+    });
+
+    expect(res.status).toBe(500);
+    expect(refundsCreateMock).toHaveBeenCalledTimes(1);
   });
 
   it("is idempotent — a duplicate delivery for an already-created order does not reprocess", async () => {
@@ -235,6 +285,31 @@ describe("charge.refunded", () => {
     expect(order.status).toBe("cancelled");
     const updatedProduct = await Product.findById(product._id);
     expect(updatedProduct.stock).toBe(5); // 3 + 2 restored
+  });
+
+  it("does not restore stock twice after a cancellation already did it", async () => {
+    const product = await makeProduct({ stock: 5 });
+    const userId = new mongoose.Types.ObjectId();
+    const paymentIntentId = "pi_refund_pending_order";
+    await Order.create({
+      userId,
+      items: [{ productId: product._id, name: product.name, priceAtPurchase: 1000, quantity: 2 }],
+      shippingAddress: { fullName: "A", addressLine1: "1 Main St", city: "Colombo", country: "Sri Lanka", postalCode: "00100" },
+      totalAmount: 2599,
+      shippingFee: 599,
+      paymentIntentId,
+      paymentStatus: "refund_pending",
+      status: "cancelled",
+    });
+
+    const res = await postWebhook({
+      type: "charge.refunded",
+      data: { object: { payment_intent: paymentIntentId } },
+    });
+
+    expect(res.status).toBe(200);
+    expect((await Order.findOne({ paymentIntentId })).paymentStatus).toBe("refunded");
+    expect((await Product.findById(product._id)).stock).toBe(5);
   });
 
   it("marks a matching donation refunded and reverses the campaign total", async () => {

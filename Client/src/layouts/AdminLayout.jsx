@@ -2,6 +2,7 @@ import React from "react";
 import { NavLink, Outlet, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { LayoutDashboard, Users, Heart, LogOut, ArrowLeft, Package, ClipboardList, Flame, Gift, Landmark, Leaf, Star } from "lucide-react";
+import logo from "../assets/logo.png";
 
 const AdminLayout = () => {
   const { user, logout } = useAuth();
@@ -35,7 +36,7 @@ const AdminLayout = () => {
       {/* Sidebar */}
       <aside className="w-full md:w-64 bg-[#292925] text-light flex flex-col md:sticky md:top-0 md:h-screen z-20 shrink-0">
         <NavLink to="/" className="flex items-center gap-2.5 px-6 py-6 border-b border-white/10">
-          <span className="w-8.5 h-8.5 rounded-full bg-accent flex items-center justify-center text-light font-heading text-[17px]">P</span>
+          <img src={logo} alt="PetCenter" className="h-9 w-9 shrink-0 object-contain" />
           <span>
             <span className="block font-heading text-[19px] font-semibold tracking-tight leading-tight">PetCenter</span>
             <span className="block text-[11px] tracking-[0.14em] uppercase text-accent">Admin</span>

@@ -4,6 +4,22 @@ import { setAccessToken, clearAccessToken } from "../api/tokenStore";
 
 const AuthContext = createContext(null);
 
+// React Strict Mode intentionally mounts effects twice in development. A
+// refresh token is rotated on every use, so two parallel bootstrap refreshes
+// can invalidate each other. Share one promise for the lifetime of this app
+// session and perform the rotation exactly once.
+let sessionBootstrapPromise = null;
+
+const bootstrapSession = () => {
+  sessionBootstrapPromise ||= (async () => {
+    const refreshRes = await refreshToken();
+    setAccessToken(refreshRes.data.accessToken);
+    const meRes = await getMe();
+    return meRes.data;
+  })();
+  return sessionBootstrapPromise;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     try {
@@ -21,11 +37,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const verify = async () => {
       try {
-        const refreshRes = await refreshToken();
-        setAccessToken(refreshRes.data.accessToken);
-        const meRes = await getMe();
-        setUser(meRes.data);
-        localStorage.setItem("user", JSON.stringify(meRes.data));
+        const currentUser = await bootstrapSession();
+        setUser(currentUser);
+        localStorage.setItem("user", JSON.stringify(currentUser));
       } catch (err) {
         // A 401 means there's genuinely no valid session — clear it. Any
         // other failure (network blip, transient 500) is not proof the user
@@ -56,6 +70,7 @@ export const AuthProvider = ({ children }) => {
       // ignore
     }
     clearAccessToken();
+    sessionBootstrapPromise = null;
     localStorage.removeItem("user");
     setUser(null);
   }, []);

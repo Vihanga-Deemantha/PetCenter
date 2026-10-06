@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createPaymentIntent,
+  confirmPayment,
   getUserOrders,
   getOrderDetail,
   updateOrderStatus,
@@ -19,6 +20,7 @@ router.use(protect);
 
 // User routes
 router.post("/create-payment-intent", sensitiveActionLimiter, createPaymentIntent);
+router.post("/confirm-payment", sensitiveActionLimiter, confirmPayment);
 router.get("/", getUserOrders);
 
 // ── Admin routes — MUST be declared BEFORE /:orderId wildcard ─────────────────

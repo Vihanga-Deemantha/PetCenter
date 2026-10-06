@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import stripe from "../config/stripe.js";
+import { STRIPE_CURRENCY } from "../config/currency.js";
 import Cart from "../models/Cart.js";
 import Product from "../models/Products.js";
 import Order from "../models/Order.js";
@@ -16,6 +17,42 @@ const FLAT_SHIPPING_FEE_CENTS = 599;
 
 const calculateShippingFee = (subtotalCents) =>
   subtotalCents >= FREE_SHIPPING_THRESHOLD_CENTS ? 0 : FLAT_SHIPPING_FEE_CENTS;
+
+const parsePagination = (page, limit, maxLimit = 100) => {
+  const parsedPage = Number.parseInt(page, 10);
+  const parsedLimit = Number.parseInt(limit, 10);
+  return {
+    pageNum: Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1,
+    limitNum: Math.min(
+      Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 10,
+      maxLimit
+    ),
+  };
+};
+
+const SHIPPING_FIELDS = ["fullName", "addressLine1", "addressLine2", "city", "country", "postalCode"];
+
+const normalizeShippingAddress = (value) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const address = Object.fromEntries(
+    SHIPPING_FIELDS.map((field) => [field, typeof value[field] === "string" ? value[field].trim() : ""])
+  );
+
+  if (
+    !address.fullName ||
+    !address.addressLine1 ||
+    !address.city ||
+    !address.country ||
+    !address.postalCode
+  ) {
+    return null;
+  }
+
+  // Prevent oversized values from being persisted in Stripe metadata/Mongo.
+  if (SHIPPING_FIELDS.some((field) => address[field].length > 200)) return null;
+  return address;
+};
 
 /**
  * Create a Stripe PaymentIntent for checkout
@@ -36,14 +73,13 @@ export const createPaymentIntent = async (req, res, next) => {
     }
 
     // Accept shippingAddress from client at checkout time
-    const { shippingAddress } = req.body;
+    const shippingAddress = normalizeShippingAddress(req.body.shippingAddress);
     if (!shippingAddress) {
-      return sendError(res, "Shipping address is required", 400);
-    }
-
-    const { fullName, addressLine1, city, country, postalCode } = shippingAddress;
-    if (!fullName || !addressLine1 || !city || !country || !postalCode) {
-      return sendError(res, "Shipping address is missing required fields (fullName, addressLine1, city, country, postalCode)", 400);
+      return sendError(
+        res,
+        "Shipping address is missing required fields or contains invalid values",
+        400
+      );
     }
 
     // Step 1: Get user's cart
@@ -108,7 +144,7 @@ export const createPaymentIntent = async (req, res, next) => {
     // Store shippingAddress as JSON string in metadata so webhook can use it
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountToCharge,
-      currency: "usd",
+      currency: STRIPE_CURRENCY,
       metadata: {
         type: "checkout",
         userId: userId.toString(),
@@ -134,6 +170,7 @@ export const createPaymentIntent = async (req, res, next) => {
         subtotal: totalInCents,
         shippingFee,
         totalAmount: amountToCharge,
+        shippingAddress,
       },
       { upsert: true }
     );
@@ -159,7 +196,7 @@ export const createPaymentIntent = async (req, res, next) => {
  * Verify payment (called by webhook - Phase E)
  * Creates order after Stripe confirms payment
  */
-export const verifyPayment = async (userId, paymentIntentId, shippingAddress) => {
+export const verifyPayment = async (userId, paymentIntentId, fallbackShippingAddress = null) => {
   try {
     // Step 1: Fetch payment intent from Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
@@ -192,7 +229,43 @@ export const verifyPayment = async (userId, paymentIntentId, shippingAddress) =>
       return {
         success: false,
         message: "No checkout snapshot found for this payment",
+        retryable: false,
       };
+    }
+
+    if (snapshot.userId.toString() !== userId.toString()) {
+      return {
+        success: false,
+        message: "Checkout does not belong to this user",
+      };
+    }
+
+    if (
+      paymentIntent.metadata?.userId &&
+      paymentIntent.metadata.userId !== userId.toString()
+    ) {
+      return {
+        success: false,
+        message: "Payment owner does not match the checkout owner",
+      };
+    }
+
+    const snapshotShippingAddress = normalizeShippingAddress(snapshot.shippingAddress);
+    let metadataShippingAddress = null;
+    if (!snapshotShippingAddress && paymentIntent.metadata?.shippingAddress) {
+      try {
+        metadataShippingAddress = JSON.parse(paymentIntent.metadata.shippingAddress);
+      } catch {
+        return { success: false, message: "Payment contains an invalid shipping address" };
+      }
+    }
+
+    const shippingAddress =
+      snapshotShippingAddress ||
+      normalizeShippingAddress(fallbackShippingAddress) ||
+      normalizeShippingAddress(metadataShippingAddress);
+    if (!shippingAddress) {
+      return { success: false, message: "No valid shipping address found for this checkout" };
     }
 
     // Defense in depth: both numbers are derived from the same computation
@@ -246,9 +319,11 @@ export const verifyPayment = async (userId, paymentIntentId, shippingAddress) =>
           );
 
           if (!decremented) {
-            throw new Error(
+            const stockError = new Error(
               `Insufficient stock for product ${item.productId} — order cannot be completed`
             );
+            stockError.code = "INSUFFICIENT_STOCK";
+            throw stockError;
           }
         }
 
@@ -308,7 +383,55 @@ export const verifyPayment = async (userId, paymentIntentId, shippingAddress) =>
     return {
       success: false,
       message: error.message,
+      // Database/Stripe/network failures should make the webhook retry. A
+      // genuine stock conflict is a permanent business failure and can be
+      // refunded immediately instead.
+      retryable: error.code !== "INSUFFICIENT_STOCK",
     };
+  }
+};
+
+/**
+ * Authenticated checkout finalization. Stripe webhooks remain an idempotent
+ * backup, but the browser no longer has to claim success before an Order
+ * actually exists (and local development no longer depends on a public
+ * webhook tunnel).
+ */
+export const confirmPayment = async (req, res, next) => {
+  try {
+    const userId = req.user?._id;
+    const { paymentIntentId } = req.body;
+
+    if (!userId) return sendError(res, "Not authenticated", 401);
+    if (typeof paymentIntentId !== "string" || !/^pi_[A-Za-z0-9_]+$/.test(paymentIntentId)) {
+      return sendError(res, "A valid paymentIntentId is required", 400);
+    }
+
+    const existingOrder = await Order.findOne({ paymentIntentId });
+    if (existingOrder) {
+      if (existingOrder.userId.toString() !== userId.toString()) {
+        return sendError(res, "This payment does not belong to your account", 403);
+      }
+      return sendSuccess(res, { order: existingOrder, alreadyConfirmed: true });
+    }
+
+    const snapshot = await PendingCheckout.findOne({ paymentIntentId });
+    if (!snapshot) {
+      return sendError(res, "Checkout session was not found or has expired", 404);
+    }
+    if (snapshot.userId.toString() !== userId.toString()) {
+      return sendError(res, "This payment does not belong to your account", 403);
+    }
+
+    const result = await verifyPayment(userId, paymentIntentId);
+    if (!result.success) {
+      return sendError(res, result.message || "Payment could not be confirmed", 409);
+    }
+
+    const order = await Order.findById(result.orderId);
+    return sendSuccess(res, { order, alreadyConfirmed: false });
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -323,8 +446,7 @@ export const getUserOrders = async (req, res, next) => {
     }
 
     const { page = 1, limit = 10, status } = req.query;
-    const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
+    const { pageNum, limitNum } = parsePagination(page, limit);
     const skip = (pageNum - 1) * limitNum;
 
     // Build filter
@@ -414,8 +536,8 @@ export const updateOrderStatus = async (req, res, next) => {
       return sendSuccess(res, { order, message: `Order status is already ${status}` });
     }
 
-    // A cancelled order has already been refunded via Stripe — the customer
-    // has their money back. "Un-cancelling" it can't be a simple status flip:
+    // A cancelled order has already started (and normally completed) its
+    // Stripe refund. "Un-cancelling" it can't be a simple status flip:
     // there's no way to silently re-charge them, and leaving paymentStatus as
     // "refunded" while status moves on would let a second cancel attempt a
     // second refund on an already-fully-refunded charge (which Stripe rejects).
@@ -428,19 +550,40 @@ export const updateOrderStatus = async (req, res, next) => {
       );
     }
 
+    const statusRank = { pending: 0, processing: 1, shipped: 2, delivered: 3 };
+    if (
+      status !== "cancelled" &&
+      previousStatus !== "cancelled" &&
+      statusRank[status] < statusRank[previousStatus]
+    ) {
+      return sendError(
+        res,
+        `Order status cannot move backward from ${previousStatus} to ${status}`,
+        400
+      );
+    }
+
+    if (status === "cancelled" && !["pending", "processing"].includes(previousStatus)) {
+      return sendError(
+        res,
+        `Cannot cancel an order after it has been ${previousStatus}`,
+        400
+      );
+    }
+
     if (trackingNumber !== undefined) order.trackingNumber = trackingNumber;
     if (carrier !== undefined) order.carrier = carrier;
 
     const isCancelling = status === "cancelled" && previousStatus !== "cancelled";
-    if (isCancelling) order.paymentStatus = "refunded";
+    if (isCancelling) order.paymentStatus = "refund_pending";
 
     // Order save + stock restore are persisted BEFORE the Stripe refund call
     // (not after) — a transient DB failure here must never leave an order
     // that's about to be refunded still looking "paid/active" and eligible
     // to ship. If the refund call itself fails afterward, the order is
-    // already safely marked cancelled/refunded in our own records (so it
-    // can't be fulfilled or double-refunded), and that failure is reported
-    // for manual follow-up rather than silently lost.
+    // already safely marked cancelled/refund_pending in our own records (so
+    // it can't be fulfilled or double-restocked), and that failure is
+    // reported for manual follow-up rather than falsely claiming a refund.
     const session = await mongoose.startSession();
     try {
       await session.withTransaction(async () => {
@@ -471,6 +614,8 @@ export const updateOrderStatus = async (req, res, next) => {
           payment_intent: order.paymentIntentId,
           reason: "requested_by_customer",
         });
+        await Order.updateOne({ _id: order._id }, { paymentStatus: "refunded" });
+        order.paymentStatus = "refunded";
       } catch (refundError) {
         console.error("Admin Stripe refund failed after order was marked cancelled:", refundError.message);
         return sendError(
@@ -539,7 +684,7 @@ export const cancelOrder = async (req, res, next) => {
     }
 
     order.status = "cancelled";
-    order.paymentStatus = "refunded";
+    order.paymentStatus = "refund_pending";
     order.statusHistory.push({ status: "cancelled", changedAt: new Date(), note: "Cancelled by customer" });
 
     // Persisted BEFORE the Stripe refund call — see the matching comment in
@@ -566,6 +711,8 @@ export const cancelOrder = async (req, res, next) => {
         payment_intent: order.paymentIntentId,
         reason: "requested_by_customer",
       });
+      await Order.updateOne({ _id: order._id }, { paymentStatus: "refunded" });
+      order.paymentStatus = "refunded";
     } catch (refundError) {
       console.error("Stripe refund failed after order was marked cancelled:", refundError.message);
       return sendError(
@@ -588,8 +735,7 @@ export const cancelOrder = async (req, res, next) => {
 export const getAdminOrders = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, status, paymentStatus, sortBy = "newest" } = req.query;
-    const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
+    const { pageNum, limitNum } = parsePagination(page, limit);
     const skip = (pageNum - 1) * limitNum;
 
     // Build filter
@@ -643,7 +789,7 @@ export const getAdminOrders = async (req, res, next) => {
  */
 export const getBestsellers = async (req, res, next) => {
   try {
-    const limit = parseInt(req.query.limit) || 10;
+    const { limitNum: limit } = parsePagination(1, req.query.limit);
 
     // Get top products by soldCount
     const bestsellers = await Product.find({ isActive: true })

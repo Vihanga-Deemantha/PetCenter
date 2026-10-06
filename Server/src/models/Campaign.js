@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import sanitizeHtml from "sanitize-html";
+import { CURRENCY_CODE } from "../config/currency.js";
 
 const campaignSchema = new mongoose.Schema(
   {
@@ -21,7 +22,7 @@ const campaignSchema = new mongoose.Schema(
     goalAmount: {
       type: Number,
       required: [true, "Please add a goal amount in cents"],
-      min: [100, "Goal amount must be at least 100 cents (1 USD)"],
+      min: [100, `Goal amount must be at least 100 cents (1 ${CURRENCY_CODE})`],
     },
     raisedAmount: {
       type: Number,

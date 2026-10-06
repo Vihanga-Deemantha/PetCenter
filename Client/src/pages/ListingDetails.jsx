@@ -5,6 +5,7 @@ import { getListing, getListings, revealListingContact } from "../api/listing.ap
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { MapPin, Phone, ArrowLeft, Info, ShieldCheck, ShieldAlert } from "lucide-react";
 import HeartButton from "../components/ui/HeartButton";
+import { formatCurrency } from "../utils/priceFormatter";
 
 const STATUS_LABEL = { active: "Active listing", pending: "Pending review", sold: "Sold", adopted: "Adopted", removed: "Removed" };
 
@@ -162,7 +163,7 @@ const ListingDetails = () => {
             <div className="flex items-baseline justify-between gap-3.5">
               <div>
                 <p className="m-0 text-[11px] tracking-wider uppercase text-accent font-semibold">{pet.listingType === "adoption" ? "Adoption fee" : "Price"}</p>
-                <p className="mt-1.5 font-heading text-[34px] font-medium tracking-tight">{pet.listingType === "adoption" && !pet.price ? "Free" : `LKR ${pet.price?.toLocaleString()}`}</p>
+                <p className="mt-1.5 font-heading text-[34px] font-medium tracking-tight">{pet.listingType === "adoption" && !pet.price ? "Free" : formatCurrency(pet.price)}</p>
               </div>
               <span className={`text-[11px] font-semibold tracking-wider uppercase px-3.5 py-2 rounded-full whitespace-nowrap ${pet.listingType === "sale" ? "bg-[#E9EDE4] text-[#40543C]" : "bg-[#F7E9DF] text-[#8f4a28]"}`}>
                 For {pet.listingType}
@@ -245,7 +246,7 @@ const ListingDetails = () => {
                 <div className="px-4.5 pt-4 pb-4.5">
                   <div className="flex items-baseline justify-between gap-2.5">
                     <p className="m-0 font-heading text-[19px] font-medium text-[#292925]">{sp.title}</p>
-                    <p className="m-0 text-[13.5px] font-semibold text-primary whitespace-nowrap">{sp.listingType === "adoption" && !sp.price ? "Free" : `LKR ${sp.price?.toLocaleString()}`}</p>
+                    <p className="m-0 text-[13.5px] font-semibold text-primary whitespace-nowrap">{sp.listingType === "adoption" && !sp.price ? "Free" : formatCurrency(sp.price)}</p>
                   </div>
                   <p className="mt-1.25 text-xs text-[#6e6e64]">
                     {sp.breed} · {sp.location}

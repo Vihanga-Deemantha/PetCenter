@@ -2,13 +2,14 @@ import Shelter from "../models/Shelter.js";
 import Campaign from "../models/Campaign.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import escapeRegExp from "../utils/escapeRegExp.js";
-import { clampLimit } from "../utils/pagination.js";
+import { clampLimit, clampPage } from "../utils/pagination.js";
 
 // ─── Get Public Shelters (Filterable, Paginated, Searchable) ───────────────────
 // GET /api/v1/shelters — Public
 export const getShelters = async (req, res, next) => {
   try {
-    const { page = 1, type, city, search } = req.query;
+    const { type, city, search } = req.query;
+    const page = clampPage(req.query.page);
     const limit = clampLimit(req.query.limit, { max: 60, fallback: 10 });
 
     const filter = { isActive: true };
@@ -25,7 +26,7 @@ export const getShelters = async (req, res, next) => {
       filter.$text = { $search: search };
     }
 
-    const skip = (parseInt(page) - 1) * limit;
+    const skip = (page - 1) * limit;
 
     // Omit sensitive contact fields to prevent bulk scraping
     const [shelters, total] = await Promise.all([
@@ -42,7 +43,7 @@ export const getShelters = async (req, res, next) => {
 
     return sendSuccess(res, shelters, 200, {
       pagination: {
-        currentPage: parseInt(page),
+        currentPage: page,
         totalPages,
         totalItems: total,
         itemsPerPage: limit,

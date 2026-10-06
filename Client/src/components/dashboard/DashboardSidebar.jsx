@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { LogOut, ArrowLeft } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { DASHBOARD_TABS } from "./dashboardTabs";
+import logo from "../../assets/logo.png";
 
 export default function DashboardSidebar({ activeTab, onSelect }) {
   const { user, logout } = useAuth();
@@ -16,7 +17,7 @@ export default function DashboardSidebar({ activeTab, onSelect }) {
   return (
     <aside className="z-20 w-full shrink-0 bg-[#292925] text-light md:sticky md:top-0 md:flex md:h-screen md:w-64 md:flex-col">
       <NavLink to="/" className="hidden items-center gap-2.5 border-b border-white/10 px-6 py-6 md:flex">
-        <span className="w-8.5 h-8.5 rounded-full bg-accent flex items-center justify-center text-light font-heading text-[17px]">P</span>
+        <img src={logo} alt="PetCenter" className="h-9 w-9 shrink-0 object-contain" />
         <span className="font-heading text-[19px] font-semibold tracking-tight">PetCenter</span>
       </NavLink>
 

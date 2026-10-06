@@ -87,6 +87,17 @@ describe("GET /api/v1/orders — user's own orders", () => {
     expect(res.body.data.orders).toHaveLength(1);
     expect(res.body.data.orders[0].status).toBe("delivered");
   });
+
+  it("clamps invalid pagination instead of issuing dangerous database limits", async () => {
+    const { token } = await registerAndLogin("orderquery-pagination@test.com");
+    const res = await request(app)
+      .get("/api/v1/orders?page=-5&limit=999999")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.pagination.currentPage).toBe(1);
+    expect(res.body.data.pagination.itemsPerPage).toBe(100);
+  });
 });
 
 describe("GET /api/v1/orders/:orderId — single order, ownership enforced", () => {

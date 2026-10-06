@@ -73,11 +73,12 @@ export const handleWebhookEvent = async (req, res, next) => {
 
     return sendSuccess(res, { received: true });
   } catch (error) {
-    // Stripe treats any non-2xx as "retry this event," which would retry-storm
-    // on a bug in our own handler rather than a real delivery problem. Log it
-    // for us to investigate, but always ack the event.
+    // A 2xx tells Stripe the event was durably processed. Returning success
+    // after a database/network/refund failure permanently discards Stripe's
+    // built-in retries and can strand paid orders, so transient processing
+    // failures must remain non-2xx.
     console.error("🚨 Webhook Handler Error:", error);
-    return sendSuccess(res, { received: true, processingError: true });
+    return sendError(res, "Webhook processing failed", 500);
   }
 };
 
@@ -108,6 +109,10 @@ async function handleCheckoutSucceeded(paymentIntent) {
   if (!verificationResult.success) {
     console.error(`❌ Payment verification failed: ${verificationResult.message}`);
 
+    if (verificationResult.retryable) {
+      throw new Error(`Retryable checkout verification failure: ${verificationResult.message}`);
+    }
+
     // Refund checkout if verification failed
     try {
       const refund = await stripe.refunds.create({
@@ -117,6 +122,7 @@ async function handleCheckoutSucceeded(paymentIntent) {
       console.log(`🔄 Checkout refund triggered: ${refund.id}`);
     } catch (refundError) {
       console.error(`⚠️ Checkout refund failed: ${refundError.message}`);
+      throw refundError;
     }
     return;
   }
@@ -247,16 +253,23 @@ async function handleChargeRefunded(charge) {
         const freshOrder = await Order.findById(order._id).session(session);
         if (!freshOrder || freshOrder.paymentStatus === "refunded") return;
 
+        // The cancellation endpoints restore stock before asking Stripe for
+        // the refund and mark the order `refund_pending`. A subsequent
+        // charge.refunded event must finish the payment status without
+        // restoring the same inventory a second time.
+        const stockNeedsRestoring = freshOrder.status !== "cancelled";
         freshOrder.paymentStatus = "refunded";
         freshOrder.status = "cancelled";
         await freshOrder.save({ session });
 
-        for (const item of freshOrder.items) {
-          await Product.findByIdAndUpdate(
-            item.productId,
-            { $inc: { stock: item.quantity, soldCount: -item.quantity } },
-            { session }
-          );
+        if (stockNeedsRestoring) {
+          for (const item of freshOrder.items) {
+            await Product.findByIdAndUpdate(
+              item.productId,
+              { $inc: { stock: item.quantity, soldCount: -item.quantity } },
+              { session }
+            );
+          }
         }
       });
     } finally {

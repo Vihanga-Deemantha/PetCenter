@@ -3,6 +3,7 @@ import EcosystemBuild from "../models/EcosystemBuild.js";
 import PET_CONFIGS, { SUPPORTED_PET_TYPES } from "../config/petConfig.js";
 import { getGeminiClient } from "../config/gemini.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
+import { clampLimit, clampPage } from "../utils/pagination.js";
 
 // ─── Helper: ownerOnly guard ──────────────────────────────────────────────────
 // Inline ownership check — avoids a separate middleware file.
@@ -457,11 +458,11 @@ export const togglePublish = async (req, res, next) => {
 export const getGallery = async (req, res, next) => {
   try {
     const {
-      page = 1,
-      limit = 12,
       petType,
       sort = "newest",
     } = req.query;
+    const page = clampPage(req.query.page);
+    const limit = clampLimit(req.query.limit, { max: 60, fallback: 12 });
 
     const filter = { isPublished: true };
     if (petType && SUPPORTED_PET_TYPES.includes(petType)) {
@@ -471,13 +472,13 @@ export const getGallery = async (req, res, next) => {
     let sortObj = { publishedAt: -1 }; // newest
     if (sort === "mostCloned") sortObj = { cloneCount: -1 };
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (page - 1) * limit;
 
     const [builds, total] = await Promise.all([
       EcosystemBuild.find(filter)
         .sort(sortObj)
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(limit)
         .populate("userId", "name") // Only expose display name
         .lean(),
       EcosystemBuild.countDocuments(filter),
@@ -485,10 +486,10 @@ export const getGallery = async (req, res, next) => {
 
     return sendSuccess(res, builds, 200, {
       pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(total / parseInt(limit)),
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
         totalItems: total,
-        itemsPerPage: parseInt(limit),
+        itemsPerPage: limit,
       },
     });
   } catch (error) {

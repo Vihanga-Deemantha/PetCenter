@@ -37,6 +37,18 @@ const pendingCheckoutSchema = new mongoose.Schema({
   subtotal: { type: Number, required: true },
   shippingFee: { type: Number, required: true },
   totalAmount: { type: Number, required: true },
+  // Keep fulfillment data in the same server-owned snapshot as the items and
+  // totals.  The client confirmation endpoint can then finalize an order
+  // without trusting address data posted after payment or depending on
+  // Stripe webhook metadata being delivered first.
+  shippingAddress: {
+    fullName: { type: String },
+    addressLine1: { type: String },
+    addressLine2: { type: String, default: "" },
+    city: { type: String },
+    country: { type: String },
+    postalCode: { type: String },
+  },
   createdAt: {
     type: Date,
     default: Date.now,

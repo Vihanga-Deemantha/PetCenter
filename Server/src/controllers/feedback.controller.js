@@ -2,6 +2,7 @@ import PlatformFeedback from "../models/PlatformFeedback.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 import { createNotification } from "./notification.controller.js";
 import User from "../models/User.js";
+import { clampLimit } from "../utils/pagination.js";
 
 // ─── POST /api/v1/feedback — Submit platform feedback (Protected) ────────────
 export const submitFeedback = async (req, res, next) => {
@@ -60,11 +61,11 @@ export const submitFeedback = async (req, res, next) => {
 // ─── GET /api/v1/feedback/public — Get top feedback for homepage (Public) ────
 export const getPublicFeedbacks = async (req, res, next) => {
   try {
-    const { limit = 6 } = req.query;
+    const limit = clampLimit(req.query.limit, { max: 20, fallback: 6 });
 
     const feedbacks = await PlatformFeedback.find({ isVisible: true, comment: { $ne: "" }, rating: { $gte: 4 } })
       .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
+      .limit(limit)
       .populate("userId", "name profileImage")
       .lean();
 
